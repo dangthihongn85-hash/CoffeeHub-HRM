@@ -1,0 +1,65 @@
+@import '@angular/material/prebuilt-themes/indigo-pink.css';
+
+:root {
+  --primary: #4B49AC;       /* Deep Indigo/Purple */
+  --primary-hover: #3b3986; 
+  --secondary: #28a745;     /* Teal/Green */
+  --bg-color: #F5F7FF;      /* Light Gray/Blue background for Attendly */
+  --surface: #FFFFFF;
+  --text-main: #333333;     /* Dark Charcoal */
+  --text-muted: #888888;    /* Medium Gray */
+  --border-light: #eaedf2;
+  
+  --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body, h1, h2, h3, h4, h5, h6, p, span:not(.mat-icon), div, input, button, a {
+  font-family: 'Plus Jakarta Sans', 'Outfit', sans-serif !important;
+}
+
+.mat-icon, .material-icons {
+  font-family: 'Material Icons' !important;
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  -webkit-font-smoothing: antialiased;
+}
+
+.mat-mdc-card {
+  border-radius: 20px !important;
+  box-shadow: var(--shadow-soft) !important;
+  border: none !important;
+  background: var(--surface) !important;
+}
+
+.mat-mdc-button, .mat-mdc-raised-button {
+  border-radius: 12px !important;
+  font-weight: 600 !important;
+  text-transform: none !important;
+  box-shadow: none !important;
+  transition: all 0.3s ease !important;
+}
+
+.mat-mdc-raised-button.mat-primary {
+  background-color: var(--primary) !important;
+  color: #fff !important;
+}
+
+.mat-mdc-raised-button.mat-primary:hover {
+  background-color: var(--primary-hover) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 15px rgba(75, 73, 172, 0.3) !important;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cfd8dc; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #b0bec5; }

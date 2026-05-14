@@ -1,0 +1,194 @@
+.attendance-container {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  animation: fadeUp 0.5s ease;
+}
+
+.header-section { margin-bottom: 0; }
+.breadcrumb { font-size: 13px; color: var(--text-muted); font-weight: 600; margin-bottom: 8px; }
+.header-section h2 { font-size: 26px; font-weight: 800; color: var(--text-main); margin: 0 0 8px 0; letter-spacing: -0.5px; }
+.header-section p { margin: 0; color: var(--text-muted); font-size: 14px; font-weight: 500; }
+
+/* Grid Layout for Face Recognition */
+.face-recognition-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+/* Camera Card */
+.camera-card {
+  border-radius: 28px !important;
+  padding: 30px !important;
+  text-align: center;
+  box-shadow: var(--shadow-lg) !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.camera-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  aspect-ratio: 4/3;
+  border-radius: 20px;
+  overflow: hidden;
+  background-color: #1e293b;
+  border: 4px solid transparent;
+  transition: all 0.3s;
+}
+
+.camera-wrapper.scanning-border {
+  border-color: var(--primary);
+  box-shadow: 0 0 20px rgba(75, 73, 172, 0.4);
+}
+
+.webcam-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1); /* Mirror effect */
+}
+
+.camera-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(30, 41, 59, 0.8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  z-index: 10;
+}
+
+.camera-overlay p { margin-top: 15px; font-weight: 600; }
+
+.scan-line {
+  position: absolute;
+  left: 0; width: 100%; height: 3px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 20px 5px rgba(255, 255, 255, 0.6);
+  z-index: 5;
+  animation: scan-v 2s ease-in-out infinite alternate;
+}
+
+@keyframes scan-v {
+  0% { top: 5%; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { top: 95%; opacity: 0; }
+}
+
+/* Status Text */
+.status-container { margin-top: 25px; }
+.status-container h3 { font-size: 16px; font-weight: 800; margin: 0; letter-spacing: 0.3px; }
+.idle-text { color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+.scanning-text { color: var(--primary); animation: blink 1s infinite alternate; }
+.success-text { color: #059669; }
+.fail-text { color: #e11d48; }
+
+@keyframes blink { 0% { opacity: 0.5; } 100% { opacity: 1; } }
+
+/* Actions Section */
+.actions-section {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.action-card {
+  border-radius: 28px !important;
+  padding: 30px !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+
+.action-card h3 { font-size: 18px; font-weight: 800; margin: 0 0 8px 0; color: var(--text-main); }
+.action-card p { font-size: 14px; color: var(--text-muted); margin-bottom: 20px; }
+
+.action-buttons {
+  display: flex;
+  gap: 15px;
+}
+
+.checkin-btn, .checkout-btn {
+  flex: 1;
+  height: 54px;
+  border-radius: 14px !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.checkin-btn { background-color: var(--primary) !important; color: white !important; }
+.checkout-btn { background-color: #059669 !important; color: white !important; }
+
+.checkin-btn mat-icon, .checkout-btn mat-icon { margin-right: 8px; }
+
+.checkin-btn:disabled, .checkout-btn:disabled, .register-btn:disabled {
+  background-color: #cbd5e1 !important;
+  color: #64748b !important;
+  cursor: not-allowed;
+}
+
+/* Admin Section */
+.admin-card { background-color: #f8fafc; border: 1px dashed var(--border-light); }
+.register-form { display: flex; flex-direction: column; gap: 15px; }
+
+.emp-select {
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  padding: 12px 15px;
+  font-size: 14px;
+  font-weight: 600;
+  outline: none;
+  font-family: inherit;
+  background: white;
+  color: var(--text-main);
+  width: 100%;
+  transition: all 0.2s;
+}
+
+.emp-select:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(75,73,172,0.1); }
+.emp-select.small { min-width: 120px; width: auto; }
+
+.register-btn {
+  height: 50px;
+  border-radius: 12px !important;
+  font-weight: 700 !important;
+}
+
+/* Monthly Summary (Reused) */
+.summary-card { border-radius: 24px !important; padding: 30px !important; box-shadow: var(--shadow-soft) !important; border: 1px solid var(--border-light) !important; }
+.summary-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+.summary-toolbar h3 { margin: 0 0 6px 0; font-size: 18px; font-weight: 800; color: var(--text-main); }
+.summary-toolbar p { margin: 0; font-size: 13px; color: var(--text-muted); font-weight: 500; }
+.summary-filters { display: flex; gap: 12px; align-items: center; }
+.load-btn { height: 44px; border-radius: 12px !important; font-weight: 600 !important; }
+
+.summary-stats { display: flex; gap: 16px; margin-bottom: 20px; }
+.chip { display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 20px; font-size: 14px; font-weight: 700; }
+.chip mat-icon { font-size: 18px; width: 18px; height: 18px; font-family: 'Material Icons' !important; }
+.chip.green { background: #d1fae5; color: #065f46; }
+.chip.amber { background: #fef3c7; color: #92400e; }
+.chip.rose { background: #ffe4e6; color: #9f1239; }
+
+.custom-table { width: 100%; border-collapse: collapse; }
+.custom-table th { text-align: left; padding: 15px; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); border-bottom: 2px solid var(--border-light); letter-spacing: 0.5px; }
+.custom-table td { padding: 14px 15px; font-size: 14px; color: var(--text-main); font-weight: 500; border-bottom: 1px solid #f1f5f9; }
+.custom-table tbody tr:hover { background: #f8fafc; }
+
+.chip-inline { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; }
+.chip-inline.green { background: #d1fae5; color: #065f46; }
+.chip-inline.amber { background: #fef3c7; color: #92400e; }
+.chip-inline.rose { background: #ffe4e6; color: #9f1239; }
+
+.empty-summary { text-align: center; padding: 40px; color: var(--text-muted); }
+.empty-summary mat-icon { font-size: 48px; width: 48px; height: 48px; color: #cbd5e1; font-family: 'Material Icons' !important; }
+.empty-summary p { margin-top: 15px; font-size: 14px; font-weight: 500; }
+
+@keyframes fadeUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }

@@ -1,0 +1,84 @@
+.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; animation: fadeUp 0.4s ease; }
+.page-title { margin: 0; font-size: 26px; font-weight: 800; color: var(--text-main); letter-spacing: -0.5px; }
+.page-subtitle { margin: 5px 0 0 0; color: var(--text-muted); font-size: 14px; }
+.add-dept-btn { height: 44px; border-radius: 14px !important; font-weight: 700 !important; padding: 0 20px; box-shadow: var(--shadow-lg) !important; }
+.add-dept-btn mat-icon { font-family: 'Material Icons' !important; }
+
+/* ADD PANEL */
+.add-panel { border-radius: 20px !important; padding: 24px !important; margin-bottom: 24px; border: 2px dashed #c7d2fe !important; background: #f5f3ff !important; box-shadow: none !important; animation: fadeUp 0.3s ease; }
+.add-panel-inner { display: flex; align-items: center; gap: 16px; }
+.panel-icon { width: 48px; height: 48px; border-radius: 14px; background: var(--primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.panel-icon mat-icon { color: white; font-family: 'Material Icons' !important; }
+.panel-inputs { flex: 1; display: flex; gap: 12px; }
+.save-btn { border-radius: 12px !important; font-weight: 700 !important; height: 44px; }
+.save-btn mat-icon { font-family: 'Material Icons' !important; }
+
+/* GRID */
+.dept-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(540px, 1fr)); gap: 24px; animation: fadeUp 0.5s ease; }
+
+/* DEPT CARD */
+.dept-card { border-radius: 22px !important; padding: 0 !important; box-shadow: var(--shadow-soft) !important; border: 1px solid var(--border-light) !important; overflow: hidden; }
+
+.dept-header { display: flex; align-items: center; gap: 16px; padding: 22px 22px; background: linear-gradient(to right, #fafafa, #f5f7ff); border-bottom: 1px solid #f1f5f9; }
+.dept-icon { width: 50px; height: 50px; border-radius: 14px; background: linear-gradient(135deg, #4B49AC, #7674cc); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.dept-icon.edit-mode { background: linear-gradient(135deg, #f59e0b, #fbbf24) !important; }
+.dept-icon mat-icon { color: white; font-size: 26px; width: 26px; height: 26px; font-family: 'Material Icons' !important; }
+.dept-title-block { flex: 1; }
+.dept-title-block h3 { margin: 0 0 4px 0; font-size: 18px; font-weight: 800; color: var(--text-main); }
+.dept-title-block p { margin: 0; font-size: 13px; color: var(--text-muted); font-weight: 500; }
+.edit-dept-inputs { flex: 1; display: flex; gap: 10px; }
+.dept-actions { display: flex; gap: 4px; }
+.dept-actions button mat-icon { font-family: 'Material Icons' !important; }
+
+/* POSITIONS TABLE */
+.positions-section { padding: 18px 22px; border-bottom: 1px solid #f1f5f9; }
+.positions-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.pos-label { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.pos-label mat-icon { font-size: 16px; width: 16px; height: 16px; font-family: 'Material Icons' !important; }
+.add-pos-btn { color: var(--primary) !important; font-weight: 700 !important; height: 32px; border-radius: 10px !important; font-size: 13px !important; }
+.add-pos-btn mat-icon { font-family: 'Material Icons' !important; font-size: 16px; }
+
+.positions-table { margin-top: 10px; width: 100%; }
+.positions-table th { background: transparent !important; padding: 8px 12px !important; color: #94a3b8 !important; border-bottom: 1px solid #f1f5f9 !important; }
+.positions-table td { padding: 10px 12px !important; border-bottom: 1px solid #f8fafc !important; }
+
+.pos-count-badge { background: #f1f5f9; color: #475569; padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 700; }
+.mini-btn { 
+  width: 32px !important; 
+  height: 32px !important; 
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  line-height: normal !important;
+  min-width: unset !important;
+}
+.mini-btn mat-icon { 
+  font-size: 18px !important; 
+  width: 18px !important; 
+  height: 18px !important; 
+  margin: 0 !important;
+}
+.text-rose { color: #f43f5e !important; }
+
+.inline-input.xsmall { padding: 5px 10px; font-size: 12px; width: 100%; }
+.add-pos-form { display: flex; align-items: center; gap: 8px; margin: 10px 0; background: #f5f7ff; padding: 8px; border-radius: 10px; }
+
+/* EMPLOYEES */
+.emp-list { padding: 16px 22px; }
+.emp-list-header { font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+.emp-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.emp-chip { display: flex; align-items: center; gap: 8px; background: #f8fafc; border: 1px solid var(--border-light); border-radius: 12px; padding: 6px 12px; font-size: 13px; font-weight: 600; color: var(--text-main); }
+.emp-chip img { border-radius: 8px; width: 28px; height: 28px; }
+.pos-chip { background: #f0fdf4; color: #059669; border-radius: 8px; padding: 2px 8px; font-size: 11px; font-weight: 700; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; }
+.status-dot.active { background: #22c55e; }
+.status-dot.leave { background: #f43f5e; }
+
+/* SHARED */
+.inline-input { border: 1px solid var(--border-light); border-radius: 10px; padding: 9px 14px; font-family: inherit; font-size: 14px; outline: none; background: white; transition: all 0.2s; }
+.inline-input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(75,73,172,0.1); }
+.inline-input.small { padding: 7px 12px; font-size: 13px; width: 200px; }
+button mat-icon { font-family: 'Material Icons' !important; }
+
+@keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }

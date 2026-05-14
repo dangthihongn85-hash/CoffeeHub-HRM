@@ -1,0 +1,57 @@
+.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; animation: fadeUp 0.4s ease; }
+.page-title { margin: 0; font-size: 26px; font-weight: 800; color: var(--text-main); letter-spacing: -0.5px; }
+.page-subtitle { margin: 5px 0 0 0; color: var(--text-muted); font-size: 14px; }
+.add-btn { height: 44px; border-radius: 14px !important; font-weight: 600; padding: 0 20px; box-shadow: var(--shadow-lg) !important; animation: fadeUp 0.4s ease; transition: background 0.3s }
+
+.stats-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-bottom: 30px; animation: fadeUp 0.5s ease; }
+.stat-card { border-radius: 20px !important; padding: 30px !important; display: flex; flex-direction: row !important; align-items: center; gap: 20px; box-shadow: var(--shadow-soft) !important;}
+.stat-card ::ng-deep .mat-mdc-card-content { padding: 0 !important; }
+.stat-icon { width: 64px; height: 64px; border-radius: 18px; display: flex; align-items: center; justify-content: center; }
+.stat-icon mat-icon { color: white; font-size: 32px; width: 32px; height: 32px; font-family: 'Material Icons' !important; }
+.bg-indigo { background: linear-gradient(135deg, #4B49AC, #706cd1); box-shadow: 0 10px 15px -3px rgba(75, 73, 172, 0.3); }
+.bg-emerald { background: linear-gradient(135deg, #10b981, #34d399); box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3); }
+.bg-rose { background: linear-gradient(135deg, #f43f5e, #fb7185); box-shadow: 0 10px 15px -3px rgba(244, 63, 94, 0.3); }
+
+.stat-info p { margin: 0; font-size: 13px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+.stat-info h3 { margin: 4px 0 0 0; font-size: 32px; font-weight: 800; color: var(--text-main); line-height: 1; }
+
+.data-card { border-radius: 24px !important; animation: fadeUp 0.6s ease; padding: 24px !important; box-shadow: var(--shadow-sm) !important; border: 1px solid var(--border-light) !important; }
+
+.toolbar-table { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 0 10px; }
+.toolbar-table h3 { margin: 0; font-size: 18px; font-weight: 800; color: var(--text-main); }
+
+.search-box { display: flex; align-items: center; background: #f8fafc; border: 1px solid var(--border-light); border-radius: 12px; padding: 0 16px; height: 42px; width: 300px; transition: all 0.2s; }
+.search-box:focus-within { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(75,73,172,0.1); }
+.search-box mat-icon { color: #94a3b8; font-size: 20px; margin-right: 10px; font-family: 'Material Icons' !important; }
+.search-box input { border: none; background: transparent; outline: none; width: 100%; font-size: 14px; font-weight: 500; font-family: inherit; }
+
+.custom-table { width: 100%; border-collapse: collapse; }
+.custom-table th { text-align: left; padding: 18px 15px; color: var(--text-muted); font-size: 13px; font-weight: 700; text-transform: uppercase; border-bottom: 2px solid var(--border-light); letter-spacing: 0.5px;}
+.custom-table td { padding: 16px 15px; border-bottom: 1px solid #f1f5f9; color: var(--text-main); font-size: 14px; font-weight: 500; }
+.custom-table tr:last-child td { border-bottom: none; }
+.custom-table tbody tr { transition: all 0.2s; }
+.custom-table tbody tr:hover { background-color: #f8fafc; }
+
+.add-row-form { background-color: #eff6ff !important; border-radius: 16px; }
+.inline-input { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; font-family: inherit; }
+.inline-input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(75,73,172, 0.2); }
+
+.avatar-sm { width: 40px; height: 40px; border-radius: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+.avatar-sm img { width: 100%; height: 100%; object-fit: cover; }
+
+.status-badge { cursor: pointer; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; transition: transform 0.2s;}
+.status-badge:hover { transform: scale(1.05); }
+.status-badge.active { background-color: #d1fae5; color: #059669; border: 1px solid #a7f3d0; }
+.status-badge.leave { background-color: #ffe4e6; color: #e11d48; border: 1px solid #fecdd3; }
+
+button mat-icon { font-family: 'Material Icons' !important; }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.type-badge { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: 0.3px; }
+.FULL_TIME { background: #e0f2fe; color: #0369a1; }
+.PART_TIME { background: #fef3c7; color: #92400e; }
+.MANAGER { background: #ede9fe; color: #6d28d9; }

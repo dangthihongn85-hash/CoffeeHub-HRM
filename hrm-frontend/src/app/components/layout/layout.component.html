@@ -1,0 +1,97 @@
+<mat-sidenav-container class="sidenav-container">
+  <mat-sidenav #sidenav mode="side" opened class="sidenav">
+    <div class="brand">
+      <div class="logo-box">
+        <mat-icon>fingerprint</mat-icon>
+      </div>
+      <span>ATTENDLY</span>
+    </div>
+    
+    <div class="nav-section-title">MAIN MENU</div>
+    
+    <mat-nav-list class="custom-nav-list">
+      <a mat-list-item routerLink="/employees" routerLinkActive="active-link">
+        <div class="nav-item-content">
+          <mat-icon>people_outline</mat-icon>
+          <span>Nhân Sự</span>
+        </div>
+      </a>
+      <a mat-list-item routerLink="/attendance" routerLinkActive="active-link">
+        <div class="nav-item-content">
+          <mat-icon>fingerprint</mat-icon>
+          <span>Chấm Công</span>
+        </div>
+      </a>
+      <a mat-list-item routerLink="/departments" routerLinkActive="active-link">
+        <div class="nav-item-content">
+          <mat-icon>account_tree</mat-icon>
+          <span>Phòng Ban & Chức Vụ</span>
+        </div>
+      </a>
+      <a mat-list-item routerLink="/salary-management" routerLinkActive="active-link">
+        <div class="nav-item-content">
+          <mat-icon>account_balance_wallet</mat-icon>
+          <span>Quản Lý Lương</span>
+        </div>
+      </a>
+      <a mat-list-item routerLink="/salaries" routerLinkActive="active-link">
+        <div class="nav-item-content">
+          <mat-icon>auto_awesome</mat-icon>
+          <span>AI Review & Báo Cáo</span>
+        </div>
+      </a>
+    </mat-nav-list>
+
+    <div class="nav-footer">
+      <div class="profile-card">
+        <div class="avatar">A</div>
+        <div class="user-info">
+          <h6>Admin User</h6>
+          <p>admin@bmad.com</p>
+        </div>
+      </div>
+    </div>
+  </mat-sidenav>
+
+  <mat-sidenav-content class="main-content">
+    <mat-toolbar class="top-toolbar">
+      <div class="header-left">
+        <button mat-icon-button (click)="sidenav.toggle()" class="menu-btn">
+          <mat-icon>menu</mat-icon>
+        </button>
+        <div class="header-search">
+          <mat-icon>search</mat-icon>
+          <input type="text" placeholder="Tìm kiếm nhanh...">
+        </div>
+        <button mat-icon-button class="filter-btn">
+          <mat-icon>tune</mat-icon>
+        </button>
+      </div>
+
+      <span class="spacer"></span>
+      
+      <div class="header-actions">
+        <button mat-icon-button class="notify-btn">
+          <mat-icon>notifications_none</mat-icon>
+          <span class="badge"></span>
+        </button>
+        <div class="profile-card">
+          <div class="user-info">
+            <h6>Amira Manager</h6>
+            <p>Admin</p>
+          </div>
+          <div class="avatar">
+            <img src="https://ui-avatars.com/api/?name=Amira&background=4B49AC&color=fff&bold=true" alt="Avatar">
+          </div>
+        </div>
+        <button mat-icon-button class="logout-btn" (click)="logout()">
+          <mat-icon>exit_to_app</mat-icon>
+        </button>
+      </div>
+    </mat-toolbar>
+    
+    <div class="content-body">
+      <router-outlet></router-outlet>
+    </div>
+  </mat-sidenav-content>
+</mat-sidenav-container>

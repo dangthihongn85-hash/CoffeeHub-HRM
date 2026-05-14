@@ -1,0 +1,375 @@
+<!-- ══════════════════════════════════════════════════════════════════════════
+  QUẢN LÝ LƯƠNG – Salary Management Component
+  Luồng: Doanh thu → Chấm công → Tính giờ → Lương → Thưởng/Phạt → POOL → Xuất
+════════════════════════════════════════════════════════════════════════════ -->
+
+<!-- ── Header ──────────────────────────────────────────────────────────────── -->
+<div class="page-header">
+  <div>
+    <h2 class="page-title">💰 Quản Lý Lương</h2>
+    <p class="page-subtitle">Tính lương tự động · Thưởng doanh thu POOL · Xuất bảng lương</p>
+  </div>
+  <div class="header-actions">
+    <div class="period-selects">
+      <select class="emp-select" [(ngModel)]="selectedMonth" (change)="onPeriodChange()">
+        <option *ngFor="let m of months" [value]="m">Tháng {{ m }}</option>
+      </select>
+      <select class="emp-select" [(ngModel)]="selectedYear" (change)="onPeriodChange()">
+        <option *ngFor="let y of years" [value]="y">{{ y }}</option>
+      </select>
+    </div>
+    <button mat-raised-button class="export-btn" (click)="exportExcel()">
+      <mat-icon>download</mat-icon> Xuất CSV
+    </button>
+  </div>
+</div>
+
+<!-- ── Tab Navigation ──────────────────────────────────────────────────────── -->
+<div class="tab-bar">
+  <button class="tab-btn" [class.active]="activeTab==='payroll'" (click)="activeTab='payroll'">
+    <mat-icon>payments</mat-icon> Bảng Lương
+  </button>
+  <button class="tab-btn" [class.active]="activeTab==='revenue'" (click)="activeTab='revenue'">
+    <mat-icon>trending_up</mat-icon> Doanh Thu
+    <span class="tab-badge" *ngIf="bonusPool > 0">✓</span>
+  </button>
+  <button class="tab-btn" [class.active]="activeTab==='employees'" (click)="activeTab='employees'">
+    <mat-icon>manage_accounts</mat-icon> Loại Nhân Viên
+  </button>
+</div>
+
+<!-- ══════════════════════════ TAB: DOANH THU ════════════════════════════════ -->
+<div *ngIf="activeTab === 'revenue'" class="tab-content">
+
+  <mat-card class="revenue-card">
+    <div class="revenue-header">
+      <div class="revenue-icon"><mat-icon>store</mat-icon></div>
+      <div>
+        <h3>Nhập Doanh Thu Tháng {{ selectedMonth }}/{{ selectedYear }}</h3>
+        <p>Quỹ thưởng = 1% doanh thu → chia theo hệ số POOL cho Full-time &amp; Manager</p>
+      </div>
+    </div>
+
+    <div class="revenue-form">
+      <div class="form-group">
+        <label>Doanh thu tháng (VNĐ)</label>
+        <input type="number" class="revenue-input" [(ngModel)]="monthlyRevenue"
+               placeholder="Ví dụ: 500000000" min="0">
+      </div>
+      <div class="form-group">
+        <label>Ghi chú</label>
+        <input type="text" class="revenue-input" [(ngModel)]="revenueNotes"
+               placeholder="Ghi chú nếu có...">
+      </div>
+      <button mat-raised-button class="save-revenue-btn" (click)="saveRevenue()" [disabled]="loadingRevenue">
+        <mat-icon>save</mat-icon> {{ loadingRevenue ? 'Đang lưu...' : 'Lưu Doanh Thu' }}
+      </button>
+    </div>
+
+    <!-- Pool Preview -->
+    <div class="pool-preview" *ngIf="bonusPool > 0">
+      <div class="pool-title">
+        <mat-icon>calculate</mat-icon>
+        Quỹ Thưởng POOL – T{{ selectedMonth }}/{{ selectedYear }}
+      </div>
+      <div class="pool-stats">
+        <div class="pool-stat">
+          <span class="pool-label">Doanh thu</span>
+          <span class="pool-value">{{ fmt(monthlyRevenue) }}</span>
+        </div>
+        <div class="pool-stat highlight">
+          <span class="pool-label">Quỹ thưởng (1%)</span>
+          <span class="pool-value">{{ fmt(bonusPool) }}</span>
+        </div>
+        <ng-container *ngIf="poolBreakdown">
+          <div class="pool-stat">
+            <span class="pool-label">Total weight</span>
+            <span class="pool-value">{{ poolBreakdown.ft }} × 1 + {{ poolBreakdown.mg }} × 2 = {{ poolBreakdown.totalWeight }}</span>
+          </div>
+          <div class="pool-stat">
+            <span class="pool-label">Giá trị 1 điểm</span>
+            <span class="pool-value accent">{{ fmt(poolBreakdown.pointValue) }}</span>
+          </div>
+          <div class="pool-stat">
+            <span class="pool-label">Full-time nhận</span>
+            <span class="pool-value green">{{ fmt(poolBreakdown.ftBonus) }} / người</span>
+          </div>
+          <div class="pool-stat">
+            <span class="pool-label">Manager nhận</span>
+            <span class="pool-value gold">{{ fmt(poolBreakdown.mgBonus) }} / người</span>
+          </div>
+          <div class="pool-stat">
+            <span class="pool-label">Part-time nhận</span>
+            <span class="pool-value muted">0 ₫ (không tham gia)</span>
+          </div>
+        </ng-container>
+      </div>
+    </div>
+  </mat-card>
+
+  <!-- Business Rules Info -->
+  <mat-card class="rules-card">
+    <h4><mat-icon>info</mat-icon> Quy Tắc Tính Lương</h4>
+    <div class="rules-grid">
+      <div class="rule-block">
+        <div class="rule-title"><span class="badge badge-parttime">Part-time</span></div>
+        <ul>
+          <li>20,000₫/giờ · OT ×1.5</li>
+          <li>❌ Không thưởng doanh thu</li>
+          <li>❌ Không thưởng chuyên cần</li>
+        </ul>
+      </div>
+      <div class="rule-block">
+        <div class="rule-title"><span class="badge badge-fulltime">Full-time</span></div>
+        <ul>
+          <li>25,000₫/giờ · OT ×1.5</li>
+          <li>✅ Đủ 26 ngày: +200,000₫</li>
+          <li>✅ Không trễ: +100,000₫</li>
+          <li>✅ Thưởng POOL (hệ số ×1)</li>
+        </ul>
+      </div>
+      <div class="rule-block">
+        <div class="rule-title"><span class="badge badge-manager">Manager</span></div>
+        <ul>
+          <li>8,000,000 + 500,000₫/tháng</li>
+          <li>❌ Không OT</li>
+          <li>✅ Đủ 26 ngày: +200,000₫</li>
+          <li>✅ Không trễ: +100,000₫</li>
+          <li>✅ Thưởng POOL (hệ số ×2)</li>
+        </ul>
+      </div>
+      <div class="rule-block penalty-block">
+        <div class="rule-title">⚠️ Phạt</div>
+        <ul>
+          <li>Đi trễ &gt;10 phút: -20,000₫</li>
+          <li>Thiếu check-out: -50,000₫</li>
+          <li>Nghỉ không phép: -100,000₫</li>
+          <li>Nghỉ đặc biệt: ✅ Không phạt</li>
+        </ul>
+      </div>
+    </div>
+  </mat-card>
+</div>
+
+<!-- ══════════════════════════ TAB: LOẠI NV ══════════════════════════════════ -->
+<div *ngIf="activeTab === 'employees'" class="tab-content">
+  <mat-card class="data-card">
+    <div class="toolbar-table">
+      <div>
+        <h3>Phân Loại Nhân Viên</h3>
+        <p class="sub-text">Chọn loại nhân viên để áp dụng đúng mức lương và thưởng khi tính bảng lương</p>
+      </div>
+    </div>
+    <table class="custom-table">
+      <thead>
+        <tr>
+          <th>Nhân Viên</th>
+          <th>Phòng Ban</th>
+          <th>Chức Vụ</th>
+          <th>Loại NV</th>
+          <th>Lưu</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let emp of employees">
+          <td>
+            <div class="employee-cell">
+              <img class="avatar-sm" [src]="'https://ui-avatars.com/api/?name='+emp.name+'&background=e5ebfe&color=4B49AC&bold=true'">
+              <span>{{ emp.name }}</span>
+            </div>
+          </td>
+          <td>{{ emp.department || 'N/A' }}</td>
+          <td>{{ emp.position  || 'N/A' }}</td>
+          <td>
+            <select class="type-select" [(ngModel)]="emp.employeeType">
+              <option value="PART_TIME">Part-time</option>
+              <option value="FULL_TIME">Full-time</option>
+              <option value="MANAGER">Manager</option>
+            </select>
+          </td>
+          <td>
+            <button mat-icon-button color="primary" (click)="saveEmployeeType(emp)" title="Lưu">
+              <mat-icon>save</mat-icon>
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </mat-card>
+</div>
+
+<!-- ══════════════════════════ TAB: BẢNG LƯƠNG ═══════════════════════════════ -->
+<div *ngIf="activeTab === 'payroll'" class="tab-content">
+
+  <!-- Stats Cards -->
+  <div class="stats-cards" *ngIf="salaries.length > 0">
+    <mat-card class="stat-card">
+      <div class="stat-icon bg-indigo"><mat-icon>people</mat-icon></div>
+      <div class="stat-info">
+        <p>Nhân Viên</p>
+        <h3>{{ salaries.length }}</h3>
+      </div>
+    </mat-card>
+    <mat-card class="stat-card">
+      <div class="stat-icon bg-emerald"><mat-icon>account_balance_wallet</mat-icon></div>
+      <div class="stat-info">
+        <p>Tổng Quỹ Lương</p>
+        <h3 style="font-size:18px">{{ fmt(totalPayroll) }}</h3>
+      </div>
+    </mat-card>
+    <mat-card class="stat-card">
+      <div class="stat-icon bg-gold"><mat-icon>stars</mat-icon></div>
+      <div class="stat-info">
+        <p>Thưởng Doanh Thu</p>
+        <h3 style="font-size:18px">{{ fmt(totalBonusRevenue) }}</h3>
+      </div>
+    </mat-card>
+    <mat-card class="stat-card">
+      <div class="stat-icon bg-rose"><mat-icon>gavel</mat-icon></div>
+      <div class="stat-info">
+        <p>Tổng Phạt</p>
+        <h3 style="font-size:18px">{{ fmt(totalPenalty) }}</h3>
+      </div>
+    </mat-card>
+  </div>
+
+  <!-- Action bar -->
+  <mat-card class="data-card">
+    <div class="toolbar-table">
+      <div>
+        <h3>Bảng Lương Tháng {{ selectedMonth }}/{{ selectedYear }}</h3>
+        <p class="sub-text" *ngIf="salaries.length === 0">Nhập doanh thu rồi nhấn <strong>Tính Lương</strong> để tính cho tất cả nhân viên.</p>
+      </div>
+      <button mat-raised-button class="calc-btn" (click)="calculateAll()" [disabled]="loading">
+        <mat-icon>calculate</mat-icon>
+        {{ loading ? 'Đang tính...' : 'Tính Lương Tháng' }}
+      </button>
+    </div>
+
+    <div *ngIf="loading" class="loading-state">
+      <mat-spinner diameter="36" style="margin:auto"></mat-spinner>
+      <p>Đang tính lương cho tất cả nhân viên…</p>
+    </div>
+
+    <!-- Empty state -->
+    <div *ngIf="!loading && salaries.length === 0" class="empty-state">
+      <mat-icon>receipt_long</mat-icon>
+      <p>Chưa có dữ liệu lương tháng {{ selectedMonth }}/{{ selectedYear }}</p>
+      <small>Vào tab <strong>Doanh Thu</strong> nhập doanh thu trước, sau đó nhấn <em>Tính Lương Tháng</em>.</small>
+    </div>
+
+    <!-- Payroll Table -->
+    <div class="table-wrapper" *ngIf="!loading && salaries.length > 0">
+      <table class="custom-table">
+        <thead>
+          <tr>
+            <th>Nhân Viên</th>
+            <th>Ngày / Giờ</th>
+            <th>Lương CB</th>
+            <th>Thưởng CK</th>
+            <th>Thưởng DT</th>
+            <th class="text-danger">Phạt</th>
+            <th class="text-total">Tổng Lĩnh</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let sal of salaries" class="payroll-row" (click)="openDetail(sal)">
+            <td>
+              <div class="employee-cell">
+                <img class="avatar-sm"
+                     [src]="'https://ui-avatars.com/api/?name='+(sal.employeeName||sal.employee?.name)+'&background=e5ebfe&color=4B49AC&bold=true'">
+                <div>
+                  <div class="emp-name">
+                    {{ sal.employeeName || sal.employee?.name }}
+                    <span class="badge" [ngClass]="typeBadge(sal.employeeType)" style="margin-left: 6px; font-size: 10px; padding: 2px 6px; vertical-align: middle;">
+                      {{ typeLabel(sal.employeeType) }}
+                    </span>
+                  </div>
+                  <div class="emp-dept">{{ sal.department || sal.employee?.department }}</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="hours-cell">
+                <span>{{ sal.workDays || 0 }} ngày</span>
+                <span class="text-muted">{{ (sal.regularHours||0).toFixed(1) }}h + OT {{ (sal.otHours||0).toFixed(1) }}h</span>
+              </div>
+            </td>
+            <td class="money-col">{{ fmt(sal.baseSalary) }}</td>
+            <td class="money-col green">
+              <span *ngIf="(sal.bonusAttendance||0) > 0">+{{ fmt(sal.bonusAttendance) }}</span>
+              <span *ngIf="(sal.bonusAttendance||0) === 0" class="text-muted">—</span>
+            </td>
+            <td class="money-col gold">
+              <span *ngIf="(sal.bonusRevenue||0) > 0">+{{ fmt(sal.bonusRevenue) }}</span>
+              <span *ngIf="(sal.bonusRevenue||0) === 0" class="text-muted">—</span>
+            </td>
+            <td class="money-col red">
+              <span *ngIf="(sal.totalPenalty||0) > 0">-{{ fmt(sal.totalPenalty) }}</span>
+              <span *ngIf="(sal.totalPenalty||0) === 0" class="text-muted">—</span>
+            </td>
+            <td class="money-col total-col">{{ fmt(sal.totalSalary) }}</td>
+            <td>
+              <mat-icon class="detail-icon">chevron_right</mat-icon>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </mat-card>
+</div>
+
+<!-- ══════════════════════════ DETAIL SIDE PANEL ═════════════════════════════ -->
+<div class="overlay" *ngIf="selectedSalary" (click)="closeDetail()"></div>
+<div class="detail-panel" [class.open]="selectedSalary">
+  <ng-container *ngIf="selectedSalary">
+    <div class="detail-header">
+      <div>
+        <img class="avatar-lg"
+             [src]="'https://ui-avatars.com/api/?name='+selectedSalary.employeeName+'&background=e5ebfe&color=4B49AC&bold=true&size=128'">
+        <h3>{{ selectedSalary.employeeName }}</h3>
+        <p>{{ selectedSalary.department }} · {{ selectedSalary.position }}</p>
+        <span class="badge" [ngClass]="typeBadge(selectedSalary.employeeType)">{{ typeLabel(selectedSalary.employeeType) }}</span>
+      </div>
+      <button mat-icon-button (click)="closeDetail()"><mat-icon>close</mat-icon></button>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-title">📅 Chấm Công</div>
+      <div class="detail-row"><span>Ngày làm</span><strong>{{ selectedSalary.workDays || 0 }} ngày</strong></div>
+      <div class="detail-row"><span>Giờ thường</span><strong>{{ (selectedSalary.regularHours||0).toFixed(1) }}h</strong></div>
+      <div class="detail-row"><span>Giờ OT</span><strong>{{ (selectedSalary.otHours||0).toFixed(1) }}h</strong></div>
+      <div class="detail-row" *ngIf="selectedSalary.lateDays"><span>Đi trễ</span><strong class="red">{{ selectedSalary.lateDays }} lần</strong></div>
+      <div class="detail-row" *ngIf="selectedSalary.noCheckoutDays"><span>Thiếu checkout</span><strong class="red">{{ selectedSalary.noCheckoutDays }} ngày</strong></div>
+      <div class="detail-row" *ngIf="selectedSalary.specialLeaveDays"><span>Nghỉ đặc biệt</span><strong class="green">{{ selectedSalary.specialLeaveDays }} ngày</strong></div>
+      <div class="detail-row" *ngIf="selectedSalary.absentNoPerm"><span>Nghỉ không phép</span><strong class="red">{{ selectedSalary.absentNoPerm }} ngày</strong></div>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-title">💵 Lương</div>
+      <div class="detail-row"><span>Lương cơ bản</span><strong>{{ fmt(selectedSalary.baseSalary) }}</strong></div>
+      <div class="detail-row" *ngIf="(selectedSalary.otSalary||0) > 0"><span>Lương OT</span><strong>{{ fmt(selectedSalary.otSalary) }}</strong></div>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-title">🎁 Thưởng</div>
+      <div class="detail-row"><span>Thưởng chuyên cần</span><strong class="green">{{ fmt(selectedSalary.bonusAttendance) }}</strong></div>
+      <div class="detail-row"><span>Thưởng doanh thu</span><strong class="gold">{{ fmt(selectedSalary.bonusRevenue) }}</strong></div>
+      <div class="detail-row total-row"><span>Tổng thưởng</span><strong class="green">+{{ fmt(selectedSalary.totalBonus) }}</strong></div>
+    </div>
+
+    <div class="detail-section" *ngIf="(selectedSalary.totalPenalty||0) > 0">
+      <div class="detail-title">⚠️ Phạt</div>
+      <div class="detail-row" *ngIf="(selectedSalary.penaltyLate||0)>0"><span>Đi trễ</span><strong class="red">-{{ fmt(selectedSalary.penaltyLate) }}</strong></div>
+      <div class="detail-row" *ngIf="(selectedSalary.penaltyNoCheckout||0)>0"><span>Thiếu check-out</span><strong class="red">-{{ fmt(selectedSalary.penaltyNoCheckout) }}</strong></div>
+      <div class="detail-row" *ngIf="(selectedSalary.penaltyAbsent||0)>0"><span>Nghỉ không phép</span><strong class="red">-{{ fmt(selectedSalary.penaltyAbsent) }}</strong></div>
+      <div class="detail-row total-row"><span>Tổng phạt</span><strong class="red">-{{ fmt(selectedSalary.totalPenalty) }}</strong></div>
+    </div>
+
+    <div class="detail-total">
+      <span>Tổng Lĩnh Tháng {{ selectedSalary.month }}/{{ selectedSalary.year }}</span>
+      <strong>{{ fmt(selectedSalary.totalSalary) }}</strong>
+    </div>
+  </ng-container>
+</div>

@@ -1,0 +1,50 @@
+<div class="login-page">
+  <div class="login-wrapper">
+    <div class="login-brand">
+      <div class="brand-logo">
+        <mat-icon>spa</mat-icon>
+      </div>
+      <h2>Nexus HRM</h2>
+      <p>Human Resource Management System</p>
+    </div>
+
+    <mat-card class="login-card">
+      <div class="card-header-custom">
+        <h3>Welcome back</h3>
+        <p>Please enter your details to sign in.</p>
+      </div>
+      
+      <div class="form-container">
+        <mat-form-field appearance="outline" class="custom-field">
+          <mat-label>Email address</mat-label>
+          <input matInput [(ngModel)]="email" placeholder="admin@bmad.com">
+          <mat-icon matPrefix class="muted-icon">alternate_email</mat-icon>
+        </mat-form-field>
+        
+        <mat-form-field appearance="outline" class="custom-field">
+          <mat-label>Password</mat-label>
+          <input matInput [(ngModel)]="password" type="password" (keyup.enter)="login()">
+          <mat-icon matPrefix class="muted-icon">lock_outline</mat-icon>
+        </mat-form-field>
+
+        <div class="forgot-pass">
+          <a href="javascript:void(0)">Forgot password?</a>
+        </div>
+
+        <div class="error-msg" *ngIf="error">
+          <mat-icon>error_outline</mat-icon>
+          <span>{{ error }}</span>
+        </div>
+      </div>
+
+      <button mat-raised-button color="primary" class="login-btn" (click)="login()" [disabled]="loading">
+        <span *ngIf="!loading">Sign in</span>
+        <mat-spinner diameter="20" *ngIf="loading"></mat-spinner>
+      </button>
+    </mat-card>
+
+    <div class="footer-text">
+      Graduation Project &copy; 2026 BMAD Method
+    </div>
+  </div>
+</div>

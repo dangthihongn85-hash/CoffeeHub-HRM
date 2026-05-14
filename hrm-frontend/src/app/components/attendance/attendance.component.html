@@ -1,0 +1,130 @@
+<div class="attendance-container">
+  <div class="header-section">
+    <div class="breadcrumb">Dashboard / Chấm Công (Khuôn Mặt)</div>
+    <h2>Terminal Nhận Diện Khuôn Mặt</h2>
+    <p>Nhìn thẳng vào camera để hệ thống nhận diện. Đảm bảo đủ ánh sáng để tăng độ chính xác.</p>
+  </div>
+
+  <div class="face-recognition-grid">
+    <!-- Camera Section -->
+    <mat-card class="camera-card">
+      <div class="camera-wrapper" [ngClass]="{'scanning-border': scanning || scanStatus === 'SCANNING'}">
+        <video #videoElement autoplay muted playsinline class="webcam-video"></video>
+        
+        <div class="camera-overlay" *ngIf="!modelsLoaded">
+          <mat-spinner diameter="40"></mat-spinner>
+          <p>Đang tải mô hình AI...</p>
+        </div>
+        
+        <div class="scan-line" *ngIf="scanStatus === 'SCANNING'"></div>
+      </div>
+      
+      <div class="status-container">
+        <h3 *ngIf="scanStatus === 'IDLE'" class="idle-text">SẴN SÀNG NHẬN DIỆN</h3>
+        <h3 *ngIf="scanStatus === 'SCANNING'" class="scanning-text">Đang phân tích khuôn mặt...</h3>
+        <h3 *ngIf="scanStatus === 'SUCCESS'" class="success-text">✅ Xác thực thành công!</h3>
+        <h3 *ngIf="scanStatus === 'FAIL'" class="fail-text">❌ Nhận diện thất bại!</h3>
+      </div>
+    </mat-card>
+
+    <!-- Actions Section -->
+    <div class="actions-section">
+      <!-- Attendance Actions -->
+      <mat-card class="action-card">
+        <h3>Điểm Danh</h3>
+        <p>Chọn nút tương ứng khi bạn đến hoặc về.</p>
+        
+        <div class="action-buttons">
+          <button mat-raised-button class="checkin-btn" (click)="startScan('checkin')" [disabled]="scanning || !modelsLoaded">
+            <mat-icon>login</mat-icon> Check-in (Đến)
+          </button>
+          
+          <button mat-raised-button class="checkout-btn" (click)="startScan('checkout')" [disabled]="scanning || !modelsLoaded">
+            <mat-icon>logout</mat-icon> Check-out (Về)
+          </button>
+        </div>
+      </mat-card>
+      
+      <!-- Admin: Register Face -->
+      <mat-card class="action-card admin-card">
+        <h3>Admin: Đăng Ký Khuôn Mặt</h3>
+        <p>Chọn nhân viên và nhấn "Đăng Ký" để lưu khuôn mặt hiện tại vào hệ thống.</p>
+        
+        <div class="register-form">
+          <select [(ngModel)]="selectedEmployeeId" class="emp-select">
+            <option *ngFor="let emp of employees" [value]="emp.id">
+              {{ emp.name }} ({{ emp.position }}) 
+              {{ emp.faceDescriptor ? '✅ Đã ĐK' : '❌ Chưa ĐK' }}
+            </option>
+          </select>
+          
+          <button mat-raised-button color="primary" class="register-btn" (click)="registerFace()" [disabled]="scanning || !modelsLoaded">
+            <mat-icon>face</mat-icon> Đăng Ký Face
+          </button>
+        </div>
+      </mat-card>
+    </div>
+  </div>
+
+  <!-- Monthly Summary -->
+  <mat-card class="summary-card">
+    <div class="summary-toolbar">
+      <div>
+        <h3>Lịch Sử Chấm Công Cá Nhân (Tháng)</h3>
+        <p>Lịch sử chấm công của nhân viên đang chọn trong mục "Đăng Ký".</p>
+      </div>
+      <div class="summary-filters">
+        <select [(ngModel)]="summaryMonth" class="emp-select small">
+          <option *ngFor="let m of [1,2,3,4,5,6,7,8,9,10,11,12]" [value]="m">Tháng {{ m }}</option>
+        </select>
+        <select [(ngModel)]="summaryYear" class="emp-select small">
+          <option [value]="2025">2025</option>
+          <option [value]="2026">2026</option>
+        </select>
+        <button mat-raised-button color="primary" class="load-btn" (click)="loadSummary()">
+          <mat-icon>search</mat-icon> Xem
+        </button>
+      </div>
+    </div>
+
+    <div *ngIf="summaryLoading" style="text-align: center; padding: 30px;">
+      <mat-spinner diameter="36" style="margin: auto;"></mat-spinner>
+    </div>
+
+    <div *ngIf="summaryData.length > 0 && !summaryLoading">
+      <div class="summary-stats">
+        <div class="chip green"><mat-icon>check_circle</mat-icon> Đúng giờ: <strong>{{ summaryStats.onTime }}</strong></div>
+        <div class="chip amber"><mat-icon>schedule</mat-icon> Đi muộn: <strong>{{ summaryStats.late }}</strong></div>
+        <div class="chip rose"><mat-icon>exit_to_app</mat-icon> Về sớm: <strong>{{ summaryStats.early }}</strong></div>
+      </div>
+
+      <table class="custom-table">
+        <thead>
+          <tr>
+            <th>Ngày</th>
+            <th>Giờ Check-in</th>
+            <th>Giờ Check-out</th>
+            <th>Trạng thái</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of summaryData">
+            <td>{{ row.date }}</td>
+            <td>{{ row.checkInTime || '—' }}</td>
+            <td>{{ row.checkOutTime || '—' }}</td>
+            <td>
+              <span class="chip-inline green" *ngIf="row.status === 'ON_TIME'">Đúng giờ</span>
+              <span class="chip-inline amber" *ngIf="row.status === 'LATE'">Đi muộn</span>
+              <span class="chip-inline rose" *ngIf="row.status === 'EARLY'">Về sớm</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div *ngIf="summaryData.length === 0 && !summaryLoading" class="empty-summary">
+      <mat-icon>event_note</mat-icon>
+      <p>Chọn nhân viên và tháng, bấm <strong>Xem</strong> để tra cứu lịch sử.</p>
+    </div>
+  </mat-card>
+</div>

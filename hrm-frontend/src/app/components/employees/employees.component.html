@@ -1,0 +1,216 @@
+<div class="page-header">
+  <div>
+    <h2 class="page-title">Employees Directory</h2>
+    <p class="page-subtitle">Quản lý danh sách nhân sự và xử lý hồ sơ hành chính</p>
+  </div>
+  <button mat-raised-button color="primary" class="add-btn" (click)="toggleAdd()">
+    <mat-icon>{{ isAdding ? 'close' : 'add' }}</mat-icon> 
+    {{ isAdding ? 'Hủy Bỏ' : 'Thêm Nhân Viên' }}
+  </button>
+</div>
+
+<div class="stats-cards">
+  <mat-card class="stat-card">
+    <div class="stat-icon bg-indigo"><mat-icon>groups</mat-icon></div>
+    <div class="stat-info">
+      <p>Tổng Nhân Sự</p>
+      <h3>{{ employees.length }}</h3>
+    </div>
+  </mat-card>
+  <mat-card class="stat-card">
+    <div class="stat-icon bg-emerald"><mat-icon>how_to_reg</mat-icon></div>
+    <div class="stat-info">
+      <p>Đang Hoạt Động</p>
+      <h3>{{ totalActive }}</h3>
+    </div>
+  </mat-card>
+  <mat-card class="stat-card">
+    <div class="stat-icon bg-rose"><mat-icon>event_busy</mat-icon></div>
+    <div class="stat-info">
+      <p>Nghỉ Phép</p>
+      <h3>{{ totalLeave }}</h3>
+    </div>
+  </mat-card>
+</div>
+
+<mat-card class="data-card">
+  <div class="toolbar-table" style="display: flex; flex-wrap: wrap; gap: 15px; align-items: center; justify-content: space-between;">
+    <h3 style="margin: 0;">Tất cả nhân viên</h3>
+    
+    <div class="filters" style="display: flex; gap: 10px; flex-wrap: wrap;">
+      <select class="inline-input" style="padding: 6px; border-radius: 6px; border: 1px solid #ccc; max-height: 38px;" [(ngModel)]="filterDepartment" (change)="onSearch()">
+        <option value="">Tất cả phòng ban</option>
+        <option *ngFor="let d of availableDepartments" [value]="d.name">{{ d.name }}</option>
+      </select>
+      <select class="inline-input" style="padding: 6px; border-radius: 6px; border: 1px solid #ccc; max-height: 38px;" [(ngModel)]="filterPosition" (change)="onSearch()">
+        <option value="">Tất cả chức vụ</option>
+        <option *ngFor="let p of allPositions" [value]="p.name">{{ p.name }}</option>
+      </select>
+      <select class="inline-input" style="padding: 6px; border-radius: 6px; border: 1px solid #ccc; max-height: 38px;" [(ngModel)]="filterType" (change)="onSearch()">
+        <option value="">Tất cả loại lương</option>
+        <option value="FULL_TIME">Full-time</option>
+        <option value="PART_TIME">Part-time</option>
+        <option value="MANAGER">Manager</option>
+      </select>
+      <select class="inline-input" style="padding: 6px; border-radius: 6px; border: 1px solid #ccc; max-height: 38px;" [(ngModel)]="filterStatus" (change)="onSearch()">
+        <option value="">Tất cả trạng thái</option>
+        <option value="ACTIVE">Đi làm</option>
+        <option value="LEAVE">Nghỉ</option>
+      </select>
+    </div>
+
+    <div class="search-box" style="margin-left: auto;">
+      <mat-icon>search</mat-icon>
+      <input type="text" placeholder="Tra cứu Name, Email, Chức vụ..." [(ngModel)]="searchQuery" (keyup)="onSearch()">
+    </div>
+  </div>
+  
+  <div *ngIf="loading" style="text-align:center; padding: 40px;">
+     <mat-spinner diameter="40" style="margin: 0 auto;"></mat-spinner>
+     <p style="margin-top: 15px; color: #888;">Đang kết nối CSDL Backend...</p>
+  </div>
+
+  <table *ngIf="!loading || filteredEmployees.length > 0" class="custom-table">
+    <thead>
+      <tr>
+        <th>Họ và Tên</th>
+        <th>Chức vụ</th>
+        <th>Phòng ban</th>
+        <th>Loại lương</th>
+        <th>Email</th>
+        <th>Face ID</th>
+        <th>Trạng thái</th>
+        <th>Thao tác</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+      <!-- ADD FORM -->
+      <tr *ngIf="isAdding" class="add-row-form">
+        <td style="padding: 10px 15px;">
+          <input class="inline-input" type="text" placeholder="Nhập họ tên" [(ngModel)]="newEmployee.name">
+        </td>
+        <td>
+          <select class="inline-input" [(ngModel)]="newEmployee.department" (change)="onDeptChange(newEmployee.department)">
+            <option value="" disabled selected>Chọn phòng ban</option>
+            <option *ngFor="let d of availableDepartments" [value]="d.name">{{ d.name }}</option>
+          </select>
+        </td>
+        <td>
+          <select class="inline-input" [(ngModel)]="newEmployee.position">
+            <option value="" disabled selected>Chọn chức vụ</option>
+            <option *ngFor="let p of filteredPositions" [value]="p.name">{{ p.name }}</option>
+          </select>
+        </td>
+        <td>
+          <select class="inline-input" [(ngModel)]="newEmployee.employeeType">
+            <option value="FULL_TIME">Full-time</option>
+            <option value="PART_TIME">Part-time</option>
+            <option value="MANAGER">Manager</option>
+          </select>
+        </td>
+        <td><input class="inline-input" type="email" placeholder="Email" [(ngModel)]="newEmployee.email"></td>
+        <td><!-- Empty for Face ID in add row --></td>
+        <td>
+          <select class="inline-input" [(ngModel)]="newEmployee.status">
+            <option value="ACTIVE">Đi làm</option>
+            <option value="LEAVE">Nghỉ</option>
+          </select>
+        </td>
+        <td>
+          <button mat-flat-button color="accent" (click)="saveEmployee()"><mat-icon>save</mat-icon> Lưu</button>
+        </td>
+      </tr>
+
+      <tr *ngFor="let emp of pagedEmployees">
+        <!-- NORMAL ROW -->
+        <ng-container *ngIf="editingId !== emp.id">
+          <td style="display:flex; align-items:center; gap: 12px;">
+            <div class="avatar-sm">
+              <img [src]="'https://ui-avatars.com/api/?name=' + emp.name + '&background=e5ebfe&color=4B49AC&bold=true'" alt="Avatar">
+            </div>
+            <span style="font-weight: 700; color: #1e293b;">{{ emp.name }}</span>
+          </td>
+          <td><span class="pos-badge">{{ emp.position || 'N/A' }}</span></td>
+          <td>{{ emp.department || 'N/A' }}</td>
+          <td>
+            <span class="type-badge" [ngClass]="emp.employeeType">
+              {{ emp.employeeType === 'FULL_TIME' ? 'Full-time' : (emp.employeeType === 'PART_TIME' ? 'Part-time' : (emp.employeeType === 'MANAGER' ? 'Manager' : 'N/A')) }}
+            </span>
+          </td>
+          <td style="color: #64748b;">{{ emp.email }}</td>
+          <td>
+            <span *ngIf="emp.faceDescriptor" class="chip-inline green" style="background: #e6f4ea; color: #137333; display: inline-flex; align-items: center; gap: 4px;">
+               <mat-icon style="font-size: 16px; width: 16px; height: 16px;">face</mat-icon> Đã ĐK
+            </span>
+            <span *ngIf="!emp.faceDescriptor" class="chip-inline" style="background: #f1f3f4; color: #5f6368; display: inline-flex; align-items: center;">
+               Chưa ĐK
+            </span>
+          </td>
+          <td>
+            <span class="status-badge" 
+                  [ngClass]="emp.status === 'ACTIVE' ? 'active' : 'leave'"
+                  (click)="toggleStatus(emp)"
+                  title="Click để đổi trạng thái">
+              {{ emp.status === 'ACTIVE' ? 'Đi làm' : 'Nghỉ' }}
+            </span>
+          </td>
+          <td>
+            <button mat-icon-button color="primary" (click)="startEdit(emp)" title="Chỉnh sửa"><mat-icon>edit_calendar</mat-icon></button>
+            <button mat-icon-button color="warn" (click)="deleteEmployee(emp.id)" title="Xóa"><mat-icon>delete_outline</mat-icon></button>
+          </td>
+        </ng-container>
+
+        <!-- EDIT FORM -->
+        <ng-container *ngIf="editingId === emp.id">
+          <td style="padding: 10px 15px;">
+            <input class="inline-input" type="text" [(ngModel)]="editModel.name">
+          </td>
+          <td>
+            <select class="inline-input" [(ngModel)]="editModel.department" (change)="onDeptChange(editModel.department)">
+              <option *ngFor="let d of availableDepartments" [value]="d.name">{{ d.name }}</option>
+            </select>
+          </td>
+          <td>
+            <select class="inline-input" [(ngModel)]="editModel.position">
+              <!-- When editing, we might need to show all positions of current dept initially -->
+              <option *ngFor="let p of allPositions" [value]="p.name" [hidden]="p.departmentName !== editModel.department">{{ p.name }}</option>
+            </select>
+          </td>
+          <td>
+            <select class="inline-input" [(ngModel)]="editModel.employeeType">
+              <option value="FULL_TIME">Full-time</option>
+              <option value="PART_TIME">Part-time</option>
+              <option value="MANAGER">Manager</option>
+            </select>
+          </td>
+          <td><input class="inline-input" type="email" [(ngModel)]="editModel.email"></td>
+          <td><!-- Empty for Face ID in edit row --></td>
+          <td>
+            <span class="status-badge" [ngClass]="editModel.status === 'ACTIVE' ? 'active' : 'leave'">{{ editModel.status === 'ACTIVE' ? 'Đi làm' : 'Nghỉ' }}</span>
+          </td>
+          <td style="display: flex; gap: 5px;">
+            <button mat-icon-button color="accent" (click)="saveEdit()"><mat-icon>check_circle</mat-icon></button>
+            <button mat-icon-button color="warn" (click)="cancelEdit()"><mat-icon>cancel</mat-icon></button>
+          </td>
+        </ng-container>
+      </tr>
+
+      <tr *ngIf="filteredEmployees.length === 0 && !isAdding && !loading">
+         <td colspan="7" style="text-align: center; padding: 40px; color: #888;">
+            Không tìm thấy nhân sự phù hợp!
+         </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- PAGINATION FOOTER -->
+  <mat-paginator *ngIf="!loading && filteredEmployees.length > 0"
+                 [length]="filteredEmployees.length"
+                 [pageSize]="pageSize"
+                 [pageSizeOptions]="pageSizeOptions"
+                 [pageIndex]="pageIndex"
+                 (page)="onPageChange($event)"
+                 aria-label="Chọn trang">
+  </mat-paginator>
+</mat-card>
