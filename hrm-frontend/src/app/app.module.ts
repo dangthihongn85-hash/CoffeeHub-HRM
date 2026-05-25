@@ -15,6 +15,7 @@ import { AttendanceComponent } from './components/attendance/attendance.componen
 import { SalaryComponent } from './components/salary/salary.component';
 import { SalaryManagementComponent } from './components/salary-management/salary-management.component';
 import { DepartmentsComponent } from './components/departments/departments.component';
+import { ShiftsComponent } from './components/shifts/shifts.component';
 
 import { MatButtonModule } from '@angular/material/button';
 import { MatInputModule } from '@angular/material/input';
@@ -27,6 +28,7 @@ import { MatTableModule } from '@angular/material/table';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatPaginatorModule } from '@angular/material/paginator';
+import { MatSelectModule } from '@angular/material/select';
 
 @NgModule({
   declarations: [
@@ -35,6 +37,7 @@ import { MatPaginatorModule } from '@angular/material/paginator';
     LayoutComponent,
     EmployeesComponent,
     AttendanceComponent,
+    ShiftsComponent,
     SalaryComponent,
     SalaryManagementComponent,
     DepartmentsComponent
@@ -55,7 +58,8 @@ import { MatPaginatorModule } from '@angular/material/paginator';
     MatTableModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
-    MatPaginatorModule
+    MatPaginatorModule,
+    MatSelectModule
   ],
   providers: [
     { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true }

@@ -34,34 +34,96 @@
 </div>
 
 <mat-card class="data-card">
-  <div class="toolbar-table" style="display: flex; flex-wrap: wrap; gap: 15px; align-items: center; justify-content: space-between;">
-    <h3 style="margin: 0;">Tất cả nhân viên</h3>
-    
-    <div class="filters" style="display: flex; gap: 10px; flex-wrap: wrap;">
-      <select class="inline-input" style="padding: 6px; border-radius: 6px; border: 1px solid #ccc; max-height: 38px;" [(ngModel)]="filterDepartment" (change)="onSearch()">
-        <option value="">Tất cả phòng ban</option>
-        <option *ngFor="let d of availableDepartments" [value]="d.name">{{ d.name }}</option>
-      </select>
-      <select class="inline-input" style="padding: 6px; border-radius: 6px; border: 1px solid #ccc; max-height: 38px;" [(ngModel)]="filterPosition" (change)="onSearch()">
-        <option value="">Tất cả chức vụ</option>
-        <option *ngFor="let p of allPositions" [value]="p.name">{{ p.name }}</option>
-      </select>
-      <select class="inline-input" style="padding: 6px; border-radius: 6px; border: 1px solid #ccc; max-height: 38px;" [(ngModel)]="filterType" (change)="onSearch()">
-        <option value="">Tất cả loại lương</option>
-        <option value="FULL_TIME">Full-time</option>
-        <option value="PART_TIME">Part-time</option>
-        <option value="MANAGER">Manager</option>
-      </select>
-      <select class="inline-input" style="padding: 6px; border-radius: 6px; border: 1px solid #ccc; max-height: 38px;" [(ngModel)]="filterStatus" (change)="onSearch()">
-        <option value="">Tất cả trạng thái</option>
-        <option value="ACTIVE">Đi làm</option>
-        <option value="LEAVE">Nghỉ</option>
-      </select>
+  <!-- FILTER PANEL HEADER -->
+  <div class="filter-panel-header">
+    <div class="filter-panel-title">
+      <div class="filter-panel-icon">
+        <mat-icon>person_outline</mat-icon>
+      </div>
+      <div>
+        <h3>Tất cả nhân viên</h3>
+        <p>Bộ lọc giúp bạn tìm kiếm và quản lý nhân viên nhanh chóng</p>
+      </div>
     </div>
+    <button class="filter-toggle-btn" (click)="filterExpanded = !filterExpanded">
+      <mat-icon>tune</mat-icon>
+      {{ filterExpanded ? 'Thu gọn' : 'Mở rộng' }}
+      <mat-icon class="toggle-arrow" [class.rotated]="!filterExpanded">expand_less</mat-icon>
+    </button>
+  </div>
 
-    <div class="search-box" style="margin-left: auto;">
-      <mat-icon>search</mat-icon>
-      <input type="text" placeholder="Tra cứu Name, Email, Chức vụ..." [(ngModel)]="searchQuery" (keyup)="onSearch()">
+  <!-- FILTER PANEL BODY -->
+  <div class="filter-panel-body" *ngIf="filterExpanded">
+    <div class="filter-grid">
+      <!-- Phòng ban -->
+      <div class="filter-group">
+        <label class="filter-label">Phòng ban</label>
+        <div class="filter-select-wrapper">
+          <mat-icon class="filter-select-icon">apartment</mat-icon>
+          <mat-select [(value)]="filterDepartment" (selectionChange)="onFilterDeptChange()" disableOptionCentering class="filter-mat-select" panelClass="filter-dropdown-panel">
+            <mat-option value="">Tất cả phòng ban</mat-option>
+            <mat-option *ngFor="let d of availableDepartments" [value]="d.name">{{ d.name }}</mat-option>
+          </mat-select>
+        </div>
+      </div>
+
+      <!-- Chức vụ -->
+      <div class="filter-group">
+        <label class="filter-label">Chức vụ</label>
+        <div class="filter-select-wrapper">
+          <mat-icon class="filter-select-icon">badge</mat-icon>
+          <mat-select [(value)]="filterPosition" (selectionChange)="onSearch()" disableOptionCentering class="filter-mat-select" panelClass="filter-dropdown-panel">
+            <mat-option value="">Tất cả chức vụ</mat-option>
+            <mat-option *ngFor="let p of filteredPositionsForFilter" [value]="p.name">{{ p.name }}</mat-option>
+          </mat-select>
+        </div>
+      </div>
+
+      <!-- Tìm kiếm -->
+      <div class="filter-group">
+        <label class="filter-label">Tìm kiếm</label>
+        <div class="filter-search-box">
+          <mat-icon>search</mat-icon>
+          <input type="text" placeholder="Tra cứu Name, Email, Chức vụ..." [(ngModel)]="searchQuery" (keyup)="onSearch()" />
+          <button mat-icon-button type="button" class="search-clear-btn" *ngIf="searchQuery" (click)="clearFilter('search')">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+      </div>
+
+      <!-- Loại lương -->
+      <div class="filter-group">
+        <label class="filter-label">Loại lương</label>
+        <div class="filter-select-wrapper">
+          <mat-icon class="filter-select-icon">payments</mat-icon>
+          <mat-select [(value)]="filterType" (selectionChange)="onSearch()" disableOptionCentering class="filter-mat-select" panelClass="filter-dropdown-panel">
+            <mat-option value="">Tất cả loại lương</mat-option>
+            <mat-option value="FULL_TIME">Full-time</mat-option>
+            <mat-option value="PART_TIME">Part-time</mat-option>
+            <mat-option value="MANAGER">Manager</mat-option>
+          </mat-select>
+        </div>
+      </div>
+
+      <!-- Trạng thái -->
+      <div class="filter-group">
+        <label class="filter-label">Trạng thái</label>
+        <div class="filter-select-wrapper">
+          <mat-icon class="filter-select-icon">person_outline</mat-icon>
+          <mat-select [(value)]="filterStatus" (selectionChange)="onSearch()" disableOptionCentering class="filter-mat-select" panelClass="filter-dropdown-panel">
+            <mat-option value="">Tất cả trạng thái</mat-option>
+            <mat-option value="ACTIVE">Đi làm</mat-option>
+            <mat-option value="LEAVE">Nghỉ</mat-option>
+          </mat-select>
+        </div>
+      </div>
+
+      <!-- Button -->
+      <div class="filter-group" style="justify-content: flex-end;">
+        <button class="btn-clear-filled" (click)="clearAllFilters()" style="height: 50px; width: 50%; justify-content: center;">
+          <mat-icon>refresh</mat-icon> Xóa tất cả
+        </button>
+      </div>
     </div>
   </div>
   
@@ -77,6 +139,7 @@
         <th>Chức vụ</th>
         <th>Phòng ban</th>
         <th>Loại lương</th>
+        <th>Lương cơ bản</th>
         <th>Email</th>
         <th>Face ID</th>
         <th>Trạng thái</th>
@@ -109,6 +172,9 @@
             <option value="MANAGER">Manager</option>
           </select>
         </td>
+        <td>
+          <input class="inline-input" type="number" placeholder="Lương CB" [(ngModel)]="newEmployee.salaryBase">
+        </td>
         <td><input class="inline-input" type="email" placeholder="Email" [(ngModel)]="newEmployee.email"></td>
         <td><!-- Empty for Face ID in add row --></td>
         <td>
@@ -138,6 +204,7 @@
               {{ emp.employeeType === 'FULL_TIME' ? 'Full-time' : (emp.employeeType === 'PART_TIME' ? 'Part-time' : (emp.employeeType === 'MANAGER' ? 'Manager' : 'N/A')) }}
             </span>
           </td>
+          <td style="font-weight: 600;">{{ fmt(emp.salaryBase) }}</td>
           <td style="color: #64748b;">{{ emp.email }}</td>
           <td>
             <span *ngIf="emp.faceDescriptor" class="chip-inline green" style="background: #e6f4ea; color: #137333; display: inline-flex; align-items: center; gap: 4px;">
@@ -148,7 +215,7 @@
             </span>
           </td>
           <td>
-            <span class="status-badge" 
+            <span class="status-badge"
                   [ngClass]="emp.status === 'ACTIVE' ? 'active' : 'leave'"
                   (click)="toggleStatus(emp)"
                   title="Click để đổi trạng thái">
@@ -156,8 +223,15 @@
             </span>
           </td>
           <td>
-            <button mat-icon-button color="primary" (click)="startEdit(emp)" title="Chỉnh sửa"><mat-icon>edit_calendar</mat-icon></button>
-            <button mat-icon-button color="warn" (click)="deleteEmployee(emp.id)" title="Xóa"><mat-icon>delete_outline</mat-icon></button>
+            <button mat-icon-button color="accent" (click)="openAttendanceModal(emp)" title="Quản lý chấm công theo ngày" style="color: #6366f1;">
+              <mat-icon>calendar_month</mat-icon>
+            </button>
+            <button mat-icon-button color="primary" (click)="startEdit(emp)" title="Chỉnh sửa">
+              <mat-icon>edit_calendar</mat-icon>
+            </button>
+            <button mat-icon-button color="warn" (click)="deleteEmployee(emp.id)" title="Xóa">
+              <mat-icon>delete_outline</mat-icon>
+            </button>
           </td>
         </ng-container>
 
@@ -184,6 +258,9 @@
               <option value="MANAGER">Manager</option>
             </select>
           </td>
+          <td>
+            <input class="inline-input" type="number" [(ngModel)]="editModel.salaryBase">
+          </td>
           <td><input class="inline-input" type="email" [(ngModel)]="editModel.email"></td>
           <td><!-- Empty for Face ID in edit row --></td>
           <td>
@@ -197,7 +274,7 @@
       </tr>
 
       <tr *ngIf="filteredEmployees.length === 0 && !isAdding && !loading">
-         <td colspan="7" style="text-align: center; padding: 40px; color: #888;">
+         <td colspan="9" style="text-align: center; padding: 40px; color: #888;">
             Không tìm thấy nhân sự phù hợp!
          </td>
       </tr>
@@ -214,3 +291,185 @@
                  aria-label="Chọn trang">
   </mat-paginator>
 </mat-card>
+
+<!-- ATTENDANCE CALENDAR MODAL (GLASSMORPHISM OVERLAY) -->
+<div class="glass-overlay" *ngIf="showAttendanceModal" (click)="closeAttendanceModal()">
+  <div class="glass-modal-card" (click)="$event.stopPropagation()">
+    <!-- Modal Header -->
+    <div class="modal-header">
+      <div class="modal-header-title">
+        <div class="header-icon">
+          <mat-icon>calendar_month</mat-icon>
+        </div>
+        <div>
+          <h2>Quản Lý Đi Làm Theo Ngày</h2>
+          <p>Nhân sự: <strong>{{ selectedEmpForAttendance?.name }}</strong> | Loại: {{ selectedEmpForAttendance?.employeeType }}</p>
+        </div>
+      </div>
+      <button class="modal-close-btn" (click)="closeAttendanceModal()">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+
+    <!-- Modal Toolbar (Selector Month & Year) -->
+    <div class="modal-toolbar">
+      <div class="toolbar-title">Chọn tháng làm việc:</div>
+      <div class="selectors">
+        <div class="selector-item">
+          <label>Tháng</label>
+          <select [(ngModel)]="selectedMonth" (change)="loadAttendanceData()">
+            <option *ngFor="let m of monthsList" [value]="m">Tháng {{ m }}</option>
+          </select>
+        </div>
+        <div class="selector-item">
+          <label>Năm</label>
+          <select [(ngModel)]="selectedYear" (change)="loadAttendanceData()">
+            <option *ngFor="let y of yearsList" [value]="y">Năm {{ y }}</option>
+          </select>
+        </div>
+        <button class="refresh-btn" (click)="loadAttendanceData()" title="Tải lại">
+          <mat-icon>sync</mat-icon>
+        </button>
+      </div>
+    </div>
+
+    <!-- Modal Content -->
+    <div class="modal-body">
+      <div *ngIf="loadingAttendance" class="loading-state">
+        <mat-spinner diameter="40"></mat-spinner>
+        <p>Đang tải dữ liệu chấm công tháng {{ selectedMonth }}/{{ selectedYear }}...</p>
+      </div>
+
+      <div *ngIf="!loadingAttendance" class="table-container">
+        <table class="modal-table">
+          <thead>
+            <tr>
+              <th style="width: 120px;">Ngày tháng</th>
+              <th style="width: 90px;">Thứ</th>
+              <th style="width: 150px;">Ca làm</th>
+              <th style="width: 110px;">Check-in</th>
+              <th style="width: 110px;">Check-out</th>
+              <th style="width: 100px;">Điểm công</th>
+              <th style="width: 160px;">Trạng thái</th>
+              <th>Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let day of calendarDays" [class.editing-row]="day.editing">
+              <!-- Date Column -->
+              <td>
+                <span class="day-num-badge">{{ day.dayNum }}</span>
+                <span class="date-sub">{{ day.dateStr | date:'dd/MM' }}</span>
+              </td>
+              
+              <!-- Week Day Column -->
+              <td class="week-day-cell">{{ getDayOfWeekName(day.dateStr) }}</td>
+
+              <!-- Shift Column -->
+              <td>
+                <ng-container *ngIf="!day.editing">
+                  <span class="chip-inline" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; font-weight: 600; padding: 4px 8px; border-radius: 6px;">
+                    {{ day.record?.shift?.name || 'Chưa phân ca' }}
+                  </span>
+                </ng-container>
+                <ng-container *ngIf="day.editing">
+                  <select class="modal-select" [(ngModel)]="day.editShiftId" 
+                          [disabled]="day.editStatus === 'ABSENT' || day.editStatus === 'ABSENT_NO_PERMISSION' || day.editStatus === 'SPECIAL_LEAVE'"
+                          style="width: 100%; padding: 6px; border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff; border: 1px solid rgba(255,255,255,0.2);">
+                    <option *ngFor="let s of availableShifts" [value]="s.id">{{ s.name }} ({{ s.startTime | slice:0:5 }})</option>
+                  </select>
+                </ng-container>
+              </td>
+
+              <!-- Check-In Time -->
+              <td>
+                <ng-container *ngIf="!day.editing">
+                  <span class="time-text">{{ day.record?.checkInTime ? (day.record.checkInTime | slice:0:5) : '--:--' }}</span>
+                </ng-container>
+                <ng-container *ngIf="day.editing">
+                  <input type="time" class="modal-time-input" [(ngModel)]="day.editCheckIn" 
+                         [disabled]="day.editStatus === 'ABSENT' || day.editStatus === 'ABSENT_NO_PERMISSION' || day.editStatus === 'SPECIAL_LEAVE'">
+                </ng-container>
+              </td>
+
+              <!-- Check-Out Time -->
+              <td>
+                <ng-container *ngIf="!day.editing">
+                  <span class="time-text">{{ day.record?.checkOutTime ? (day.record.checkOutTime | slice:0:5) : '--:--' }}</span>
+                </ng-container>
+                <ng-container *ngIf="day.editing">
+                  <input type="time" class="modal-time-input" [(ngModel)]="day.editCheckOut"
+                         [disabled]="day.editStatus === 'ABSENT' || day.editStatus === 'ABSENT_NO_PERMISSION' || day.editStatus === 'SPECIAL_LEAVE'">
+                </ng-container>
+              </td>
+
+              <!-- Work Points (Công) -->
+              <td style="font-weight: 700; color: #818cf8; text-align: center;">
+                <span *ngIf="day.record?.workPoints !== null">{{ day.record?.workPoints | number:'1.1-2' }}</span>
+                <span *ngIf="day.record?.workPoints === null">--</span>
+              </td>
+
+              <!-- Status Badge / Select -->
+              <td>
+                <ng-container *ngIf="!day.editing">
+                  <span class="chip-status" [ngClass]="day.record ? getStatusBadgeClass(day.record.status) : 'chip-gray'">
+                    {{ getStatusText(day.record ? day.record.status : '') }}
+                  </span>
+                </ng-container>
+                <ng-container *ngIf="day.editing">
+                  <select class="modal-select" [(ngModel)]="day.editStatus"
+                          style="width: 100%; padding: 6px; border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff; border: 1px solid rgba(255,255,255,0.2);">
+                    <option value="ON_TIME">Đúng giờ</option>
+                    <option value="LATE">Đi trễ</option>
+                    <option value="EARLY">Về sớm</option>
+                    <option value="ABSENT">Nghỉ có phép</option>
+                    <option value="ABSENT_NO_PERMISSION">Nghỉ không phép</option>
+                    <option value="SPECIAL_LEAVE">Nghỉ đặc biệt</option>
+                  </select>
+                </ng-container>
+              </td>
+
+              <!-- Action buttons -->
+              <td>
+                <!-- View Mode Actions -->
+                <ng-container *ngIf="!day.editing">
+                  <button class="action-btn edit-day-btn" (click)="startEditDay(day)" title="Chỉnh sửa ngày này">
+                    <mat-icon>edit</mat-icon> Sửa
+                  </button>
+                  <button class="action-btn delete-day-btn" *ngIf="day.record" (click)="deleteDayAttendance(day)" title="Xóa dữ liệu chấm công">
+                    <mat-icon>delete_forever</mat-icon> Xóa
+                  </button>
+                </ng-container>
+
+                <!-- Edit Mode Actions -->
+                <ng-container *ngIf="day.editing">
+                  <button class="action-btn save-day-btn" (click)="saveDayAttendance(day)" title="Lưu lại">
+                    <mat-icon>save</mat-icon> Lưu
+                  </button>
+                  <button class="action-btn cancel-day-btn" (click)="cancelEditDay(day)" title="Hủy bỏ">
+                    <mat-icon>cancel</mat-icon> Hủy
+                  </button>
+                </ng-container>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PREMIUM GLASS CONFIRMATION MODAL -->
+<div class="glass-overlay-confirm" *ngIf="showConfirmModal" (click)="closeConfirm()">
+  <div class="confirm-modal-card" (click)="$event.stopPropagation()">
+    <div class="confirm-icon-box">
+      <mat-icon>warning_amber</mat-icon>
+    </div>
+    <h3>{{ confirmTitle || 'Xác nhận hành động' }}</h3>
+    <p>{{ confirmMessage }}</p>
+    <div class="confirm-actions">
+      <button class="confirm-btn-cancel" (click)="closeConfirm()">Hủy Bỏ</button>
+      <button class="confirm-btn-yes" (click)="triggerConfirm()">Đồng Ý</button>
+    </div>
+  </div>
+</div>

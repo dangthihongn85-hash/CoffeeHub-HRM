@@ -136,3 +136,18 @@
     </div>
   </mat-card>
 </div>
+
+<!-- PREMIUM GLASS CONFIRMATION MODAL -->
+<div class="glass-overlay-confirm" *ngIf="showConfirmModal" (click)="closeConfirm()">
+  <div class="confirm-modal-card" (click)="$event.stopPropagation()">
+    <div class="confirm-icon-box">
+      <mat-icon>warning_amber</mat-icon>
+    </div>
+    <h3>{{ confirmTitle || 'Xác nhận hành động' }}</h3>
+    <p>{{ confirmMessage }}</p>
+    <div class="confirm-actions">
+      <button class="confirm-btn-cancel" (click)="closeConfirm()">Hủy Bỏ</button>
+      <button class="confirm-btn-yes" (click)="triggerConfirm()">Đồng Ý</button>
+    </div>
+  </div>
+</div>

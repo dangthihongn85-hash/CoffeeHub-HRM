@@ -5,6 +5,7 @@ import com.bmad.hrm.entity.Employee;
 import com.bmad.hrm.repository.EmployeeRepository;
 import com.bmad.hrm.repository.SalaryRepository;
 import com.bmad.hrm.repository.AttendanceRepository;
+import com.bmad.hrm.repository.ShiftAssignmentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,9 +20,13 @@ public class EmployeeService {
     private final EmployeeRepository employeeRepository;
     private final SalaryRepository salaryRepository;
     private final AttendanceRepository attendanceRepository;
+    private final ShiftAssignmentRepository shiftAssignmentRepository;
 
     public List<EmployeeDto> getAllEmployees() {
-        return employeeRepository.findAll().stream().map(this::mapToDto).collect(Collectors.toList());
+        return employeeRepository.findAll().stream()
+                .filter(e -> e.getRole() != com.bmad.hrm.entity.Role.ADMIN)
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
     }
 
     public EmployeeDto createEmployee(EmployeeDto employeeDto) {
@@ -59,6 +64,7 @@ public class EmployeeService {
     public void deleteEmployee(Long id) {
         salaryRepository.deleteByEmployeeId(id);
         attendanceRepository.deleteByEmployeeId(id);
+        shiftAssignmentRepository.deleteByEmployeeId(id);
         employeeRepository.deleteById(id);
     }
 

@@ -82,3 +82,118 @@
 button mat-icon { font-family: 'Material Icons' !important; }
 
 @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ===== PREMIUM CONFIRMATION MODAL ===== */
+.glass-overlay-confirm {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.confirm-modal-card {
+  width: 90%;
+  max-width: 400px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
+  border-radius: 20px;
+  padding: 32px 24px;
+  text-align: center;
+  animation: scaleUpConfirm 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleUpConfirm {
+  from { transform: scale(0.9) translateY(10px); opacity: 0; }
+  to { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.confirm-icon-box {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #fef2f2;
+  color: #ef4444;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+
+.confirm-icon-box mat-icon {
+  font-size: 32px;
+  width: 32px;
+  height: 32px;
+}
+
+.confirm-modal-card h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.confirm-modal-card p {
+  margin: 0 0 24px;
+  font-size: 14px;
+  color: #475569;
+  line-height: 1.5;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.confirm-btn-cancel {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1.5px solid #cbd5e1;
+  background: white;
+  font-size: 14px;
+  font-weight: 700;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.confirm-btn-cancel:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.confirm-btn-yes {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  font-size: 14px;
+  font-weight: 700;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.2);
+}
+
+.confirm-btn-yes:hover {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 12px -1px rgba(239, 68, 68, 0.3);
+}

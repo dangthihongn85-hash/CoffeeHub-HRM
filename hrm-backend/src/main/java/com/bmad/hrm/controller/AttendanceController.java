@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
 
@@ -66,5 +67,34 @@ public class AttendanceController {
             @PathVariable Long employeeId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         return ResponseEntity.ok(timekeepingService.markAbsentNoPermission(employeeId, date));
+    }
+
+    /**
+     * Admin: Lưu/Sửa chấm công thủ công theo ngày.
+     */
+    @PostMapping("/{employeeId}/manual")
+    public ResponseEntity<Attendance> saveManualAttendance(
+            @PathVariable Long employeeId,
+            @RequestBody Map<String, Object> body) {
+        LocalDate date = LocalDate.parse((String) body.get("date"));
+        LocalTime checkInTime = body.get("checkInTime") != null && !((String) body.get("checkInTime")).isEmpty()
+                ? LocalTime.parse((String) body.get("checkInTime")) : null;
+        LocalTime checkOutTime = body.get("checkOutTime") != null && !((String) body.get("checkOutTime")).isEmpty()
+                ? LocalTime.parse((String) body.get("checkOutTime")) : null;
+        com.bmad.hrm.entity.AttendanceStatus status = com.bmad.hrm.entity.AttendanceStatus.valueOf((String) body.get("status"));
+        Long shiftId = body.get("shiftId") != null && !body.get("shiftId").toString().isEmpty()
+                ? Long.valueOf(body.get("shiftId").toString()) : null;
+        return ResponseEntity.ok(timekeepingService.saveManualAttendance(employeeId, date, checkInTime, checkOutTime, status, shiftId));
+    }
+
+    /**
+     * Admin: Xóa chấm công theo ngày.
+     */
+    @DeleteMapping("/{employeeId}/manual")
+    public ResponseEntity<Void> deleteManualAttendance(
+            @PathVariable Long employeeId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        timekeepingService.deleteManualAttendance(employeeId, date);
+        return ResponseEntity.ok().build();
     }
 }

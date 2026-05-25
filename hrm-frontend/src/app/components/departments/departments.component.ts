@@ -15,6 +15,12 @@ export class DepartmentsComponent implements OnInit {
   employees: any[] = [];
   loading = false;
 
+  // Confirmation Modal State
+  showConfirmModal = false;
+  confirmTitle = '';
+  confirmMessage = '';
+  confirmAction: (() => void) | null = null;
+
   // === Department state ===
   showAddDept = false;
   newDept = { name: '', description: '' };
@@ -97,15 +103,20 @@ export class DepartmentsComponent implements OnInit {
       return;
     }
 
-    if (!confirm(`Xoá phòng ban "${dept.name}"?`)) return;
-    this.http.delete(`${API}/departments/${dept.id}`).subscribe({
-      next: () => {
-        this.departments = this.departments.filter(d => d.id !== dept.id);
-        this.positions = this.positions.filter(p => p.departmentName !== dept.name);
-        this.snack.open('✅ Đã xoá phòng ban!', 'Đóng', { duration: 3000 });
-      },
-      error: () => this.snack.open('❌ Lỗi xoá', 'Đóng', { duration: 3000 })
-    });
+    this.openConfirm(
+      'Xóa Phòng Ban',
+      `Bạn có chắc chắn muốn xoá phòng ban "${dept.name}" không?`,
+      () => {
+        this.http.delete(`${API}/departments/${dept.id}`).subscribe({
+          next: () => {
+            this.departments = this.departments.filter(d => d.id !== dept.id);
+            this.positions = this.positions.filter(p => p.departmentName !== dept.name);
+            this.snack.open('✅ Đã xoá phòng ban!', 'Đóng', { duration: 3000 });
+          },
+          error: () => this.snack.open('❌ Lỗi xoá', 'Đóng', { duration: 3000 })
+        });
+      }
+    );
   }
 
   // ===== POSITIONS =====
@@ -155,17 +166,42 @@ export class DepartmentsComponent implements OnInit {
       return;
     }
 
-    if (!confirm(`Xoá chức vụ "${pos.name}"?`)) return;
-    this.http.delete(`${API}/departments/positions/${pos.id}`).subscribe({
-      next: () => {
-        this.positions = this.positions.filter(p => p.id !== pos.id);
-        this.snack.open('✅ Đã xoá chức vụ!', 'Đóng', { duration: 3000 });
-      },
-      error: () => this.snack.open('❌ Lỗi xoá', 'Đóng', { duration: 3000 })
-    });
+    this.openConfirm(
+      'Xóa Chức Vụ',
+      `Bạn có chắc chắn muốn xoá chức vụ "${pos.name}" không?`,
+      () => {
+        this.http.delete(`${API}/departments/positions/${pos.id}`).subscribe({
+          next: () => {
+            this.positions = this.positions.filter(p => p.id !== pos.id);
+            this.snack.open('✅ Đã xoá chức vụ!', 'Đóng', { duration: 3000 });
+          },
+          error: () => this.snack.open('❌ Lỗi xoá', 'Đóng', { duration: 3000 })
+        });
+      }
+    );
   }
 
   countEmployeesInPos(deptName: string, posName: string): number {
     return this.employees.filter(e => e.department === deptName && e.position === posName).length;
+  }
+
+  // ===== Shared Confirmation Modal Handlers =====
+  openConfirm(title: string, msg: string, action: () => void) {
+    this.confirmTitle = title;
+    this.confirmMessage = msg;
+    this.confirmAction = action;
+    this.showConfirmModal = true;
+  }
+
+  closeConfirm() {
+    this.showConfirmModal = false;
+    this.confirmAction = null;
+  }
+
+  triggerConfirm() {
+    if (this.confirmAction) {
+      this.confirmAction();
+    }
+    this.closeConfirm();
   }
 }

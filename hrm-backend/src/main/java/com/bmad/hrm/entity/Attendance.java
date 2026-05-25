@@ -1,5 +1,6 @@
 package com.bmad.hrm.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDate;
@@ -18,7 +19,12 @@ public class Attendance {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "employee_id", nullable = false)
+    @JsonIgnore
     private Employee employee;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "shift_id")
+    private Shift shift;
 
     @Column(name = "attendance_date", nullable = false)
     private LocalDate date;
@@ -31,4 +37,7 @@ public class Attendance {
 
     @Enumerated(EnumType.STRING)
     private AttendanceStatus status;
+
+    @Column(name = "work_points")
+    private Double workPoints; // e.g. 1.0, 0.75, 0.0 công
 }

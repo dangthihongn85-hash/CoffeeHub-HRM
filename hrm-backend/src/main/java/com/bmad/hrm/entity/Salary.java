@@ -37,7 +37,7 @@ public class Salary {
     private Double otHours;          // Giờ tăng ca
 
     @Column(name = "work_days")
-    private Integer workDays;        // Số ngày làm việc
+    private Double workDays;        // Số công làm việc (Double)
 
     // ---- Lương ----
     @Column(name = "base_salary")
@@ -72,4 +72,7 @@ public class Salary {
 
     @Column(name = "total_salary")
     private Double totalSalary;      // Lương cuối cùng
+
+    @Column(name = "status")
+    private String status = "PENDING";
 }

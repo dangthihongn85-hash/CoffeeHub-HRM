@@ -8,6 +8,7 @@ import { AttendanceComponent } from './components/attendance/attendance.componen
 import { SalaryComponent } from './components/salary/salary.component';
 import { SalaryManagementComponent } from './components/salary-management/salary-management.component';
 import { DepartmentsComponent } from './components/departments/departments.component';
+import { ShiftsComponent } from './components/shifts/shifts.component';
 
 const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -19,6 +20,7 @@ const routes: Routes = [
       { path: '', redirectTo: 'employees', pathMatch: 'full' },
       { path: 'employees', component: EmployeesComponent },
       { path: 'attendance', component: AttendanceComponent },
+      { path: 'shifts', component: ShiftsComponent },
       { path: 'salary-management', component: SalaryManagementComponent },
       { path: 'departments', component: DepartmentsComponent },
       { path: 'salaries', component: SalaryComponent }

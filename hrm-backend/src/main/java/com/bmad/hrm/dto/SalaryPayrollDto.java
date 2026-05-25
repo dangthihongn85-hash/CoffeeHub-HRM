@@ -27,7 +27,7 @@ public class SalaryPayrollDto {
     // Giờ công
     private Double regularHours;
     private Double otHours;
-    private Integer workDays;
+    private Double workDays;
 
     // Lương
     private Double baseSalary;
@@ -52,4 +52,6 @@ public class SalaryPayrollDto {
     private Long specialLeaveDays;
     private Long absentNoPerm;
     private Long noCheckoutDays;
+
+    private String status;
 }

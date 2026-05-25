@@ -24,15 +24,16 @@ public class SalaryController {
         Integer month   = (Integer) body.get("month");
         Integer year    = (Integer) body.get("year");
         Double  revenue = ((Number) body.get("monthlyRevenue")).doubleValue();
+        Double  bonusRate = body.containsKey("bonusRate") && body.get("bonusRate") != null ? ((Number) body.get("bonusRate")).doubleValue() : 1.0;
         String  notes   = (String) body.getOrDefault("notes", "");
-        return ResponseEntity.ok(salaryService.saveMonthlyRevenue(month, year, revenue, notes));
+        return ResponseEntity.ok(salaryService.saveMonthlyRevenue(month, year, revenue, bonusRate, notes));
     }
 
     @GetMapping("/revenue")
     public ResponseEntity<?> getRevenue(@RequestParam Integer month, @RequestParam Integer year) {
         return salaryService.getMonthlyRevenue(month, year)
                 .<ResponseEntity<?>>map(ResponseEntity::ok)
-                .orElse(ResponseEntity.ok(Map.of("monthlyRevenue", 0, "bonusPool", 0)));
+                .orElse(ResponseEntity.ok(Map.of("monthlyRevenue", 0, "bonusPool", 0, "bonusRate", 1.0)));
     }
 
     // ── Luồng tính lương toàn bộ (bulk) ─────────────────────────────────────
@@ -56,6 +57,17 @@ public class SalaryController {
     public ResponseEntity<List<SalaryPayrollDto>> getSalaries(
             @RequestParam Integer month, @RequestParam Integer year) {
         return ResponseEntity.ok(salaryService.getSalariesByMonth(month, year));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<SalaryPayrollDto> updateSalary(
+            @PathVariable Long id, @RequestBody SalaryPayrollDto dto) {
+        return ResponseEntity.ok(salaryService.updateSalary(id, dto));
+    }
+
+    @PutMapping("/{id}/approve")
+    public ResponseEntity<SalaryPayrollDto> approveSalary(@PathVariable Long id) {
+        return ResponseEntity.ok(salaryService.approveSalary(id));
     }
 
     // ── Xuất bảng lương CSV (UTF-8 BOM cho Excel) ────────────────────────────

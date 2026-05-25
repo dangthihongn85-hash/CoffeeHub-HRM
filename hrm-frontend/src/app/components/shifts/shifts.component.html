@@ -1,0 +1,461 @@
+<div class="page-header">
+  <div>
+    <h2 class="page-title">Quản Lý Phân Ca</h2>
+    <p class="page-subtitle">Quản lý các ca làm việc trong quán và phân công lịch trình cho nhân sự hàng tuần</p>
+  </div>
+  
+  <div class="header-actions-row">
+    <div class="tab-selectors">
+      <button class="tab-btn" [class.active]="activeTab === 'schedule'" (click)="activeTab = 'schedule'">
+        <mat-icon>calendar_view_week</mat-icon> Lịch Phân Ca
+      </button>
+      <button class="tab-btn" [class.active]="activeTab === 'config'" (click)="activeTab = 'config'">
+        <mat-icon>settings</mat-icon> Cấu Hình Ca Làm
+      </button>
+    </div>
+    
+    <div class="header-actions-row" *ngIf="activeTab === 'schedule'">
+      <button mat-raised-button color="primary" class="bulk-btn animate-btn" (click)="openBulkModal()">
+        <mat-icon>group_add</mat-icon> Phân Ca Nhanh
+      </button>
+      <button mat-raised-button color="warn" class="clear-week-btn animate-btn" (click)="clearWeekSchedule()" 
+              style="margin-left: 12px; background: linear-gradient(135deg, #ef4444, #dc2626); color: white; border-radius: 12px; font-weight: 700; height: 44px; padding: 0 16px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+        <mat-icon>delete_sweep</mat-icon> Làm Mới
+      </button>
+    </div>
+    <button *ngIf="activeTab === 'config'" mat-raised-button color="primary" class="add-btn animate-btn" (click)="toggleAddShift()">
+      <mat-icon>{{ isAddingShift ? 'close' : 'add' }}</mat-icon> {{ isAddingShift ? 'Hủy' : 'Thêm Ca Mới' }}
+    </button>
+  </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- SCHEDULE GRID TAB -->
+<!-- ========================================================================= -->
+<ng-container *ngIf="activeTab === 'schedule'">
+  <mat-card class="data-card glass-card">
+    
+    <!-- Week Navigation Toolbar -->
+    <div class="week-nav-bar">
+      <div class="week-title-area">
+        <mat-icon class="calendar-icon">date_range</mat-icon>
+        <h3>Tuần: {{ weekDays[0]?.dateStr | date:'dd/MM/yyyy' }} - {{ weekDays[6]?.dateStr | date:'dd/MM/yyyy' }}</h3>
+      </div>
+      <div class="nav-buttons">
+        <button class="nav-btn prev" (click)="prevWeek()" title="Tuần trước">
+          <mat-icon>chevron_left</mat-icon>
+        </button>
+        <button class="nav-btn today-btn" (click)="todayWeek()">Hiện Tại</button>
+        
+        <!-- Elegant Custom Glassmorphism Date Picker Dropdown -->
+        <div class="date-picker-wrapper" style="display: flex; align-items: center; background: white; border-radius: 10px; padding: 3px 10px; border: 1.5px solid var(--border-light); margin: 0 4px; box-shadow: var(--shadow-sm); transition: all 0.2s ease; position: relative;">
+          
+          <!-- Text Input for easy typing/search of date in dd/mm/yyyy format -->
+          <input type="text" 
+                 [value]="dateInputString" 
+                 (change)="onTextDateChange($event)" 
+                 (keyup.enter)="onTextDateChange($event)"
+                 placeholder="dd/mm/yyyy"
+                 title="Nhập ngày dạng dd/mm/yyyy rồi nhấn Enter để chuyển tuần"
+                 style="border: none; outline: none; font-size: 13px; font-weight: 700; color: var(--text-main); font-family: inherit; width: 92px; padding: 2px 0; background: transparent;">
+
+          <!-- Clickable calendar icon that toggles the custom premium calendar -->
+          <button (click)="toggleCustomDatePicker()" style="background: transparent; border: none; padding: 0; display: flex; align-items: center; cursor: pointer; outline: none; margin-left: 6px; transition: transform 0.2s;" title="Mở lịch chọn ngày" onmouseenter="this.style.transform='scale(1.1)'" onmouseleave="this.style.transform='scale(1)'">
+            <mat-icon style="font-size: 18px; width: 18px; height: 18px; color: var(--primary);">calendar_today</mat-icon>
+          </button>
+
+          <!-- Premium Custom Calendar Popup Dialog (Absolute Positioned) -->
+          <div class="custom-calendar-popup glass-card" *ngIf="showCustomDatePicker" style="position: absolute; top: 46px; right: 0; z-index: 1000; width: 280px; background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(99, 102, 241, 0.15); border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.15); padding: 14px; animation: scaleUpConfirm 0.2s ease-out;">
+            <!-- Calendar Header: Navigation and Current Month/Year -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <button (click)="prevPickerMonth()" class="picker-nav-btn">
+                <mat-icon style="font-size: 18px; width: 18px; height: 18px;">chevron_left</mat-icon>
+              </button>
+              <span style="font-size: 13px; font-weight: 800; color: var(--text-main);">
+                Tháng {{ pickerViewDate.getMonth() + 1 }} - {{ pickerViewDate.getFullYear() }}
+              </span>
+              <button (click)="nextPickerMonth()" class="picker-nav-btn">
+                <mat-icon style="font-size: 18px; width: 18px; height: 18px;">chevron_right</mat-icon>
+              </button>
+            </div>
+
+            <!-- Calendar Days of Week Header -->
+            <div style="display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 4px;">
+              <span>T2</span>
+              <span>T3</span>
+              <span>T4</span>
+              <span>T5</span>
+              <span>T6</span>
+              <span>T7</span>
+              <span style="color: #ef4444;">CN</span>
+            </div>
+
+            <!-- Calendar Days Grid -->
+            <div style="display: grid; grid-template-columns: repeat(7, 1fr); row-gap: 4px;">
+              <button *ngFor="let day of pickerDays" 
+                      (click)="selectPickerDate(day)"
+                      [ngClass]="{'selected-day': day.isSelected}"
+                      [style.color]="day.isSelected ? 'white' : (day.isCurrentMonth ? (day.date.getDay() === 0 ? '#ef4444' : 'var(--text-main)') : '#cbd5e1')"
+                      [style.background]="day.isSelected ? 'linear-gradient(135deg, var(--primary), #6366f1)' : 'transparent'"
+                      [style.font-weight]="day.isSelected ? '800' : '600'"
+                      style="border: none; outline: none; border-radius: 8px; height: 32px; font-size: 12px; font-family: inherit; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; justify-content: center;"
+                      class="picker-day-cell">
+                {{ day.dayNum }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Elegant Shift Filter Dropdown -->
+        <div class="shift-filter-wrapper" style="display: flex; align-items: center; background: white; border-radius: 10px; padding: 3px 10px; border: 1.5px solid var(--border-light); margin: 0 4px; box-shadow: var(--shadow-sm); transition: all 0.2s ease;">
+          <mat-icon style="font-size: 18px; width: 18px; height: 18px; color: var(--primary); margin-right: 6px;">filter_list</mat-icon>
+          <select [(ngModel)]="filterShiftId" (change)="onFilterShiftChange()" style="border: none; outline: none; font-size: 13px; font-weight: 700; color: var(--text-main); font-family: inherit; background: transparent; cursor: pointer; padding: 2px 0;">
+            <option value="ALL">Tất cả ca</option>
+            <option value="OFF">Nghỉ (OFF)</option>
+            <option *ngFor="let s of shifts" [value]="s.id">{{ s.name }}</option>
+          </select>
+        </div>
+
+        <button class="nav-btn next" (click)="nextWeek()" title="Tuần sau">
+          <mat-icon>chevron_right</mat-icon>
+        </button>
+      </div>
+    </div>
+
+    <!-- Shift Legends -->
+    <div class="shift-legends">
+      <span class="legend-title">Ghi chú ca làm:</span>
+      <span *ngFor="let s of shifts" class="legend-item">
+        <span class="legend-dot" [ngClass]="getShiftColorClass(s.name)"></span> 
+        <strong>{{ s.name }}</strong> ({{ s.startTime | slice:0:5 }} - {{ s.endTime | slice:0:5 }})
+      </span>
+      <span class="legend-item">
+        <span class="legend-dot shift-off"></span> 
+        <strong>Nghỉ (OFF)</strong>
+      </span>
+    </div>
+
+    <!-- Scheduling Table Grid -->
+    <div class="grid-table-container">
+      <div *ngIf="loadingAssignments || loadingEmployees" class="grid-loader">
+        <mat-spinner diameter="40"></mat-spinner>
+        <p>Đang tải dữ liệu phân lịch ca...</p>
+      </div>
+
+      <table *ngIf="!loadingAssignments && !loadingEmployees" class="schedule-table">
+        <thead>
+          <tr>
+            <th class="sticky-col employee-header">Nhân Viên</th>
+            <th *ngFor="let day of weekDays" class="day-header" [class.today-header]="day.dateStr === formatDate(currentDate)">
+              <div class="day-name">{{ day.name }}</div>
+              <div class="day-date">{{ day.dateStr | date:'dd/MM' }}</div>
+            </th>
+            <th class="day-header" style="min-width: 90px; width: 90px; vertical-align: middle;">
+              <div class="day-name" style="color: var(--text-muted); font-size: 12px; font-weight: 700; text-transform: uppercase;">Làm Mới</div>
+              <div class="day-date" style="font-size: 13px; font-weight: 800; color: var(--text-main); margin-top: 2px;">Lịch Tuần</div>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let emp of pagedEmployees; let i = index">
+            <!-- Employee Info Sticky Col -->
+            <td class="sticky-col employee-cell">
+              <div class="emp-profile" style="display: flex; align-items: center; gap: 12px; width: 100%;">
+                <div class="avatar-sm">
+                  <img [src]="'https://ui-avatars.com/api/?name=' + emp.name + '&background=e5ebfe&color=4B49AC&bold=true'" alt="Avatar">
+                </div>
+                <div class="emp-meta">
+                  <span class="emp-name">{{ emp.name }}</span>
+                  <span class="emp-role-type">{{ emp.employeeType || 'Full-time' }}</span>
+                </div>
+              </div>
+            </td>
+
+            <!-- Week days assignments cells -->
+            <td *ngFor="let day of weekDays" class="schedule-cell" style="position: relative;">
+              <!-- Elegant Dynamic Shift Trigger Badge -->
+              <div class="custom-shift-trigger" 
+                   (click)="toggleCellDropdown(emp.id, day.dateStr, $event)"
+                   [ngClass]="getShiftColorClassById(getAssignmentShiftId(emp.id, day.dateStr))"
+                   [class.active-trigger]="activeCellDropdown?.empId === emp.id && activeCellDropdown?.dateStr === day.dateStr">
+                <span class="trigger-name">{{ getShiftNameById(getAssignmentShiftId(emp.id, day.dateStr)) }}</span>
+                <mat-icon class="trigger-chevron">expand_more</mat-icon>
+              </div>
+
+              <!-- High-Fidelity Custom Selection Dropdown Popover -->
+              <div class="custom-shift-dropdown glass-card" 
+                   *ngIf="activeCellDropdown?.empId === emp.id && activeCellDropdown?.dateStr === day.dateStr"
+                   [class.open-upward]="i >= pagedEmployees.length - 3"
+                   (click)="$event.stopPropagation()">
+                
+                <!-- Rest Day (OFF) Option -->
+                <div class="dropdown-option-item shift-off-option" 
+                     [class.selected-option]="getAssignmentShiftId(emp.id, day.dateStr) === 'OFF'"
+                     (click)="selectCellShift(emp, day, null)">
+                  <span class="option-dot shift-off"></span>
+                  <div class="option-info">
+                    <span class="option-name">OFF</span>
+                    <span class="option-time">Nghỉ tuần</span>
+                  </div>
+                  <mat-icon class="check-icon" *ngIf="getAssignmentShiftId(emp.id, day.dateStr) === 'OFF'">check</mat-icon>
+                </div>
+
+                <!-- Active Custom Shifts Options -->
+                <div *ngFor="let s of shifts" 
+                     class="dropdown-option-item" 
+                     [ngClass]="getShiftColorClass(s.name) + '-option'"
+                     [class.selected-option]="getAssignmentShiftId(emp.id, day.dateStr).toString() === s.id.toString()"
+                     (click)="selectCellShift(emp, day, s.id)">
+                  <span class="option-dot" [ngClass]="getShiftColorClass(s.name)"></span>
+                  <div class="option-info">
+                    <span class="option-name">{{ s.name }}</span>
+                    <span class="option-time">{{ s.startTime | slice:0:5 }} - {{ s.endTime | slice:0:5 }}</span>
+                  </div>
+                  <mat-icon class="check-icon" *ngIf="getAssignmentShiftId(emp.id, day.dateStr).toString() === s.id.toString()">check</mat-icon>
+                </div>
+              </div>
+            </td>
+
+            <!-- Actions Col at the end of row -->
+            <td class="schedule-cell" style="vertical-align: middle; text-align: center;">
+              <button class="clear-emp-week-btn" (click)="clearEmployeeWeek(emp)" title="Xóa lịch tuần của nhân sự này" style="margin: 0 auto; opacity: 0.6;">
+                <mat-icon>delete_sweep</mat-icon>
+              </button>
+            </td>
+          </tr>
+
+          <tr *ngIf="employees.length === 0">
+            <td colspan="9" class="empty-state">Không có nhân viên nào!</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- PAGINATION FOOTER -->
+    <mat-paginator *ngIf="!loadingEmployees && filteredEmployees.length > 0"
+                   [length]="filteredEmployees.length"
+                   [pageSize]="pageSize"
+                   [pageSizeOptions]="pageSizeOptions"
+                   [pageIndex]="pageIndex"
+                   (page)="onPageChange($event)"
+                   aria-label="Chọn trang">
+    </mat-paginator>
+
+  </mat-card>
+</ng-container>
+
+<!-- ========================================================================= -->
+<!-- SHIFTS CRUD TAB -->
+<!-- ========================================================================= -->
+<ng-container *ngIf="activeTab === 'config'">
+  
+  <!-- Add Shift Form Inline -->
+  <mat-card class="data-card glass-card add-shift-card" *ngIf="isAddingShift">
+    <h3><mat-icon>add_circle_outline</mat-icon> Thêm ca làm việc mới</h3>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Tên Ca</label>
+        <input class="inline-input" type="text" placeholder="Ví dụ: Ca sáng, Ca chiều..." [(ngModel)]="newShift.name">
+      </div>
+      <div class="form-group">
+        <label>Giờ Bắt Đầu</label>
+        <input class="inline-input" type="time" [(ngModel)]="newShift.startTime">
+      </div>
+      <div class="form-group">
+        <label>Giờ Kết Thúc</label>
+        <input class="inline-input" type="time" [(ngModel)]="newShift.endTime">
+      </div>
+      <div class="form-group">
+        <label>Số Giờ Chuẩn</label>
+        <input class="inline-input" type="number" step="0.5" placeholder="8.0" [(ngModel)]="newShift.standardHours">
+      </div>
+      <div class="form-group">
+        <label>Nhân Viên Tối Đa</label>
+        <input class="inline-input" type="number" placeholder="10" [(ngModel)]="newShift.maxEmployees">
+      </div>
+      <div class="form-group submit-group">
+        <button mat-flat-button color="accent" class="btn-save" (click)="saveNewShift()">
+          <mat-icon>save</mat-icon> Lưu Lại
+        </button>
+      </div>
+    </div>
+  </mat-card>
+
+  <mat-card class="data-card glass-card">
+    <div *ngIf="loadingShifts" style="text-align:center; padding: 40px;">
+      <mat-spinner diameter="40" style="margin: 0 auto;"></mat-spinner>
+      <p style="margin-top: 15px; color: #888;">Đang tải danh sách ca làm việc...</p>
+    </div>
+
+    <table *ngIf="!loadingShifts || shifts.length > 0" class="custom-table">
+      <thead>
+        <tr>
+          <th>Tên Ca Làm Việc</th>
+          <th>Giờ Bắt Đầu</th>
+          <th>Giờ Kết Thúc</th>
+          <th>Số Giờ Chuẩn</th>
+          <th>Giới Hạn Nhân Sự</th>
+          <th>Thao Tác</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let s of shifts">
+          <!-- Normal View Row -->
+          <ng-container *ngIf="editingShiftId !== s.id">
+            <td style="font-weight: 700; color: #1e293b;">
+              <span class="shift-name-label" [ngClass]="getShiftColorClass(s.name)">{{ s.name }}</span>
+            </td>
+            <td><span class="time-badge">{{ s.startTime | slice:0:5 }}</span></td>
+            <td><span class="time-badge">{{ s.endTime | slice:0:5 }}</span></td>
+            <td style="font-weight: 600; color: #6366f1;">{{ s.standardHours }} giờ</td>
+            <td>{{ s.maxEmployees ? s.maxEmployees + ' nhân sự' : 'Không giới hạn' }}</td>
+            <td>
+              <button mat-icon-button color="primary" (click)="startEditShift(s)" title="Chỉnh sửa">
+                <mat-icon>edit_note</mat-icon>
+              </button>
+              <button mat-icon-button color="warn" (click)="deleteShift(s.id)" title="Xóa">
+                <mat-icon>delete_sweep</mat-icon>
+              </button>
+            </td>
+          </ng-container>
+
+          <!-- Edit Row Mode -->
+          <ng-container *ngIf="editingShiftId === s.id">
+            <td><input class="inline-input" type="text" [(ngModel)]="editShiftModel.name"></td>
+            <td><input class="inline-input" type="time" [(ngModel)]="editShiftModel.startTime"></td>
+            <td><input class="inline-input" type="time" [(ngModel)]="editShiftModel.endTime"></td>
+            <td><input class="inline-input" type="number" step="0.5" [(ngModel)]="editShiftModel.standardHours"></td>
+            <td><input class="inline-input" type="number" [(ngModel)]="editShiftModel.maxEmployees"></td>
+            <td>
+              <button mat-icon-button color="accent" (click)="saveEditShift()"><mat-icon>check_circle</mat-icon></button>
+              <button mat-icon-button color="warn" (click)="cancelEditShift()"><mat-icon>cancel</mat-icon></button>
+            </td>
+          </ng-container>
+        </tr>
+
+        <tr *ngIf="shifts.length === 0 && !loadingShifts">
+          <td colspan="6" style="text-align: center; padding: 40px; color: #888;">
+            Chưa cấu hình ca làm việc nào! Hãy thêm ca mới để bắt đầu phân ca.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </mat-card>
+
+</ng-container>
+
+<!-- ========================================================================= -->
+<!-- POPUPS & MODALS (GLASSMORPHISM STYLE) -->
+<!-- ========================================================================= -->
+
+<!-- 2. BULK ASSIGNMENT MODAL -->
+<div class="glass-overlay" *ngIf="showBulkModal" (click)="closeBulkModal()">
+  <div class="glass-modal-card" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-header-title">
+        <div class="header-icon"><mat-icon>group_add</mat-icon></div>
+        <div>
+          <h2>Phân Ca Hàng Loạt</h2>
+          <p>Thiết lập ca làm nhanh cho nhân viên theo khoảng thời gian và ngày trong tuần</p>
+        </div>
+      </div>
+      <button class="modal-close-btn" (click)="closeBulkModal()"><mat-icon>close</mat-icon></button>
+    </div>
+
+    <div class="modal-body">
+      <div class="bulk-form-grid">
+        <!-- Employee Select -->
+        <div class="form-group">
+          <label>Chọn Nhân Viên</label>
+          <select class="modal-select-styled" [(ngModel)]="bulkModel.employeeId">
+            <option *ngFor="let emp of employees" [value]="emp.id">{{ emp.name }} ({{ emp.position || 'N/A' }})</option>
+          </select>
+        </div>
+
+        <!-- Shift Select -->
+        <div class="form-group">
+          <label>Chọn Ca Làm Việc</label>
+          <select class="modal-select-styled" 
+                  [(ngModel)]="bulkModel.shiftId"
+                  [ngClass]="getShiftColorClassById(bulkModel.shiftId)">
+            <option [value]="null" class="shift-off">Nghỉ (OFF / Rest Day)</option>
+            <option *ngFor="let s of shifts" 
+                    [value]="s.id"
+                    [ngClass]="getShiftColorClass(s.name)">{{ s.name }} ({{ s.startTime | slice:0:5 }} - {{ s.endTime | slice:0:5 }})</option>
+          </select>
+        </div>
+
+        <!-- Start Date -->
+        <div class="form-group">
+          <label>Từ ngày</label>
+          <input type="date" class="modal-input-styled" [(ngModel)]="bulkModel.startDate">
+        </div>
+
+        <!-- End Date -->
+        <div class="form-group">
+          <label>Đến ngày</label>
+          <input type="date" class="modal-input-styled" [(ngModel)]="bulkModel.endDate">
+        </div>
+      </div>
+
+      <!-- Days of Week Selectors -->
+      <div class="days-select-group">
+        <label class="days-title">Áp dụng cho các Thứ trong tuần:</label>
+        <div class="days-checkboxes">
+          <label class="day-checkbox">
+            <input type="checkbox" [(ngModel)]="bulkModel.selectedDays[1]">
+            <span>Thứ 2</span>
+          </label>
+          <label class="day-checkbox">
+            <input type="checkbox" [(ngModel)]="bulkModel.selectedDays[2]">
+            <span>Thứ 3</span>
+          </label>
+          <label class="day-checkbox">
+            <input type="checkbox" [(ngModel)]="bulkModel.selectedDays[3]">
+            <span>Thứ 4</span>
+          </label>
+          <label class="day-checkbox">
+            <input type="checkbox" [(ngModel)]="bulkModel.selectedDays[4]">
+            <span>Thứ 5</span>
+          </label>
+          <label class="day-checkbox">
+            <input type="checkbox" [(ngModel)]="bulkModel.selectedDays[5]">
+            <span>Thứ 6</span>
+          </label>
+          <label class="day-checkbox">
+            <input type="checkbox" [(ngModel)]="bulkModel.selectedDays[6]">
+            <span>Thứ 7</span>
+          </label>
+          <label class="day-checkbox">
+            <input type="checkbox" [(ngModel)]="bulkModel.selectedDays[0]">
+            <span>Chủ Nhật</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="modal-footer-actions" style="margin-top: 30px;">
+        <button class="btn-secondary" (click)="closeBulkModal()">Hủy Bỏ</button>
+        <button class="btn-primary animate-btn" [disabled]="savingBulk" (click)="saveBulkAssignment()">
+          <mat-icon *ngIf="!savingBulk">done_all</mat-icon>
+          <span *ngIf="!savingBulk">Xác Nhận Phân Ca</span>
+          <span *ngIf="savingBulk">Đang thiết lập...</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 3. SHARED CONFIRMATION MODAL -->
+<div class="glass-overlay-confirm" *ngIf="showConfirmModal" (click)="closeConfirm()">
+  <div class="confirm-modal-card" (click)="$event.stopPropagation()">
+    <div class="confirm-icon-box">
+      <mat-icon>warning_amber</mat-icon>
+    </div>
+    <h3>{{ confirmTitle || 'Xác nhận hành động' }}</h3>
+    <p>{{ confirmMessage }}</p>
+    <div class="confirm-actions">
+      <button class="confirm-btn-cancel" (click)="closeConfirm()">Hủy Bỏ</button>
+      <button class="confirm-btn-yes" (click)="triggerConfirm()">Đồng Ý</button>
+    </div>
+  </div>
+</div>

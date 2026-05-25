@@ -33,6 +33,9 @@ public class MonthlyRevenue {
     @Column(name = "bonus_pool")
     private Double bonusPool;
 
+    @Column(name = "bonus_rate")
+    private Double bonusRate; // e.g. 1.0 for 1%, 2.5 for 2.5%
+
     @Column(name = "notes")
     private String notes;
 }
