@@ -175,6 +175,45 @@
   display: inline-block;
 }
 
+/* Premium Interactive Legend Filters */
+.legend-item.interactive {
+  padding: 6px 12px !important;
+  border-radius: 12px !important;
+  background: rgba(255, 255, 255, 0.8) !important;
+  border: 1.5px solid var(--border-light) !important;
+  cursor: pointer;
+  user-select: none;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  color: var(--text-main) !important;
+}
+
+.legend-item.interactive:hover {
+  background: white !important;
+  border-color: rgba(99, 102, 241, 0.4) !important;
+  color: var(--primary) !important;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.legend-item.interactive:active {
+  transform: translateY(0);
+}
+
+.legend-item.interactive.active-legend {
+  background: rgba(99, 102, 241, 0.08) !important;
+  border-color: var(--primary) !important;
+  color: var(--primary) !important;
+  font-weight: 800 !important;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.12) !important;
+}
+
+/* Beautiful context focus when one is selected */
+.shift-legends:has(.active-legend) .legend-item.interactive:not(.active-legend) {
+  opacity: 0.55;
+  transform: scale(0.96);
+}
+
 /* SCHEDULING TABLE GRID */
 .grid-table-container {
   overflow-x: auto;

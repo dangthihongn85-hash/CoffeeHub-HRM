@@ -106,15 +106,6 @@
           </div>
         </div>
 
-        <!-- Elegant Shift Filter Dropdown -->
-        <div class="shift-filter-wrapper" style="display: flex; align-items: center; background: white; border-radius: 10px; padding: 3px 10px; border: 1.5px solid var(--border-light); margin: 0 4px; box-shadow: var(--shadow-sm); transition: all 0.2s ease;">
-          <mat-icon style="font-size: 18px; width: 18px; height: 18px; color: var(--primary); margin-right: 6px;">filter_list</mat-icon>
-          <select [(ngModel)]="filterShiftId" (change)="onFilterShiftChange()" style="border: none; outline: none; font-size: 13px; font-weight: 700; color: var(--text-main); font-family: inherit; background: transparent; cursor: pointer; padding: 2px 0;">
-            <option value="ALL">Tất cả ca</option>
-            <option value="OFF">Nghỉ (OFF)</option>
-            <option *ngFor="let s of shifts" [value]="s.id">{{ s.name }}</option>
-          </select>
-        </div>
 
         <button class="nav-btn next" (click)="nextWeek()" title="Tuần sau">
           <mat-icon>chevron_right</mat-icon>
@@ -122,14 +113,31 @@
       </div>
     </div>
 
-    <!-- Shift Legends -->
-    <div class="shift-legends">
-      <span class="legend-title">Ghi chú ca làm:</span>
-      <span *ngFor="let s of shifts" class="legend-item">
+    <!-- Shift Legends with Interactive Filtering -->
+    <div class="shift-legends" style="margin-bottom: 24px; padding: 6px 0;">
+      <span class="legend-title" style="display: inline-flex; align-items: center; gap: 4px; font-weight: 800; color: var(--text-main);"><mat-icon style="font-size: 18px; width: 18px; height: 18px; color: var(--primary);">filter_alt</mat-icon> Lọc nhanh theo ca làm:</span>
+      
+      <!-- Option for All shifts -->
+      <span class="legend-item interactive" 
+            [class.active-legend]="filterShiftId === 'ALL'"
+            (click)="toggleShiftFilter('ALL')">
+        <span class="legend-dot" style="background: var(--primary);"></span>
+        <strong>Tất cả ca</strong>
+      </span>
+
+      <!-- Options for specific shifts -->
+      <span *ngFor="let s of shifts" 
+            class="legend-item interactive" 
+            [class.active-legend]="filterShiftId.toString() === s.id.toString()"
+            (click)="toggleShiftFilter(s.id)">
         <span class="legend-dot" [ngClass]="getShiftColorClass(s.name)"></span> 
         <strong>{{ s.name }}</strong> ({{ s.startTime | slice:0:5 }} - {{ s.endTime | slice:0:5 }})
       </span>
-      <span class="legend-item">
+
+      <!-- Option for OFF shifts -->
+      <span class="legend-item interactive" 
+            [class.active-legend]="filterShiftId === 'OFF'"
+            (click)="toggleShiftFilter('OFF')">
         <span class="legend-dot shift-off"></span> 
         <strong>Nghỉ (OFF)</strong>
       </span>

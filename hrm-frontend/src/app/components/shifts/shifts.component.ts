@@ -254,6 +254,16 @@ export class ShiftsComponent implements OnInit {
     this.updatePagedData();
   }
 
+  toggleShiftFilter(shiftId: string | number) {
+    if (this.filterShiftId.toString() === shiftId.toString()) {
+      this.filterShiftId = 'ALL';
+    } else {
+      this.filterShiftId = shiftId.toString();
+    }
+    this.pageIndex = 0;
+    this.updatePagedData();
+  }
+
   onPageChange(event: any) {
     this.pageSize = event.pageSize;
     this.pageIndex = event.pageIndex;
