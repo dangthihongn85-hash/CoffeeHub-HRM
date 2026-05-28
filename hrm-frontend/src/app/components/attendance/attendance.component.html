@@ -98,28 +98,30 @@
         <div class="chip rose"><mat-icon>exit_to_app</mat-icon> Về sớm: <strong>{{ summaryStats.early }}</strong></div>
       </div>
 
-      <table class="custom-table">
-        <thead>
-          <tr>
-            <th>Ngày</th>
-            <th>Giờ Check-in</th>
-            <th>Giờ Check-out</th>
-            <th>Trạng thái</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let row of summaryData">
-            <td>{{ row.date }}</td>
-            <td>{{ row.checkInTime || '—' }}</td>
-            <td>{{ row.checkOutTime || '—' }}</td>
-            <td>
-              <span class="chip-inline green" *ngIf="row.status === 'ON_TIME'">Đúng giờ</span>
-              <span class="chip-inline amber" *ngIf="row.status === 'LATE'">Đi muộn</span>
-              <span class="chip-inline rose" *ngIf="row.status === 'EARLY'">Về sớm</span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="table-wrapper">
+        <table class="custom-table">
+          <thead>
+            <tr>
+              <th>Ngày</th>
+              <th>Giờ Check-in</th>
+              <th>Giờ Check-out</th>
+              <th>Trạng thái</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of summaryData">
+              <td>{{ row.date }}</td>
+              <td>{{ row.checkInTime || '—' }}</td>
+              <td>{{ row.checkOutTime || '—' }}</td>
+              <td>
+                <span class="chip-inline green" *ngIf="row.status === 'ON_TIME'">Đúng giờ</span>
+                <span class="chip-inline amber" *ngIf="row.status === 'LATE'">Đi muộn</span>
+                <span class="chip-inline rose" *ngIf="row.status === 'EARLY'">Về sớm</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <div *ngIf="summaryData.length === 0 && !summaryLoading" class="empty-summary">

@@ -49,11 +49,13 @@
     </mat-nav-list>
 
     <div class="nav-footer">
-      <div class="profile-card">
-        <div class="avatar">A</div>
-        <div class="user-info">
-          <h6>Admin User</h6>
-          <p>admin@bmad.com</p>
+      <div class="sidebar-user-card">
+        <div class="sidebar-avatar">
+          <img src="https://ui-avatars.com/api/?name=Amira&background=4B49AC&color=fff&bold=true" alt="Avatar">
+        </div>
+        <div class="user-info-sidebar">
+          <h6>Amira Manager</h6>
+          <p>Admin</p>
         </div>
       </div>
     </div>
@@ -61,39 +63,31 @@
 
   <mat-sidenav-content class="main-content">
     <mat-toolbar class="top-toolbar">
-      <div class="header-left">
-        <button mat-icon-button (click)="sidenav.toggle()" class="menu-btn">
-          <mat-icon>menu</mat-icon>
-        </button>
-        <div class="header-search">
-          <mat-icon>search</mat-icon>
-          <input type="text" placeholder="Tìm kiếm nhanh...">
-        </div>
-        <button mat-icon-button class="filter-btn">
-          <mat-icon>tune</mat-icon>
-        </button>
-      </div>
-
+      <button mat-icon-button (click)="sidenav.toggle()" class="menu-btn">
+        <mat-icon>menu</mat-icon>
+      </button>
       <span class="spacer"></span>
-      
       <div class="header-actions">
         <button mat-icon-button class="notify-btn">
           <mat-icon>notifications_none</mat-icon>
           <span class="badge"></span>
         </button>
-        <div class="profile-card">
-          <div class="user-info">
+
+        <div class="header-profile">
+          <div class="header-avatar">
+            <img src="https://ui-avatars.com/api/?name=Amira&background=4B49AC&color=fff&bold=true" alt="Avatar">
+          </div>
+          <div class="header-user-info">
             <h6>Amira Manager</h6>
             <p>Admin</p>
           </div>
-          <div class="avatar">
-            <img src="https://ui-avatars.com/api/?name=Amira&background=4B49AC&color=fff&bold=true" alt="Avatar">
-          </div>
         </div>
+
         <button mat-icon-button class="logout-btn" (click)="logout()">
-          <mat-icon>exit_to_app</mat-icon>
+          <mat-icon>logout</mat-icon>
         </button>
       </div>
+
     </mat-toolbar>
     
     <div class="content-body">

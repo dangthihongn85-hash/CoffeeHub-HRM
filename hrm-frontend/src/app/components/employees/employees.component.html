@@ -3,10 +3,6 @@
     <h2 class="page-title">Employees Directory</h2>
     <p class="page-subtitle">Quản lý danh sách nhân sự và xử lý hồ sơ hành chính</p>
   </div>
-  <button mat-raised-button color="primary" class="add-btn" (click)="toggleAdd()">
-    <mat-icon>{{ isAdding ? 'close' : 'add' }}</mat-icon> 
-    {{ isAdding ? 'Hủy Bỏ' : 'Thêm Nhân Viên' }}
-  </button>
 </div>
 
 <div class="stats-cards">
@@ -45,11 +41,17 @@
         <p>Bộ lọc giúp bạn tìm kiếm và quản lý nhân viên nhanh chóng</p>
       </div>
     </div>
-    <button class="filter-toggle-btn" (click)="filterExpanded = !filterExpanded">
-      <mat-icon>tune</mat-icon>
-      {{ filterExpanded ? 'Thu gọn' : 'Mở rộng' }}
-      <mat-icon class="toggle-arrow" [class.rotated]="!filterExpanded">expand_less</mat-icon>
-    </button>
+    <div class="filter-panel-actions">
+      <button mat-raised-button color="primary" class="add-btn" (click)="toggleAdd()">
+        <mat-icon>{{ isAdding ? 'close' : 'add' }}</mat-icon>
+        {{ isAdding ? 'Hủy Bỏ' : 'Thêm Nhân Viên' }}
+      </button>
+      <button class="filter-toggle-btn" (click)="filterExpanded = !filterExpanded">
+        <mat-icon>tune</mat-icon>
+        {{ filterExpanded ? 'Thu gọn' : 'Mở rộng' }}
+        <mat-icon class="toggle-arrow" [class.rotated]="!filterExpanded">expand_less</mat-icon>
+      </button>
+    </div>
   </div>
 
   <!-- FILTER PANEL BODY -->
@@ -132,8 +134,9 @@
      <p style="margin-top: 15px; color: #888;">Đang kết nối CSDL Backend...</p>
   </div>
 
-  <table *ngIf="!loading || filteredEmployees.length > 0" class="custom-table">
-    <thead>
+  <div class="table-wrapper" *ngIf="!loading || filteredEmployees.length > 0">
+    <table class="custom-table">
+      <thead>
       <tr>
         <th>Họ và Tên</th>
         <th>Chức vụ</th>
@@ -280,6 +283,7 @@
       </tr>
     </tbody>
   </table>
+  </div>
 
   <!-- PAGINATION FOOTER -->
   <mat-paginator *ngIf="!loading && filteredEmployees.length > 0"
@@ -311,25 +315,93 @@
       </button>
     </div>
 
-    <!-- Modal Toolbar (Selector Month & Year) -->
+    <!-- Modal Stats Bar -->
+    <div class="modal-stats-bar" *ngIf="!loadingAttendance">
+      <div class="m-stat-card bg-primary-light">
+        <mat-icon class="m-stat-icon" style="font-family: 'Material Icons' !important;">emoji_events</mat-icon>
+        <div class="m-stat-info">
+          <span class="m-stat-label">Tổng Điểm Công</span>
+          <strong class="m-stat-value">{{ modalWorkPoints | number:'1.1-2' }} công</strong>
+        </div>
+      </div>
+      <div class="m-stat-card bg-rose-light" *ngIf="selectedEmpForAttendance?.employeeType !== 'PART_TIME'">
+        <mat-icon class="m-stat-icon" style="font-family: 'Material Icons' !important;">event_busy</mat-icon>
+        <div class="m-stat-info">
+          <span class="m-stat-label">Nghỉ Có Phép</span>
+          <strong class="m-stat-value text-rose">{{ modalAbsentWithPerm }} ngày</strong>
+        </div>
+      </div>
+      <div class="m-stat-card bg-rose-dark">
+        <mat-icon class="m-stat-icon" style="font-family: 'Material Icons' !important;">gavel</mat-icon>
+        <div class="m-stat-info">
+          <span class="m-stat-label">Nghỉ Không Phép</span>
+          <strong class="m-stat-value text-rose-dark">{{ modalAbsentNoPerm }} ngày</strong>
+        </div>
+      </div>
+      <div class="m-stat-card bg-indigo-light" *ngIf="selectedEmpForAttendance?.employeeType !== 'PART_TIME'">
+        <mat-icon class="m-stat-icon" style="font-family: 'Material Icons' !important;">volunteer_activism</mat-icon>
+        <div class="m-stat-info">
+          <span class="m-stat-label">Nghỉ Đặc Biệt</span>
+          <strong class="m-stat-value text-indigo">{{ modalSpecialLeave }} ngày</strong>
+        </div>
+      </div>
+      <div class="m-stat-card bg-orange-light">
+        <mat-icon class="m-stat-icon" style="font-family: 'Material Icons' !important;">schedule</mat-icon>
+        <div class="m-stat-info">
+          <span class="m-stat-label">Đi Trễ / Về Sớm</span>
+          <strong class="m-stat-value text-orange">{{ modalLateEarly }} ngày</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Shift Legend Bar (Mô tả ca lên trên table) -->
+    <div class="shift-legend-bar" *ngIf="availableShifts.length > 0 && !loadingAttendance">
+      <div class="legend-title">
+        <mat-icon style="font-family: 'Material Icons' !important;">info</mat-icon>
+        <span>Thời gian các ca làm:</span>
+      </div>
+      <div class="legend-items">
+        <span class="legend-item" *ngFor="let s of availableShifts">
+          <strong class="shift-name-tag">{{ s.name }}</strong>
+          <span class="shift-time-tag">({{ s.startTime | slice:0:5 }} - {{ s.endTime | slice:0:5 }})</span>
+        </span>
+      </div>
+    </div>
+
+    <!-- Modal Toolbar (Selectors Row) -->
     <div class="modal-toolbar">
-      <div class="toolbar-title">Chọn tháng làm việc:</div>
-      <div class="selectors">
-        <div class="selector-item">
-          <label>Tháng</label>
-          <select [(ngModel)]="selectedMonth" (change)="loadAttendanceData()">
-            <option *ngFor="let m of monthsList" [value]="m">Tháng {{ m }}</option>
-          </select>
-        </div>
-        <div class="selector-item">
-          <label>Năm</label>
-          <select [(ngModel)]="selectedYear" (change)="loadAttendanceData()">
-            <option *ngFor="let y of yearsList" [value]="y">Năm {{ y }}</option>
-          </select>
-        </div>
-        <button class="refresh-btn" (click)="loadAttendanceData()" title="Tải lại">
-          <mat-icon>sync</mat-icon>
+      <div class="selectors-left">
+        <!-- Selector Month -->
+        <select [(ngModel)]="selectedMonth" (change)="loadAttendanceData()" class="toolbar-select-narrow">
+          <option *ngFor="let m of monthsList" [value]="m">Tháng {{ m }}</option>
+        </select>
+
+        <!-- Selector Year -->
+        <select [(ngModel)]="selectedYear" (change)="loadAttendanceData()" class="toolbar-select-narrow">
+          <option *ngFor="let y of yearsList" [value]="y">Năm {{ y }}</option>
+        </select>
+
+        <!-- Refresh Button -->
+        <button class="toolbar-refresh-btn" (click)="loadAttendanceData()" title="Tải lại dữ liệu">
+          <mat-icon style="font-family: 'Material Icons' !important;">sync</mat-icon>
         </button>
+      </div>
+
+      <div class="selectors-right">
+        <!-- Filter Status Selector -->
+        <div class="filter-status-wrapper">
+          <mat-icon class="filter-icon" style="font-family: 'Material Icons' !important;">filter_alt</mat-icon>
+          <select [(ngModel)]="filterAttendanceStatus" class="toolbar-select-filter">
+            <option value="ALL">Tất cả trạng thái</option>
+            <option value="ON_TIME">Đúng giờ</option>
+            <option value="LATE">Đi trễ</option>
+            <option value="EARLY">Về sớm</option>
+            <option value="ABSENT">Nghỉ có phép</option>
+            <option value="ABSENT_NO_PERMISSION">Nghỉ không phép</option>
+            <option value="SPECIAL_LEAVE">Nghỉ đặc biệt</option>
+            <option value="NO_RECORD">Chưa chấm công</option>
+          </select>
+        </div>
       </div>
     </div>
 
@@ -344,18 +416,18 @@
         <table class="modal-table">
           <thead>
             <tr>
-              <th style="width: 120px;">Ngày tháng</th>
-              <th style="width: 90px;">Thứ</th>
-              <th style="width: 150px;">Ca làm</th>
-              <th style="width: 110px;">Check-in</th>
-              <th style="width: 110px;">Check-out</th>
-              <th style="width: 100px;">Điểm công</th>
-              <th style="width: 160px;">Trạng thái</th>
+              <th style="width: 150px;">Ngày tháng</th>
+              <th style="width: 110px;">Thứ</th>
+              <th style="width: 190px;">Ca làm</th>
+              <th style="width: 130px;">Check-in</th>
+              <th style="width: 130px;">Check-out</th>
+              <th style="width: 120px; text-align: center;">Điểm công</th>
+              <th style="width: 190px;">Trạng thái</th>
               <th>Thao tác</th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let day of calendarDays" [class.editing-row]="day.editing">
+            <tr *ngFor="let day of filteredCalendarDays" [class.editing-row]="day.editing">
               <!-- Date Column -->
               <td>
                 <span class="day-num-badge">{{ day.dayNum }}</span>
@@ -368,15 +440,18 @@
               <!-- Shift Column -->
               <td>
                 <ng-container *ngIf="!day.editing">
-                  <span class="chip-inline" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; font-weight: 600; padding: 4px 8px; border-radius: 6px;">
-                    {{ day.record?.shift?.name || 'Chưa phân ca' }}
+                  <span class="chip-inline" 
+                        [style.background]="day.record?.shift ? 'rgba(99, 102, 241, 0.15)' : (isPastDay(day.dateStr) ? 'rgba(100, 116, 139, 0.15)' : 'rgba(14, 165, 233, 0.15)')"
+                        [style.color]="day.record?.shift ? '#818cf8' : (isPastDay(day.dateStr) ? '#64748b' : '#0284c7')"
+                        style="font-weight: 600; padding: 4px 8px; border-radius: 6px;">
+                    {{ day.record?.shift?.name || (isPastDay(day.dateStr) ? 'OFF' : 'Chưa phân ca') }}
                   </span>
                 </ng-container>
                 <ng-container *ngIf="day.editing">
                   <select class="modal-select" [(ngModel)]="day.editShiftId" 
                           [disabled]="day.editStatus === 'ABSENT' || day.editStatus === 'ABSENT_NO_PERMISSION' || day.editStatus === 'SPECIAL_LEAVE'"
                           style="width: 100%; padding: 6px; border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff; border: 1px solid rgba(255,255,255,0.2);">
-                    <option *ngFor="let s of availableShifts" [value]="s.id">{{ s.name }} ({{ s.startTime | slice:0:5 }})</option>
+                    <option *ngFor="let s of availableShifts" [value]="s.id">{{ s.name }}</option>
                   </select>
                 </ng-container>
               </td>
@@ -413,7 +488,7 @@
               <td>
                 <ng-container *ngIf="!day.editing">
                   <span class="chip-status" [ngClass]="day.record ? getStatusBadgeClass(day.record.status) : 'chip-gray'">
-                    {{ getStatusText(day.record ? day.record.status : '') }}
+                    {{ getStatusText(day.record ? day.record.status : '', day.dateStr) }}
                   </span>
                 </ng-container>
                 <ng-container *ngIf="day.editing">
@@ -422,9 +497,9 @@
                     <option value="ON_TIME">Đúng giờ</option>
                     <option value="LATE">Đi trễ</option>
                     <option value="EARLY">Về sớm</option>
-                    <option value="ABSENT">Nghỉ có phép</option>
+                    <option value="ABSENT" *ngIf="selectedEmpForAttendance?.employeeType !== 'PART_TIME'">Nghỉ có phép</option>
                     <option value="ABSENT_NO_PERMISSION">Nghỉ không phép</option>
-                    <option value="SPECIAL_LEAVE">Nghỉ đặc biệt</option>
+                    <option value="SPECIAL_LEAVE" *ngIf="selectedEmpForAttendance?.employeeType !== 'PART_TIME'">Nghỉ đặc biệt</option>
                   </select>
                 </ng-container>
               </td>

@@ -1,10 +1,13 @@
+<div class="shifts-page-container">
 <div class="page-header">
-  <div>
+  <!-- Cột 1: Tiêu đề -->
+  <div class="header-title-column">
     <h2 class="page-title">Quản Lý Phân Ca</h2>
     <p class="page-subtitle">Quản lý các ca làm việc trong quán và phân công lịch trình cho nhân sự hàng tuần</p>
   </div>
   
-  <div class="header-actions-row">
+  <!-- Cột 2: Bộ chọn tab (Giữ nguyên vị trí cố định ở trung tâm) -->
+  <div class="tab-selectors-wrapper">
     <div class="tab-selectors">
       <button class="tab-btn" [class.active]="activeTab === 'schedule'" (click)="activeTab = 'schedule'">
         <mat-icon>calendar_view_week</mat-icon> Lịch Phân Ca
@@ -13,19 +16,32 @@
         <mat-icon>settings</mat-icon> Cấu Hình Ca Làm
       </button>
     </div>
-    
+  </div>
+  
+  <!-- Cột 3: Các nút hành động động (Căn lề phải) -->
+  <div class="header-actions-container">
     <div class="header-actions-row" *ngIf="activeTab === 'schedule'">
       <button mat-raised-button color="primary" class="bulk-btn animate-btn" (click)="openBulkModal()">
         <mat-icon>group_add</mat-icon> Phân Ca Nhanh
       </button>
       <button mat-raised-button color="warn" class="clear-week-btn animate-btn" (click)="clearWeekSchedule()" 
-              style="margin-left: 12px; background: linear-gradient(135deg, #ef4444, #dc2626); color: white; border-radius: 12px; font-weight: 700; height: 44px; padding: 0 16px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+              [style.background]="isWeekPast() ? 'linear-gradient(135deg, #94a3b8, #64748b)' : 'linear-gradient(135deg, #ef4444, #dc2626)'"
+              [style.cursor]="isWeekPast() ? 'not-allowed' : 'pointer'"
+              [style.opacity]="isWeekPast() ? '0.6' : '1'"
+              style="margin-left: 12px; color: white; border-radius: 12px; font-weight: 700; height: 44px; padding: 0 16px; border: none; display: inline-flex; align-items: center; gap: 8px;">
         <mat-icon>delete_sweep</mat-icon> Làm Mới
       </button>
+      <button mat-raised-button class="export-pdf-btn animate-btn" (click)="exportPDF()"
+              style="margin-left: 12px; color: white; background: linear-gradient(135deg, #4f46e5, #3b82f6); border-radius: 12px; font-weight: 700; height: 44px; padding: 0 16px; border: none; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; box-shadow: 0 4px 10px rgba(79, 70, 229, 0.25);">
+        <mat-icon>picture_as_pdf</mat-icon> Xuất PDF
+      </button>
     </div>
-    <button *ngIf="activeTab === 'config'" mat-raised-button color="primary" class="add-btn animate-btn" (click)="toggleAddShift()">
-      <mat-icon>{{ isAddingShift ? 'close' : 'add' }}</mat-icon> {{ isAddingShift ? 'Hủy' : 'Thêm Ca Mới' }}
-    </button>
+    
+    <div class="header-actions-row" *ngIf="activeTab === 'config'">
+      <button mat-raised-button color="primary" class="add-btn animate-btn" (click)="toggleAddShift()">
+        <mat-icon>{{ isAddingShift ? 'close' : 'add' }}</mat-icon> {{ isAddingShift ? 'Hủy' : 'Thêm Ca Mới' }}
+      </button>
+    </div>
   </div>
 </div>
 
@@ -180,14 +196,18 @@
             </td>
 
             <!-- Week days assignments cells -->
-            <td *ngFor="let day of weekDays" class="schedule-cell" style="position: relative;">
+            <td *ngFor="let day of weekDays" class="schedule-cell" style="position: relative;"
+                [class.active-cell]="activeCellDropdown?.empId === emp.id && activeCellDropdown?.dateStr === day.dateStr">
               <!-- Elegant Dynamic Shift Trigger Badge -->
               <div class="custom-shift-trigger" 
                    (click)="toggleCellDropdown(emp.id, day.dateStr, $event)"
                    [ngClass]="getShiftColorClassById(getAssignmentShiftId(emp.id, day.dateStr))"
-                   [class.active-trigger]="activeCellDropdown?.empId === emp.id && activeCellDropdown?.dateStr === day.dateStr">
+                   [class.active-trigger]="activeCellDropdown?.empId === emp.id && activeCellDropdown?.dateStr === day.dateStr"
+                   [class.filtered-out]="filterShiftId !== 'ALL' && getAssignmentShiftId(emp.id, day.dateStr).toString() !== filterShiftId.toString()"
+                   [class.past-locked]="isPastDate(day.dateStr)">
                 <span class="trigger-name">{{ getShiftNameById(getAssignmentShiftId(emp.id, day.dateStr)) }}</span>
-                <mat-icon class="trigger-chevron">expand_more</mat-icon>
+                <mat-icon class="trigger-chevron" *ngIf="!isPastDate(day.dateStr)">expand_more</mat-icon>
+                <mat-icon class="trigger-chevron lock-icon" *ngIf="isPastDate(day.dateStr)" style="font-size: 14px; width: 14px; height: 14px; opacity: 0.65;">lock</mat-icon>
               </div>
 
               <!-- High-Fidelity Custom Selection Dropdown Popover -->
@@ -226,7 +246,12 @@
 
             <!-- Actions Col at the end of row -->
             <td class="schedule-cell" style="vertical-align: middle; text-align: center;">
-              <button class="clear-emp-week-btn" (click)="clearEmployeeWeek(emp)" title="Xóa lịch tuần của nhân sự này" style="margin: 0 auto; opacity: 0.6;">
+              <button class="clear-emp-week-btn" 
+                      (click)="clearEmployeeWeek(emp)" 
+                      [title]="isWeekPast() ? 'Lịch tuần của quá khứ đã bị khóa chỉnh sửa!' : 'Xóa lịch tuần của nhân sự này'" 
+                      [style.opacity]="isWeekPast() ? '0.25' : '0.6'"
+                      [style.cursor]="isWeekPast() ? 'not-allowed' : 'pointer'"
+                      style="margin: 0 auto;">
                 <mat-icon>delete_sweep</mat-icon>
               </button>
             </td>
@@ -295,62 +320,65 @@
       <p style="margin-top: 15px; color: #888;">Đang tải danh sách ca làm việc...</p>
     </div>
 
-    <table *ngIf="!loadingShifts || shifts.length > 0" class="custom-table">
-      <thead>
-        <tr>
-          <th>Tên Ca Làm Việc</th>
-          <th>Giờ Bắt Đầu</th>
-          <th>Giờ Kết Thúc</th>
-          <th>Số Giờ Chuẩn</th>
-          <th>Giới Hạn Nhân Sự</th>
-          <th>Thao Tác</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let s of shifts">
-          <!-- Normal View Row -->
-          <ng-container *ngIf="editingShiftId !== s.id">
-            <td style="font-weight: 700; color: #1e293b;">
-              <span class="shift-name-label" [ngClass]="getShiftColorClass(s.name)">{{ s.name }}</span>
+    <div class="table-wrapper" *ngIf="!loadingShifts || shifts.length > 0">
+      <table class="custom-table">
+        <thead>
+          <tr>
+            <th>Tên Ca Làm Việc</th>
+            <th>Giờ Bắt Đầu</th>
+            <th>Giờ Kết Thúc</th>
+            <th>Số Giờ Chuẩn</th>
+            <th>Giới Hạn Nhân Sự</th>
+            <th>Thao Tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let s of shifts">
+            <!-- Normal View Row -->
+            <ng-container *ngIf="editingShiftId !== s.id">
+              <td style="font-weight: 700; color: #1e293b;">
+                <span class="shift-name-label" [ngClass]="getShiftColorClass(s.name)">{{ s.name }}</span>
+              </td>
+              <td><span class="time-badge">{{ s.startTime | slice:0:5 }}</span></td>
+              <td><span class="time-badge">{{ s.endTime | slice:0:5 }}</span></td>
+              <td style="font-weight: 600; color: #6366f1;">{{ s.standardHours }} giờ</td>
+              <td>{{ s.maxEmployees ? s.maxEmployees + ' nhân sự' : 'Không giới hạn' }}</td>
+              <td>
+                <button mat-icon-button color="primary" (click)="startEditShift(s)" title="Chỉnh sửa">
+                  <mat-icon>edit_note</mat-icon>
+                </button>
+                <button mat-icon-button color="warn" (click)="deleteShift(s.id)" title="Xóa">
+                  <mat-icon>delete_sweep</mat-icon>
+                </button>
+              </td>
+            </ng-container>
+  
+            <!-- Edit Row Mode -->
+            <ng-container *ngIf="editingShiftId === s.id">
+              <td><input class="inline-input" type="text" [(ngModel)]="editShiftModel.name"></td>
+              <td><input class="inline-input" type="time" [(ngModel)]="editShiftModel.startTime"></td>
+              <td><input class="inline-input" type="time" [(ngModel)]="editShiftModel.endTime"></td>
+              <td><input class="inline-input" type="number" step="0.5" [(ngModel)]="editShiftModel.standardHours"></td>
+              <td><input class="inline-input" type="number" [(ngModel)]="editShiftModel.maxEmployees"></td>
+              <td>
+                <button mat-icon-button color="accent" (click)="saveEditShift()"><mat-icon>check_circle</mat-icon></button>
+                <button mat-icon-button color="warn" (click)="cancelEditShift()"><mat-icon>cancel</mat-icon></button>
+              </td>
+            </ng-container>
+          </tr>
+  
+          <tr *ngIf="shifts.length === 0 && !loadingShifts">
+            <td colspan="6" style="text-align: center; padding: 40px; color: #888;">
+              Chưa cấu hình ca làm việc nào! Hãy thêm ca mới để bắt đầu phân ca.
             </td>
-            <td><span class="time-badge">{{ s.startTime | slice:0:5 }}</span></td>
-            <td><span class="time-badge">{{ s.endTime | slice:0:5 }}</span></td>
-            <td style="font-weight: 600; color: #6366f1;">{{ s.standardHours }} giờ</td>
-            <td>{{ s.maxEmployees ? s.maxEmployees + ' nhân sự' : 'Không giới hạn' }}</td>
-            <td>
-              <button mat-icon-button color="primary" (click)="startEditShift(s)" title="Chỉnh sửa">
-                <mat-icon>edit_note</mat-icon>
-              </button>
-              <button mat-icon-button color="warn" (click)="deleteShift(s.id)" title="Xóa">
-                <mat-icon>delete_sweep</mat-icon>
-              </button>
-            </td>
-          </ng-container>
-
-          <!-- Edit Row Mode -->
-          <ng-container *ngIf="editingShiftId === s.id">
-            <td><input class="inline-input" type="text" [(ngModel)]="editShiftModel.name"></td>
-            <td><input class="inline-input" type="time" [(ngModel)]="editShiftModel.startTime"></td>
-            <td><input class="inline-input" type="time" [(ngModel)]="editShiftModel.endTime"></td>
-            <td><input class="inline-input" type="number" step="0.5" [(ngModel)]="editShiftModel.standardHours"></td>
-            <td><input class="inline-input" type="number" [(ngModel)]="editShiftModel.maxEmployees"></td>
-            <td>
-              <button mat-icon-button color="accent" (click)="saveEditShift()"><mat-icon>check_circle</mat-icon></button>
-              <button mat-icon-button color="warn" (click)="cancelEditShift()"><mat-icon>cancel</mat-icon></button>
-            </td>
-          </ng-container>
-        </tr>
-
-        <tr *ngIf="shifts.length === 0 && !loadingShifts">
-          <td colspan="6" style="text-align: center; padding: 40px; color: #888;">
-            Chưa cấu hình ca làm việc nào! Hãy thêm ca mới để bắt đầu phân ca.
-          </td>
-        </tr>
-      </tbody>
-    </table>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </mat-card>
 
 </ng-container>
+</div>
 
 <!-- ========================================================================= -->
 <!-- POPUPS & MODALS (GLASSMORPHISM STYLE) -->

@@ -53,12 +53,12 @@
 }
 
 .sidenav .mat-list-item {
-  color: var(--text-muted);
-  margin-bottom: 5px;
-  border-radius: 14px;
-  transition: all 0.3s;
-  height: 52px !important;
-  font-weight: 600;
+  color: var(--text-muted) !important;
+  margin-bottom: 6px;
+  border-radius: 12px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  height: 48px !important;
+  font-weight: 700;
 }
 
 .nav-item-content {
@@ -71,25 +71,42 @@
   color: var(--text-muted);
   font-size: 22px;
   margin-right: 15px;
-  transition: color 0.3s;
+  transition: color 0.25s;
+}
+
+.nav-item-content span {
+  transition: color 0.25s;
 }
 
 .sidenav .mat-list-item:hover {
-  background-color: #f5f7ff;
-  color: var(--primary);
+  background-color: rgba(99, 102, 241, 0.08) !important;
+  color: var(--primary) !important;
+  transform: translateX(4px);
 }
 .sidenav .mat-list-item:hover .nav-item-content mat-icon {
-  color: var(--primary);
+  color: var(--primary) !important;
+}
+.sidenav .mat-list-item:hover .nav-item-content span {
+  color: var(--primary) !important;
 }
 
 .active-link {
-  background-color: var(--primary) !important;
+  background: linear-gradient(135deg, var(--primary), #6366f1) !important;
   color: white !important;
-  box-shadow: 0 8px 20px rgba(75, 73, 172, 0.3);
+  box-shadow: 0 8px 16px rgba(99, 102, 241, 0.25) !important;
+}
+
+.active-link:hover {
+  background: linear-gradient(135deg, var(--primary), #6366f1) !important;
+  transform: none !important;
 }
 
 .active-link .nav-item-content mat-icon {
-  color: white;
+  color: white !important;
+}
+
+.active-link .nav-item-content span {
+  color: white !important;
 }
 
 ::ng-deep .sidenav .mat-list-item-content {
@@ -104,9 +121,9 @@
 
 .top-toolbar {
   background-color: transparent;
-  height: 100px;
-  padding: 0 40px;
-  margin-bottom: 10px;
+  height: 48px;
+  padding: 0 20px;
+  margin-bottom: 5px;
 }
 
 .header-left {
@@ -165,28 +182,147 @@
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 12px;
 }
 
+/* Notify button — premium design */
 .notify-btn {
-  background: var(--surface) !important;
-  color: var(--text-main) !important;
-  border-radius: 14px !important;
-  width: 48px !important;
-  height: 48px !important;
-  box-shadow: var(--shadow-soft) !important;
   position: relative;
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 14px !important;
+  background: var(--surface) !important;
+  border: 1px solid rgba(0,0,0,0.04) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+  color: var(--text-muted) !important;
+  overflow: visible !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.notify-btn:hover {
+  background: rgba(99, 102, 241, 0.04) !important;
+  color: var(--primary) !important;
+  border-color: rgba(99, 102, 241, 0.15) !important;
+  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.08) !important;
+  transform: translateY(-1.5px);
+}
+
+.notify-btn mat-icon {
+  font-size: 22px !important;
+  width: 22px !important;
+  height: 22px !important;
+  font-family: 'Material Icons' !important;
 }
 
 .badge {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: 11px;
+  right: 12px;
   width: 8px;
   height: 8px;
-  background-color: #ff4757;
+  background: #ff4757;
   border-radius: 50%;
-  border: 2px solid var(--surface);
+  border: 2px solid white;
+  pointer-events: none;
+}
+
+/* Profile card — premium horizontal chip */
+.header-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 16px 5px 6px;
+  background: var(--surface);
+  border-radius: 14px;
+  border: 1px solid rgba(0,0,0,0.04);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.02);
+  cursor: pointer;
+  height: 44px;
+  box-sizing: border-box;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.header-profile:hover {
+  border-color: rgba(99, 102, 241, 0.15);
+  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.08);
+  transform: translateY(-1.5px);
+}
+
+.header-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.15);
+}
+
+.header-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.header-user-info {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.header-user-info h6 {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--text-main);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.header-user-info p {
+  margin: 1px 0 0 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  line-height: 1.1;
+  text-transform: capitalize;
+}
+
+/* Logout button — premium icon chip */
+.logout-btn {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 14px !important;
+  background: var(--surface) !important;
+  border: 1px solid rgba(0,0,0,0.04) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+  color: #ff4757 !important;
+  overflow: visible !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.logout-btn:hover {
+  background: rgba(255, 71, 87, 0.04) !important;
+  border-color: rgba(255, 71, 87, 0.15) !important;
+  box-shadow: 0 8px 20px rgba(255, 71, 87, 0.1) !important;
+  transform: translateY(-1.5px);
+}
+
+.logout-btn mat-icon {
+  font-size: 20px !important;
+  width: 20px !important;
+  height: 20px !important;
+  font-family: 'Material Icons' !important;
 }
 
 .profile-card {
@@ -233,13 +369,127 @@
   color: var(--text-muted);
 }
 
-.logout-btn {
-  color: #ff4757 !important;
-  background: #xffeft !important;
-}
+/* Duplicate logout-btn definitions removed */
 
 .content-body {
   padding: 0 40px 40px 40px;
   flex: 1;
   overflow-y: auto;
+}
+
+.nav-footer {
+  padding: 14px 16px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  background: rgba(99, 102, 241, 0.02);
+}
+
+.sidebar-user-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.08);
+  transition: box-shadow 0.25s;
+}
+
+.sidebar-user-card:hover {
+  box-shadow: 0 4px 18px rgba(99, 102, 241, 0.15);
+}
+
+.sidebar-avatar {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 0 0 2.5px rgba(99, 102, 241, 0.3), 0 3px 10px rgba(99, 102, 241, 0.2);
+}
+
+.sidebar-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.user-info-sidebar {
+  text-align: left;
+  min-width: 0;
+  flex: 1;
+}
+
+.user-info-sidebar h6 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text-main);
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-info-sidebar p {
+  margin: 2px 0 0 0;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  line-height: 1.2;
+}
+
+.sidebar-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  background: rgba(0,0,0,0.03);
+  border-radius: 10px;
+  padding: 2px;
+}
+
+.sidebar-notify-btn {
+  color: var(--text-muted) !important;
+  width: 30px !important;
+  height: 30px !important;
+  border-radius: 8px !important;
+  position: relative;
+  transition: background 0.2s, color 0.2s !important;
+}
+
+.sidebar-notify-btn:hover {
+  background: rgba(99, 102, 241, 0.12) !important;
+  color: var(--primary) !important;
+}
+
+.sidebar-notify-btn .badge {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 6px;
+  height: 6px;
+  background-color: #ff4757;
+  border-radius: 50%;
+  border: 1.5px solid var(--surface);
+}
+
+.sidebar-notify-btn mat-icon,
+.sidebar-logout-btn mat-icon {
+  font-size: 17px !important;
+  width: 17px !important;
+  height: 17px !important;
+}
+
+.sidebar-logout-btn {
+  color: #ff4757 !important;
+  width: 30px !important;
+  height: 30px !important;
+  border-radius: 8px !important;
+  transition: background 0.2s !important;
+}
+
+.sidebar-logout-btn:hover {
+  background: rgba(255, 71, 87, 0.1) !important;
 }

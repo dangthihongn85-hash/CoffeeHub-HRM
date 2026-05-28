@@ -51,6 +51,15 @@ export class EmployeesComponent implements OnInit {
   calendarDays: any[] = [];
   loadingAttendance = false;
 
+  // Modal Stats variables
+  modalWorkPoints = 0;
+  modalAbsentNoPerm = 0;
+  modalAbsentWithPerm = 0;
+  modalSpecialLeave = 0;
+  modalLateEarly = 0;
+
+  filterAttendanceStatus = 'ALL';
+
   // Confirmation Modal State
   showConfirmModal = false;
   confirmTitle = '';
@@ -301,6 +310,7 @@ export class EmployeesComponent implements OnInit {
     this.showAttendanceModal = true;
     this.selectedMonth = new Date().getMonth() + 1;
     this.selectedYear = new Date().getFullYear();
+    this.filterAttendanceStatus = 'ALL'; // Reset bộ lọc trạng thái
     this.loadAttendanceData();
   }
 
@@ -322,6 +332,16 @@ export class EmployeesComponent implements OnInit {
     }).subscribe({
       next: (data) => {
         this.attendanceRecords = data;
+        
+        // Calculate modal stats
+        this.modalWorkPoints = data.reduce((sum, r) => sum + (r.workPoints != null ? r.workPoints : 0), 0);
+        this.modalWorkPoints = Math.round(this.modalWorkPoints * 100) / 100;
+        
+        this.modalAbsentWithPerm = data.filter(r => r.status === 'ABSENT').length;
+        this.modalAbsentNoPerm = data.filter(r => r.status === 'ABSENT_NO_PERMISSION').length;
+        this.modalSpecialLeave = data.filter(r => r.status === 'SPECIAL_LEAVE').length;
+        this.modalLateEarly = data.filter(r => r.status === 'LATE' || r.status === 'EARLY').length;
+        
         this.generateCalendarDays();
         this.loadingAttendance = false;
       },
@@ -351,6 +371,18 @@ export class EmployeesComponent implements OnInit {
       });
     }
     this.calendarDays = days;
+  }
+
+  get filteredCalendarDays() {
+    if (this.filterAttendanceStatus === 'ALL') {
+      return this.calendarDays;
+    }
+    return this.calendarDays.filter(day => {
+      if (this.filterAttendanceStatus === 'NO_RECORD') {
+        return !day.record;
+      }
+      return day.record && day.record.status === this.filterAttendanceStatus;
+    });
   }
 
   getDayOfWeekName(dateStr: string): string {
@@ -439,7 +471,16 @@ export class EmployeesComponent implements OnInit {
     }
   }
 
-  getStatusText(status: string): string {
+  isPastDay(dateStr: string): boolean {
+    const today = new Date();
+    // Chuyển today về timezone địa phương yyyy-MM-dd để so sánh chuẩn xác với database dateStr
+    const offset = today.getTimezoneOffset();
+    const localToday = new Date(today.getTime() - (offset * 60 * 1000));
+    const todayStr = localToday.toISOString().substring(0, 10);
+    return dateStr < todayStr;
+  }
+
+  getStatusText(status: string, dateStr: string): string {
     switch (status) {
       case 'ON_TIME': return 'Đúng giờ';
       case 'LATE': return 'Đi trễ';
@@ -447,7 +488,7 @@ export class EmployeesComponent implements OnInit {
       case 'ABSENT': return 'Nghỉ có phép';
       case 'ABSENT_NO_PERMISSION': return 'Nghỉ không phép';
       case 'SPECIAL_LEAVE': return 'Nghỉ đặc biệt';
-      default: return status || 'Chưa chấm công';
+      default: return status || (this.isPastDay(dateStr) ? 'Nghỉ' : 'Chưa chấm công');
     }
   }
 

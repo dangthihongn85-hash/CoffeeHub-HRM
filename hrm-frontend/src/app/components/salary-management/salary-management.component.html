@@ -25,7 +25,7 @@
 
         <div class="filter-group" *ngIf="activeTab === 'payroll'">
           <label>Loại Nhân Viên</label>
-          <select [(ngModel)]="filterType" class="period-select" style="width: 140px;">
+          <select [(ngModel)]="filterType" (change)="pageIndex = 0" class="period-select" style="width: 140px;">
             <option value="ALL">Tất cả loại</option>
             <option value="PART_TIME">Part-time</option>
             <option value="FULL_TIME">Full-time</option>
@@ -35,7 +35,7 @@
 
         <div class="filter-group" *ngIf="activeTab === 'payroll'">
           <label>Phòng Ban</label>
-          <select [(ngModel)]="filterDept" class="period-select" style="width: 160px;">
+          <select [(ngModel)]="filterDept" (change)="pageIndex = 0" class="period-select" style="width: 160px;">
             <option value="ALL">Tất cả phòng</option>
             <option *ngFor="let d of departments" [value]="d">{{ d }}</option>
           </select>
@@ -140,7 +140,7 @@
 
   <!-- Business Rules Info -->
   <mat-card class="rules-card">
-    <h4><mat-icon>info</mat-icon> Quy Tắc Tính Lương</h4>
+    <h4><mat-icon>info</mat-icon> Quy Tắc Tính Lương Chi Tiết</h4>
     <div class="rules-grid">
       <div class="rule-block">
         <div class="rule-title"><span class="badge badge-parttime">Part-time</span></div>
@@ -148,34 +148,36 @@
           <li>20,000₫/giờ · OT ×1.5</li>
           <li>❌ Không thưởng doanh thu</li>
           <li>❌ Không thưởng chuyên cần</li>
+          <li>❌ Không có chế độ phép / đặc biệt</li>
         </ul>
       </div>
       <div class="rule-block">
         <div class="rule-title"><span class="badge badge-fulltime">Full-time</span></div>
         <ul>
           <li>25,000₫/giờ · OT ×1.5</li>
-          <li>✅ Đủ 26 ngày: +200,000₫</li>
-          <li>✅ Không trễ: +100,000₫</li>
-          <li>✅ Thưởng POOL (hệ số ×1)</li>
+          <li>✅ Thưởng chuyên cần: +200,000₫ (Công + Nghỉ đặc biệt ≥ 26 ngày)</li>
+          <li>✅ Không đi trễ trong tháng: +100,000₫</li>
+          <li>✅ Thưởng quỹ doanh thu POOL (hệ số ×1)</li>
         </ul>
       </div>
       <div class="rule-block">
         <div class="rule-title"><span class="badge badge-manager">Manager</span></div>
         <ul>
-          <li>8,000,000 + 500,000₫/tháng</li>
-          <li>❌ Không OT</li>
-          <li>✅ Đủ 26 ngày: +200,000₫</li>
-          <li>✅ Không trễ: +100,000₫</li>
-          <li>✅ Thưởng POOL (hệ số ×2)</li>
+          <li>8,000,000₫ + 500,000₫ phụ cấp/tháng</li>
+          <li>❌ Không tính lương OT</li>
+          <li>✅ Thưởng chuyên cần: +200,000₫ (Công + Nghỉ đặc biệt ≥ 26 ngày)</li>
+          <li>✅ Không đi trễ trong tháng: +100,000₫</li>
+          <li>✅ Thưởng quỹ doanh thu POOL (hệ số ×2)</li>
         </ul>
       </div>
       <div class="rule-block penalty-block">
-        <div class="rule-title">⚠️ Phạt</div>
+        <div class="rule-title">⚠️ Phạt & Nghỉ</div>
         <ul>
-          <li>Đi trễ &gt;10 phút: -20,000₫</li>
-          <li>Thiếu check-out: -50,000₫</li>
-          <li>Nghỉ không phép: -100,000₫</li>
-          <li>Nghỉ đặc biệt: ✅ Không phạt</li>
+          <li>Đi trễ &gt;10 phút: -50,000₫ + mất thưởng trễ</li>
+          <li>Thiếu check-out: -50,000₫/lần</li>
+          <li>Nghỉ không phép: -100,000₫/ngày + trừ công ngày nghỉ</li>
+          <li>Nghỉ có phép: ✅ Không phạt kỷ luật (trừ công ngày nghỉ)</li>
+          <li>Nghỉ đặc biệt: ✅ Không phạt + Hưởng nguyên lương ngày nghỉ</li>
         </ul>
       </div>
     </div>
@@ -191,57 +193,59 @@
         <p class="sub-text">Chọn loại nhân viên để áp dụng đúng mức lương và thưởng khi tính bảng lương</p>
       </div>
     </div>
-    <table class="custom-table">
-      <thead>
-        <tr>
-          <th>Nhân Viên</th>
-          <th>Phòng Ban</th>
-          <th>Chức Vụ</th>
-          <th>Loại NV</th>
-          <th>Lương Cơ Bản</th>
-          <th>Thao tác</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let emp of employees">
-          <td>
-            <div class="employee-cell">
-              <img class="avatar-sm" [src]="'https://ui-avatars.com/api/?name='+emp.name+'&background=e5ebfe&color=4B49AC&bold=true'">
-              <span>{{ emp.name }}</span>
-            </div>
-          </td>
-          <td>{{ emp.department || 'N/A' }}</td>
-          <td>{{ emp.position  || 'N/A' }}</td>
-          <td>
-            <span *ngIf="editingEmpId !== emp.id" class="badge" [ngClass]="typeBadge(emp.employeeType)">
-              {{ typeLabel(emp.employeeType) }}
-            </span>
-            <select *ngIf="editingEmpId === emp.id" class="type-select" [(ngModel)]="emp.employeeType">
-              <option value="PART_TIME">Part-time</option>
-              <option value="FULL_TIME">Full-time</option>
-              <option value="MANAGER">Manager</option>
-            </select>
-          </td>
-          <td>
-            <span *ngIf="editingEmpId !== emp.id" style="font-weight: 600;">{{ fmt(emp.salaryBase) }}</span>
-            <input *ngIf="editingEmpId === emp.id" type="number" class="revenue-input" [(ngModel)]="emp.salaryBase" style="width: 130px; padding: 6px; font-size: 14px; border-radius: 6px;" />
-          </td>
-          <td style="display: flex; gap: 5px;">
-            <button *ngIf="editingEmpId !== emp.id" mat-icon-button color="primary" (click)="editEmployeeType(emp)" title="Sửa">
-              <mat-icon>edit_calendar</mat-icon>
-            </button>
-            <ng-container *ngIf="editingEmpId === emp.id">
-              <button mat-icon-button color="accent" (click)="saveEmployeeType(emp)" title="Lưu">
-                <mat-icon>check_circle</mat-icon>
+    <div class="table-wrapper">
+      <table class="custom-table">
+        <thead>
+          <tr>
+            <th>Nhân Viên</th>
+            <th>Phòng Ban</th>
+            <th>Chức Vụ</th>
+            <th>Loại NV</th>
+            <th>Lương Cơ Bản</th>
+            <th>Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let emp of employees">
+            <td>
+              <div class="employee-cell">
+                <img class="avatar-sm" [src]="'https://ui-avatars.com/api/?name='+emp.name+'&background=e5ebfe&color=4B49AC&bold=true'">
+                <span>{{ emp.name }}</span>
+              </div>
+            </td>
+            <td>{{ emp.department || 'N/A' }}</td>
+            <td>{{ emp.position  || 'N/A' }}</td>
+            <td>
+              <span *ngIf="editingEmpId !== emp.id" class="badge" [ngClass]="typeBadge(emp.employeeType)">
+                {{ typeLabel(emp.employeeType) }}
+              </span>
+              <select *ngIf="editingEmpId === emp.id" class="type-select" [(ngModel)]="emp.employeeType">
+                <option value="PART_TIME">Part-time</option>
+                <option value="FULL_TIME">Full-time</option>
+                <option value="MANAGER">Manager</option>
+              </select>
+            </td>
+            <td>
+              <span *ngIf="editingEmpId !== emp.id" style="font-weight: 600;">{{ fmt(emp.salaryBase) }}</span>
+              <input *ngIf="editingEmpId === emp.id" type="number" class="revenue-input" [(ngModel)]="emp.salaryBase" style="width: 130px; padding: 6px; font-size: 14px; border-radius: 6px;" />
+            </td>
+            <td style="display: flex; gap: 5px;">
+              <button *ngIf="editingEmpId !== emp.id" mat-icon-button color="primary" (click)="editEmployeeType(emp)" title="Sửa">
+                <mat-icon>edit_calendar</mat-icon>
               </button>
-              <button mat-icon-button color="warn" (click)="cancelEditType()" title="Hủy">
-                <mat-icon>cancel</mat-icon>
-              </button>
-            </ng-container>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+              <ng-container *ngIf="editingEmpId === emp.id">
+                <button mat-icon-button color="accent" (click)="saveEmployeeType(emp)" title="Lưu">
+                  <mat-icon>check_circle</mat-icon>
+                </button>
+                <button mat-icon-button color="warn" (click)="cancelEditType()" title="Hủy">
+                  <mat-icon>cancel</mat-icon>
+                </button>
+              </ng-container>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </mat-card>
 </div>
 
@@ -282,14 +286,26 @@
 
   <!-- Action bar -->
   <mat-card class="data-card">
-    <div class="toolbar-table">
+    <div class="toolbar-table" style="display: flex; justify-content: space-between; align-items: center;">
       <div>
         <h3>Bảng Lương Tháng {{ selectedMonth }}/{{ selectedYear }}</h3>
         <p class="sub-text" *ngIf="salaries.length === 0">Nhập doanh thu rồi nhấn <strong>Tính Lương</strong> để tính cho tất cả nhân viên.</p>
       </div>
+
+      <!-- Premium Search Input placed directly in Table Toolbar -->
+      <div class="table-search-box" style="display: flex; align-items: center; background: #f1f5f9; border: 1.5px solid rgba(0,0,0,0.05); border-radius: 12px; padding: 0 14px; height: 42px; min-width: 260px; transition: all 0.25s; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); margin-left: 20px; margin-right: auto;">
+        <mat-icon style="font-size: 20px; width: 20px; height: 20px; color: var(--text-muted); margin-right: 8px;">search</mat-icon>
+        <input type="text" [(ngModel)]="searchName" (ngModelChange)="pageIndex = 0" placeholder="Tìm nhanh nhân viên..." style="border: none; outline: none; font-size: 13.5px; font-weight: 700; color: var(--text-main); font-family: inherit; width: 100%; background: transparent;">
+      </div>
+
       <button mat-raised-button class="calc-btn" (click)="calculateAll()" [disabled]="loading">
         <mat-icon>calculate</mat-icon>
         {{ loading ? 'Đang tính...' : 'Tính Lương Tháng' }}
+      </button>
+
+      <button mat-raised-button class="animate-btn" (click)="approveAll()" [disabled]="loading || salaries.length === 0 || (selectedSalaryIds.size === 0 && !hasPendingSalaries)" *ngIf="salaries.length > 0" style="background: linear-gradient(135deg, #10b981, #059669); color: white; margin-left: 10px; border-radius: 12px; height: 42px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2); border: none; padding: 0 16px;">
+        <mat-icon style="font-family: 'Material Icons' !important;">done_all</mat-icon>
+        {{ selectedSalaryIds.size > 0 ? 'Duyệt ' + selectedSalaryIds.size + ' Lương Đã Chọn' : 'Duyệt Lương Hàng Loạt' }}
       </button>
     </div>
 
@@ -310,6 +326,13 @@
       <table class="custom-table">
         <thead>
           <tr>
+            <th style="width: 45px; text-align: center; vertical-align: middle;">
+              <input type="checkbox" 
+                     [checked]="isAllPendingSelected()" 
+                     (change)="toggleSelectAll($event)"
+                     style="width: 18px; height: 18px; border-radius: 4px; border: 1.5px solid #cbd5e1; cursor: pointer; accent-color: #3b82f6;" 
+                     title="Chọn tất cả chưa duyệt" />
+            </th>
             <th>Nhân Viên</th>
             <th>Loại NV</th>
             <th>Ngày làm</th>
@@ -324,7 +347,15 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let sal of filteredSalaries" class="payroll-row" [class.approved-row]="sal.status === 'APPROVED'" (click)="openDetail(sal)">
+          <tr *ngFor="let sal of pagedSalaries" class="payroll-row" [class.approved-row]="sal.status === 'APPROVED'" (click)="openDetail(sal)">
+            <td style="text-align: center; vertical-align: middle;" (click)="$event.stopPropagation()">
+              <input type="checkbox" 
+                     *ngIf="sal.status !== 'APPROVED'"
+                     [checked]="isSalarySelected(sal.salaryId)" 
+                     (change)="toggleSelectSalary(sal.salaryId, $event)"
+                     style="width: 18px; height: 18px; border-radius: 4px; border: 1.5px solid #cbd5e1; cursor: pointer; accent-color: #3b82f6;" />
+              <mat-icon *ngIf="sal.status === 'APPROVED'" style="color: #10b981; font-size: 20px; width: 20px; height: 20px; font-family: 'Material Icons' !important;">check_circle</mat-icon>
+            </td>
             <td>
               <div class="employee-cell">
                 <img class="avatar-sm"
@@ -341,7 +372,7 @@
               </span>
             </td>
             <td>
-              <span>{{ (sal.workDays || 0) | number:'1.0-0' }} ngày</span>
+              <span>{{ (sal.workDays || 0) | number:'1.1-2' }} ngày</span>
             </td>
             <td>
               <span>{{ (sal.regularHours||0).toFixed(1) }}h</span>
@@ -372,6 +403,9 @@
                 <button *ngIf="sal.status !== 'APPROVED'" mat-icon-button color="accent" (click)="approveSalary(sal, $event)" title="Duyệt lương">
                   <mat-icon>check_circle</mat-icon>
                 </button>
+                <button *ngIf="sal.status === 'APPROVED'" mat-icon-button color="warn" (click)="revertSalary(sal, $event)" title="Hủy duyệt (Về chờ duyệt)">
+                  <mat-icon style="font-family: 'Material Icons' !important;">replay</mat-icon>
+                </button>
                 <mat-icon class="detail-icon" (click)="openDetail(sal)">chevron_right</mat-icon>
               </div>
             </td>
@@ -379,6 +413,16 @@
         </tbody>
       </table>
     </div>
+      
+    <!-- Paginator -->
+    <mat-paginator *ngIf="!loading && salaries.length > 0"
+                   [length]="filteredSalaries.length"
+                   [pageSize]="pageSize"
+                   [pageSizeOptions]="pageSizeOptions"
+                   [pageIndex]="pageIndex"
+                   (page)="onPageChange($event)"
+                   style="border-top: 1px solid rgba(0,0,0,0.05); background: transparent; font-family: inherit;">
+    </mat-paginator>
   </mat-card>
 </div>
 
@@ -399,7 +443,7 @@
 
     <div class="detail-section">
       <div class="detail-title">📅 Chấm Công</div>
-      <div class="detail-row"><span>Ngày làm</span><strong>{{ (selectedSalary.workDays || 0) | number:'1.0-0' }} ngày</strong></div>
+      <div class="detail-row"><span>Ngày làm</span><strong>{{ (selectedSalary.workDays || 0) | number:'1.1-2' }} ngày</strong></div>
       <div class="detail-row"><span>Giờ thường</span><strong>{{ (selectedSalary.regularHours||0).toFixed(1) }}h</strong></div>
       <div class="detail-row"><span>Giờ OT</span><strong>{{ (selectedSalary.otHours||0).toFixed(1) }}h</strong></div>
       <div class="detail-row" *ngIf="selectedSalary.lateDays"><span>Đi trễ</span><strong class="red">{{ selectedSalary.lateDays }} lần</strong></div>
@@ -445,9 +489,12 @@
           <mat-icon>check_circle</mat-icon> DUYỆT LƯƠNG
         </button>
       </div>
-      <div style="margin-top: 20px; display: flex; gap: 10px;" *ngIf="selectedSalary.status === 'APPROVED'">
-        <button mat-stroked-button color="primary" style="flex: 1; height: 48px; border-radius: 12px; font-weight: 700;" (click)="exportExcel()">
+      <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;" *ngIf="selectedSalary.status === 'APPROVED'">
+        <button mat-stroked-button color="primary" style="height: 48px; border-radius: 12px; font-weight: 700; width: 100%;" (click)="exportPayslipPDF(selectedSalary)">
           <mat-icon>picture_as_pdf</mat-icon> XUẤT PHIẾU LƯƠNG (PDF)
+        </button>
+        <button mat-stroked-button color="warn" style="height: 48px; border-radius: 12px; font-weight: 700; width: 100%;" (click)="revertSalary(selectedSalary, $event)">
+          <mat-icon style="font-family: 'Material Icons' !important;">replay</mat-icon> HỦY DUYỆT LƯƠNG
         </button>
       </div>
     </div>
@@ -469,6 +516,25 @@
     <div class="confirm-dialog-actions">
       <button class="confirm-btn-cancel" (click)="cancelApprove()">Hủy</button>
       <button class="confirm-btn-ok" (click)="confirmApprove()">Duyệt Lương</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── CUSTOM PREMIUM BULK CONFIRMATION DIALOG ── -->
+<div class="confirm-dialog-overlay" *ngIf="confirmBulkDialogVisible" (click)="confirmBulkDialogVisible = false">
+  <div class="confirm-dialog-card" (click)="$event.stopPropagation()">
+    <div class="confirm-dialog-icon" style="background: rgba(16, 185, 129, 0.1); color: #16a34a;">
+      <mat-icon style="font-family: 'Material Icons' !important;">done_all</mat-icon>
+    </div>
+    <h3>Xác nhận duyệt lương chọn lọc</h3>
+    <p>Bạn có chắc chắn muốn duyệt lương cho <strong>{{ selectedSalaryIds.size }} nhân viên đã được chọn</strong> trong <strong>Tháng {{ selectedMonth }}/{{ selectedYear }}</strong>?</p>
+    <div class="confirm-dialog-warning">
+      <mat-icon style="font-family: 'Material Icons' !important;">info</mat-icon>
+      <span>Trạng thái bảng lương của các nhân sự được chọn sẽ chuyển sang "Đã duyệt" và sẵn sàng xuất phiếu PDF.</span>
+    </div>
+    <div class="confirm-dialog-actions">
+      <button class="confirm-btn-cancel" (click)="confirmBulkDialogVisible = false">Hủy</button>
+      <button class="confirm-btn-ok" style="background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);" (click)="confirmBulkApprove()">Duyệt Đã Chọn</button>
     </div>
   </div>
 </div>

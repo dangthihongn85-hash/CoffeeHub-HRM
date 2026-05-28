@@ -598,20 +598,30 @@ export class ShiftsComponent implements OnInit {
 
     this.savingBulk = true;
 
-    // Collect all dates that match selected days of the week
+    // Collect all dates that match selected days of the week, excluding past dates
     const dateStrings: string[] = [];
+    let skippedPastCount = 0;
     const current = new Date(start);
     while (current <= end) {
       const dayOfWeek = current.getDay(); // 0 = Sun, 1 = Mon, etc.
       if (this.bulkModel.selectedDays[dayOfWeek]) {
-        dateStrings.push(this.formatDate(current));
+        const dateStr = this.formatDate(current);
+        if (this.isPastDate(dateStr)) {
+          skippedPastCount++;
+        } else {
+          dateStrings.push(dateStr);
+        }
       }
       current.setDate(current.getDate() + 1);
     }
 
     if (dateStrings.length === 0) {
       this.savingBulk = false;
-      this.snackBar.open('⚠️ Không tìm thấy ngày nào khớp với cấu hình lọc Thứ!', 'Đóng', { duration: 3000 });
+      if (skippedPastCount > 0) {
+        this.snackBar.open('⚠️ Tất cả các ngày được chọn đều thuộc về quá khứ và bị khóa chỉnh sửa!', 'Đóng', { duration: 4000 });
+      } else {
+        this.snackBar.open('⚠️ Không tìm thấy ngày nào khớp với cấu hình lọc Thứ!', 'Đóng', { duration: 3000 });
+      }
       return;
     }
 
@@ -623,7 +633,11 @@ export class ShiftsComponent implements OnInit {
 
     this.http.post('http://localhost:8080/api/shifts/assignments/bulk', payload).subscribe({
       next: (res: any) => {
-        this.snackBar.open(`✅ ${res.message || 'Phân lịch thành công!'}`, 'Đóng', { duration: 3000 });
+        let msg = `✅ Đã phân lịch thành công!`;
+        if (skippedPastCount > 0) {
+          msg += ` (Đã bỏ qua ${skippedPastCount} ngày trong quá khứ)`;
+        }
+        this.snackBar.open(msg, 'Đóng', { duration: 4000 });
         this.fetchAssignments();
         this.closeBulkModal();
         this.savingBulk = false;
@@ -636,27 +650,33 @@ export class ShiftsComponent implements OnInit {
   }
 
   clearWeekSchedule() {
+    const activeDates = this.weekDays.map(d => d.dateStr).filter(d => !this.isPastDate(d));
+    if (activeDates.length === 0) {
+      this.snackBar.open('⚠️ Tất cả các ngày trong tuần này đã thuộc về quá khứ và bị khóa!', 'Đóng', { duration: 4000 });
+      return;
+    }
+
     this.openConfirm(
       'Làm Mới Lịch Tuần Này',
-      `Bạn có chắc chắn muốn làm mới toàn bộ lịch phân ca của tuần này (${this.weekDays[0].dateStr} - ${this.weekDays[6].dateStr}) cho tất cả nhân sự?`,
+      `Bạn có chắc chắn muốn làm mới toàn bộ lịch phân ca của các ngày khả dụng trong tuần này (giữ nguyên các ca trong quá khứ) cho tất cả nhân sự?`,
       () => {
         this.loadingAssignments = true;
         const promises = this.employees.map(emp => {
           const payload = {
             employeeId: emp.id,
             shiftId: null,
-            dates: this.weekDays.map(d => d.dateStr)
+            dates: activeDates
           };
           return this.http.post('http://localhost:8080/api/shifts/assignments/bulk', payload).toPromise();
         });
 
         Promise.all(promises)
           .then(() => {
-            this.snackBar.open('✅ Đã làm mới toàn bộ lịch phân ca tuần này!', 'Đóng', { duration: 3000 });
+            this.snackBar.open('✅ Đã làm mới lịch phân ca các ngày khả dụng tuần này!', 'Đóng', { duration: 3000 });
             this.fetchAssignments();
           })
           .catch((err) => {
-            this.snackBar.open('❌ Lỗi khi xóa lịch!', 'Đóng', { duration: 3000 });
+            this.snackBar.open('❌ Lỗi khi làm mới lịch!', 'Đóng', { duration: 3000 });
             this.fetchAssignments();
           });
       }
@@ -664,20 +684,26 @@ export class ShiftsComponent implements OnInit {
   }
 
   clearEmployeeWeek(employee: any) {
+    const activeDates = this.weekDays.map(d => d.dateStr).filter(d => !this.isPastDate(d));
+    if (activeDates.length === 0) {
+      this.snackBar.open('⚠️ Tất cả các ngày trong tuần này đã thuộc về quá khứ và bị khóa!', 'Đóng', { duration: 4000 });
+      return;
+    }
+
     this.openConfirm(
       `Xóa Lịch Nhân Sự`,
-      `Bạn có chắc chắn muốn xóa toàn bộ lịch phân ca tuần này của nhân viên ${employee.name}?`,
+      `Bạn có chắc chắn muốn xóa lịch phân ca các ngày khả dụng trong tuần này của nhân viên ${employee.name} (giữ nguyên các ca trong quá khứ)?`,
       () => {
         this.loadingAssignments = true;
         const payload = {
           employeeId: employee.id,
           shiftId: null,
-          dates: this.weekDays.map(d => d.dateStr)
+          dates: activeDates
         };
 
         this.http.post('http://localhost:8080/api/shifts/assignments/bulk', payload).subscribe({
           next: () => {
-            this.snackBar.open(`✅ Đã xóa lịch phân ca tuần này của ${employee.name}!`, 'Đóng', { duration: 2000 });
+            this.snackBar.open(`✅ Đã xóa lịch phân ca các ngày khả dụng tuần này của ${employee.name}!`, 'Đóng', { duration: 2000 });
             this.fetchAssignments();
           },
           error: (err) => {
@@ -707,8 +733,34 @@ export class ShiftsComponent implements OnInit {
     return shift ? shift.name : 'OFF';
   }
 
+  isPastDate(dateStr: string): boolean {
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    
+    const dateParts = dateStr.split('-');
+    if (dateParts.length === 3) {
+      const year = parseInt(dateParts[0], 10);
+      const month = parseInt(dateParts[1], 10) - 1;
+      const day = parseInt(dateParts[2], 10);
+      const targetDate = new Date(year, month, day);
+      targetDate.setHours(0,0,0,0);
+      
+      return targetDate < today;
+    }
+    return false;
+  }
+
+  isWeekPast(): boolean {
+    if (this.weekDays.length === 0) return false;
+    return this.weekDays.every(d => this.isPastDate(d.dateStr));
+  }
+
   toggleCellDropdown(empId: number, dateStr: string, event: Event) {
     event.stopPropagation();
+    if (this.isPastDate(dateStr)) {
+      this.snackBar.open('⚠️ Không thể chỉnh sửa ca làm việc trong quá khứ!', 'Đóng', { duration: 3000 });
+      return;
+    }
     if (this.activeCellDropdown && this.activeCellDropdown.empId === empId && this.activeCellDropdown.dateStr === dateStr) {
       this.activeCellDropdown = null;
     } else {
@@ -828,5 +880,293 @@ export class ShiftsComponent implements OnInit {
       this.confirmAction();
     }
     this.closeConfirm();
+  }
+
+  // ── Export PDF Feature ───────────────────────────────────────────────────
+  formatDisplayDate(dateStr: string): string {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    return dateStr;
+  }
+
+  getShiftTimeStrById(shiftId: string | number | undefined | null): string {
+    if (!shiftId || shiftId === 'OFF') return '';
+    const shift = this.shifts.find(s => s.id.toString() === shiftId.toString());
+    if (shift) {
+      return `${shift.startTime.substring(0, 5)} - ${shift.endTime.substring(0, 5)}`;
+    }
+    return '';
+  }
+
+  getLegendColor(shiftName: string | undefined): string {
+    if (!shiftName) return '#94a3b8'; // OFF (slate)
+    const name = shiftName.toLowerCase();
+    if (name.includes('sáng')) return '#3b82f6'; // Blue
+    if (name.includes('chiều')) return '#f59e0b'; // Amber
+    if (name.includes('gãy')) return '#ef4444'; // Red
+    return '#6366f1'; // Indigo
+  }
+
+  exportPDF() {
+    if (this.weekDays.length === 0) {
+      this.snackBar.open('⚠️ Không tìm thấy thông tin lịch phân ca!', 'Đóng', { duration: 3000 });
+      return;
+    }
+
+    const startDateStr = this.formatDisplayDate(this.weekDays[0].dateStr);
+    const endDateStr = this.formatDisplayDate(this.weekDays[6].dateStr);
+
+    const printWindow = window.open('', '_blank', 'width=1200,height=800');
+    if (!printWindow) {
+      this.snackBar.open('⚠️ Trình duyệt đã chặn cửa sổ popup. Vui lòng cấp quyền mở popup để xuất PDF!', 'Đóng', { duration: 5000 });
+      return;
+    }
+
+    const employeesToPrint = this.filteredEmployees;
+    
+    let tableRowsHtml = '';
+    employeesToPrint.forEach(emp => {
+      let dayCellsHtml = '';
+      this.weekDays.forEach(day => {
+        const shiftId = this.getAssignmentShiftId(emp.id, day.dateStr);
+        const shiftName = this.getShiftNameById(shiftId);
+        const shiftTimeStr = this.getShiftTimeStrById(shiftId);
+
+        let badgeStyle = '';
+        let timeHtml = '';
+        if (shiftId === 'OFF') {
+          badgeStyle = 'background-color: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1;';
+        } else {
+          const nameLower = shiftName.toLowerCase();
+          if (nameLower.includes('sáng')) {
+            badgeStyle = 'background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-weight: bold;';
+          } else if (nameLower.includes('chiều')) {
+            badgeStyle = 'background-color: #fef3c7; color: #b45309; border: 1px solid #fde68a; font-weight: bold;';
+          } else if (nameLower.includes('gãy')) {
+            badgeStyle = 'background-color: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; font-weight: bold;';
+          } else {
+            badgeStyle = 'background-color: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe; font-weight: bold;';
+          }
+          timeHtml = `<div style="font-size: 10px; margin-top: 2px; font-weight: normal; color: #64748b;">${shiftTimeStr}</div>`;
+        }
+
+        dayCellsHtml += `
+          <td style="border: 1px solid #cbd5e1; padding: 10px; text-align: center; vertical-align: middle;">
+            <span style="display: inline-block; padding: 4px 10px; border-radius: 8px; font-size: 12px; ${badgeStyle}">
+              ${shiftName}
+            </span>
+            ${timeHtml}
+          </td>
+        `;
+      });
+
+      tableRowsHtml += `
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+          <td style="border: 1px solid #cbd5e1; padding: 12px; font-weight: bold; color: #0f172a;">
+            <div style="font-size: 14px;">${emp.name}</div>
+            <div style="font-size: 11px; font-weight: normal; color: #64748b; margin-top: 2px;">${emp.position || 'Nhân viên'}</div>
+          </td>
+          ${dayCellsHtml}
+        </tr>
+      `;
+    });
+
+    let shiftLegendsHtml = '';
+    this.shifts.forEach(s => {
+      shiftLegendsHtml += `
+        <span style="margin-right: 15px; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: bold; color: #334155;">
+          <span style="width: 10px; height: 10px; border-radius: 50%; display: inline-block; background-color: ${this.getLegendColor(s.name)}"></span>
+          ${s.name} (${s.startTime.substring(0, 5)} - ${s.endTime.substring(0, 5)})
+        </span>
+      `;
+    });
+
+    shiftLegendsHtml += `
+      <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: bold; color: #334155;">
+        <span style="width: 10px; height: 10px; border-radius: 50%; display: inline-block; background-color: #94a3b8"></span>
+        Nghỉ (OFF)
+      </span>
+    `;
+
+    let weekHeaderColsHtml = '';
+    this.weekDays.forEach(day => {
+      const dayDisplayDate = this.formatDisplayDate(day.dateStr).substring(0, 5); // dd/MM
+      weekHeaderColsHtml += `
+        <th style="border: 1px solid #cbd5e1; background-color: #f8fafc; color: #334155; padding: 12px; text-align: center; width: 11%;">
+          <div style="font-size: 13px; font-weight: bold; text-transform: uppercase;">${day.name}</div>
+          <div style="font-size: 11px; color: #64748b; margin-top: 2px;">${dayDisplayDate}</div>
+        </th>
+      `;
+    });
+
+    const printHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>CoffeeHub - Bảng Phân Ca Hàng Tuần</title>
+        <style>
+          @page {
+            size: A4 landscape;
+            margin: 15mm;
+          }
+          body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            color: #334155;
+            margin: 0;
+            padding: 0;
+            line-height: 1.5;
+          }
+          .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2px solid #6366f1;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+          }
+          .brand-title {
+            font-size: 26px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #4f46e5, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 0;
+          }
+          .doc-title {
+            font-size: 18px;
+            font-weight: 800;
+            color: #1e1b4b;
+            margin-top: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+          .date-range {
+            font-size: 14px;
+            font-weight: bold;
+            color: #4f46e5;
+            margin-top: 4px;
+          }
+          .meta-info {
+            text-align: right;
+            font-size: 12px;
+            color: #64748b;
+          }
+          .schedule-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+          }
+          .legends-container {
+            background-color: #f8fafc;
+            border: 1px dashed #cbd5e1;
+            border-radius: 10px;
+            padding: 10px 15px;
+            margin-top: 20px;
+            margin-bottom: 20px;
+          }
+          .footer-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 40px;
+            padding-top: 10px;
+          }
+          .signature-box {
+            width: 250px;
+            text-align: center;
+          }
+          .signature-title {
+            font-size: 13px;
+            font-weight: 800;
+            color: #334155;
+            text-transform: uppercase;
+          }
+          .signature-space {
+            height: 70px;
+          }
+          .signature-name {
+            font-size: 13px;
+            font-style: italic;
+            color: #64748b;
+          }
+          .rules-note {
+            background-color: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 10px 15px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #991b1b;
+            margin-top: 15px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header-container">
+          <div>
+            <h1 class="brand-title">☕ CoffeeHub HRM</h1>
+            <div class="doc-title">Bảng Phân Công Lịch Làm Việc Tuần</div>
+            <div class="date-range">Tuần: ${startDateStr} - ${endDateStr}</div>
+          </div>
+          <div class="meta-info">
+            <div>Ngày xuất bản: ${new Date().toLocaleDateString('vi-VN')}</div>
+            <div>Trạng thái: Đã phê duyệt chính thức</div>
+          </div>
+        </div>
+
+        <table class="schedule-table">
+          <thead>
+            <tr>
+              <th style="border: 1px solid #cbd5e1; background-color: #f8fafc; color: #334155; padding: 12px; text-align: left; width: 18%; font-size: 13px; font-weight: bold; text-transform: uppercase;">Nhân Viên</th>
+              ${weekHeaderColsHtml}
+            </tr>
+          </thead>
+          <tbody>
+            ${tableRowsHtml}
+          </tbody>
+        </table>
+
+        <div class="legends-container">
+          <div style="font-size: 11px; font-weight: bold; text-transform: uppercase; color: #64748b; margin-bottom: 6px;">Chú thích các ca làm:</div>
+          <div>
+            ${shiftLegendsHtml}
+          </div>
+        </div>
+
+        <div class="rules-note">
+          <strong>LƯU Ý QUAN TRỌNG:</strong> Tất cả nhân sự đi làm đúng giờ (trước ca 10 phút), mặc đồng phục đúng quy định và check-in đầy đủ trên hệ thống. 
+          Mọi yêu cầu đổi ca làm việc hoặc xin nghỉ xin vui lòng liên hệ trực tiếp với Quản lý tối thiểu trước 24 giờ để được phê duyệt.
+        </div>
+
+        <div class="footer-container">
+          <div class="signature-box">
+            <div class="signature-title">Xác nhận của nhân viên</div>
+            <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">(Ký và ghi rõ họ tên)</div>
+            <div class="signature-space"></div>
+            <div class="signature-name">Đại diện tập thể nhân sự</div>
+          </div>
+          <div class="signature-box">
+            <div class="signature-title">Người duyệt lịch phân ca</div>
+            <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">(Ký tên, đóng dấu)</div>
+            <div class="signature-space"></div>
+            <div class="signature-name">Quản lý CoffeeHub</div>
+          </div>
+        </div>
+
+        <script>
+          window.onload = function() {
+            window.print();
+          }
+        </script>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(printHtml);
+    printWindow.document.close();
   }
 }

@@ -70,6 +70,25 @@ public class SalaryController {
         return ResponseEntity.ok(salaryService.approveSalary(id));
     }
 
+    @PutMapping("/{id}/revert")
+    public ResponseEntity<SalaryPayrollDto> revertSalary(@PathVariable Long id) {
+        return ResponseEntity.ok(salaryService.revertSalary(id));
+    }
+
+    @PutMapping("/approve-all")
+    public ResponseEntity<List<SalaryPayrollDto>> approveAllSalaries(
+            @RequestParam Integer month, @RequestParam Integer year) {
+        return ResponseEntity.ok(salaryService.approveAllSalaries(month, year));
+    }
+
+    @PutMapping("/approve-multiple")
+    public ResponseEntity<List<SalaryPayrollDto>> approveMultipleSalaries(
+            @RequestBody List<Long> ids,
+            @RequestParam Integer month,
+            @RequestParam Integer year) {
+        return ResponseEntity.ok(salaryService.approveMultipleSalaries(ids, month, year));
+    }
+
     // ── Xuất bảng lương CSV (UTF-8 BOM cho Excel) ────────────────────────────
     @GetMapping("/export")
     public ResponseEntity<String> exportCsv(@RequestParam Integer month, @RequestParam Integer year) {
@@ -85,13 +104,13 @@ public class SalaryController {
 
         for (SalaryPayrollDto s : list) {
             csv.append(String.format(
-                "%s,%s,%s,%s,%s,%d,%.1f,%.1f,%.0f,%.0f,%.0f,%.0f,%.0f,%.0f,%.0f,%.0f,%.0f,%.0f\n",
+                "%s,%s,%s,%s,%s,%.1f,%.1f,%.1f,%.0f,%.0f,%.0f,%.0f,%.0f,%.0f,%.0f,%.0f,%.0f,%.0f\n",
                 s.getEmployeeId(),
                 csvEscape(s.getEmployeeName()),
                 csvEscape(s.getDepartment()),
                 csvEscape(s.getPosition()),
                 s.getEmployeeType() != null ? s.getEmployeeType().name() : "",
-                s.getWorkDays()      != null ? s.getWorkDays()      : 0,
+                s.getWorkDays()      != null ? s.getWorkDays()      : 0.0,
                 s.getRegularHours()  != null ? s.getRegularHours()  : 0.0,
                 s.getOtHours()       != null ? s.getOtHours()       : 0.0,
                 orZero(s.getBaseSalary()),

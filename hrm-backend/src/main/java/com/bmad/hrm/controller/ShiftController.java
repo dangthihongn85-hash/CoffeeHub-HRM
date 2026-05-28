@@ -90,8 +90,13 @@ public class ShiftController {
             return ResponseEntity.badRequest().body(Map.of("message", "Danh sách ngày không được trống"));
         }
 
+        int updatedCount = 0;
+        LocalDate today = LocalDate.now();
         for (String dStr : dateStrings) {
             LocalDate date = LocalDate.parse(dStr);
+            if (date.isBefore(today)) {
+                continue; // Prevent modification/wiping of past assignments
+            }
             
             Optional<ShiftAssignment> existingOpt = shiftAssignmentRepository.findByEmployeeIdAndDate(employeeId, date);
             if (shift == null) {
@@ -113,8 +118,9 @@ public class ShiftController {
                     shiftAssignmentRepository.save(assignment);
                 }
             }
+            updatedCount++;
         }
 
-        return ResponseEntity.ok(Map.of("message", "Đã phân lịch thành công cho " + dateStrings.size() + " ngày"));
+        return ResponseEntity.ok(Map.of("message", "Đã phân lịch thành công cho " + updatedCount + " ngày"));
     }
 }

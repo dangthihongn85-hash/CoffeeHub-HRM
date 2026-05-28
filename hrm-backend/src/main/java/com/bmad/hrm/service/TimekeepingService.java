@@ -27,6 +27,10 @@ public class TimekeepingService {
     private final ShiftAssignmentRepository shiftAssignmentRepository;
     private final ShiftRepository           shiftRepository;
 
+    @org.springframework.beans.factory.annotation.Autowired
+    @org.springframework.context.annotation.Lazy
+    private SalaryService salaryService;
+
     /** Ca bắt đầu: 08:00 | Ngưỡng trễ: 08:40 (trễ > 10 phút) */
     private static final LocalTime SHIFT_START  = LocalTime.of(8, 0);
     private static final LocalTime LATE_CUTOFF  = LocalTime.of(8, 40);
@@ -82,7 +86,13 @@ public class TimekeepingService {
         att.setCheckInTime(now);
         att.setStatus(status);
         att.setWorkPoints(1.0); // Temporarily set full công, recalculated on checkout
-        return attendanceRepository.save(att);
+        Attendance saved = attendanceRepository.save(att);
+        try {
+            salaryService.calculateSalaryForOne(employeeId, today.getMonthValue(), today.getYear());
+        } catch (Exception e) {
+            System.err.println("Lỗi tự động tính lại lương khi check-in: " + e.getMessage());
+        }
+        return saved;
     }
 
     // ── Check-out ─────────────────────────────────────────────────────────────
@@ -134,7 +144,13 @@ public class TimekeepingService {
             att.setWorkPoints(1.0);
         }
 
-        return attendanceRepository.save(att);
+        Attendance saved = attendanceRepository.save(att);
+        try {
+            salaryService.calculateSalaryForOne(employeeId, today.getMonthValue(), today.getYear());
+        } catch (Exception e) {
+            System.err.println("Lỗi tự động tính lại lương khi check-out: " + e.getMessage());
+        }
+        return saved;
     }
 
     // ── Nghỉ đặc biệt (Manager cập nhật thủ công) ───────────────────────────
@@ -150,7 +166,13 @@ public class TimekeepingService {
         att.setCheckInTime(null);
         att.setCheckOutTime(null);
         att.setWorkPoints(0.0); // Nghỉ đặc biệt không tính công
-        return attendanceRepository.save(att);
+        Attendance saved = attendanceRepository.save(att);
+        try {
+            salaryService.calculateSalaryForOne(employeeId, date.getMonthValue(), date.getYear());
+        } catch (Exception e) {
+            System.err.println("Lỗi tự động tính lại lương khi nghỉ đặc biệt: " + e.getMessage());
+        }
+        return saved;
     }
 
     // ── Nghỉ không phép (hệ thống hoặc manager đánh dấu) ───────────────────
@@ -166,7 +188,13 @@ public class TimekeepingService {
         att.setCheckInTime(null);
         att.setCheckOutTime(null);
         att.setWorkPoints(0.0); // Nghỉ không phép không tính công
-        return attendanceRepository.save(att);
+        Attendance saved = attendanceRepository.save(att);
+        try {
+            salaryService.calculateSalaryForOne(employeeId, date.getMonthValue(), date.getYear());
+        } catch (Exception e) {
+            System.err.println("Lỗi tự động tính lại lương khi nghỉ không phép: " + e.getMessage());
+        }
+        return saved;
     }
 
     // ── Lấy bảng chấm công tháng ─────────────────────────────────────────────
@@ -259,12 +287,25 @@ public class TimekeepingService {
         att.setCheckOutTime(checkOutTime);
         att.setStatus(status);
         att.setWorkPoints(workPoints);
-        return attendanceRepository.save(att);
+        Attendance saved = attendanceRepository.save(att);
+        try {
+            salaryService.calculateSalaryForOne(employeeId, date.getMonthValue(), date.getYear());
+        } catch (Exception e) {
+            System.err.println("Lỗi tự động tính lại lương khi sửa thủ công: " + e.getMessage());
+        }
+        return saved;
     }
 
     // ── Xóa chấm công ngày (Admin) ───────────────────────────────────────────
     public void deleteManualAttendance(Long employeeId, LocalDate date) {
         attendanceRepository.findByEmployeeIdAndDate(employeeId, date)
-                .ifPresent(attendanceRepository::delete);
+                .ifPresent(att -> {
+                    attendanceRepository.delete(att);
+                    try {
+                        salaryService.calculateSalaryForOne(employeeId, date.getMonthValue(), date.getYear());
+                    } catch (Exception e) {
+                        System.err.println("Lỗi tự động tính lại lương khi xóa chấm công: " + e.getMessage());
+                    }
+                });
     }
 }

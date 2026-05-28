@@ -170,12 +170,11 @@ public class SalaryService {
         long   noCheckout   = 0;
         long   absentNoPerm = 0;
 
-        // Count total working days as whole days, strictly based on status, not on hours or decimals.
-        double workDays = (double) records.stream()
-                .filter(a -> a.getStatus() == AttendanceStatus.ON_TIME || 
-                             a.getStatus() == AttendanceStatus.LATE || 
-                             a.getStatus() == AttendanceStatus.EARLY)
-                .count();
+        // Count total working days as sum of actual work points.
+        double workDays = records.stream()
+                .mapToDouble(a -> a.getWorkPoints() != null ? a.getWorkPoints() : 0.0)
+                .sum();
+        workDays = roundHours(workDays);
 
         for (Attendance a : normalRecords) {
             if (a.getStatus() == AttendanceStatus.ABSENT_NO_PERMISSION) {
@@ -219,8 +218,9 @@ public class SalaryService {
             otSalary   = roundAmount(otHours * (emp.getSalaryBase() / 208.0) * OT_MULTIPLIER); // 26 days * 8 hours = 208
             
             // Tính phạt thiếu công đối với nhân viên Full-time và Manager (26 công chuẩn)
-            if ((type == EmployeeType.FULL_TIME || type == EmployeeType.MANAGER) && workDays < 26.0) {
-                underTimePenalty = roundAmount((26.0 - workDays) * (emp.getSalaryBase() / 26.0));
+            double totalEffectiveDays = workDays + specialLeaveDays;
+            if ((type == EmployeeType.FULL_TIME || type == EmployeeType.MANAGER) && totalEffectiveDays < 26.0) {
+                underTimePenalty = roundAmount((26.0 - totalEffectiveDays) * (emp.getSalaryBase() / 26.0));
             }
         } else {
             switch (type) {
@@ -250,8 +250,9 @@ public class SalaryService {
         // Thưởng chuyên cần (chỉ Full-time và Manager)
         double bonusFullDays = 0.0;
         double bonusNoLate   = 0.0;
+        double totalEffectiveDaysForBonus = workDays + specialLeaveDays;
         if (type == EmployeeType.FULL_TIME || type == EmployeeType.MANAGER) {
-            if (workDays >= REQUIRED_WORK_DAYS) {
+            if (totalEffectiveDaysForBonus >= REQUIRED_WORK_DAYS) {
                 bonusFullDays = BONUS_FULL_DAYS;
             }
             if (lateDays == 0) {
@@ -306,8 +307,8 @@ public class SalaryService {
         salary.setStatus("PENDING");
         salaryRepository.save(salary);
 
-        // Gửi email thông báo lương
-        sendPayrollEmail(emp, month, year, totalSalary);
+        // Lương đã được tính và lưu
+        // (Không gửi email thông báo lương tự động tại đây để tránh spam khi chấm công, chỉ gửi khi được duyệt)
 
         // ── Build DTO ─────────────────────────────────────────────────────────
         return SalaryPayrollDto.builder()
@@ -377,7 +378,48 @@ public class SalaryService {
         Salary salary = salaryRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bảng lương: " + id));
         salary.setStatus("APPROVED");
+        
+        SalaryPayrollDto dto = toDto(salaryRepository.save(salary));
+        // Gửi email khi duyệt lương
+        if (salary.getEmployee() != null) {
+            sendPayrollEmail(salary.getEmployee(), salary.getMonth(), salary.getYear(), salary.getTotalSalary());
+        }
+        return dto;
+    }
+
+    public SalaryPayrollDto revertSalary(Long id) {
+        Salary salary = salaryRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy bảng lương: " + id));
+        salary.setStatus("PENDING");
         return toDto(salaryRepository.save(salary));
+    }
+
+    public List<SalaryPayrollDto> approveAllSalaries(Integer month, Integer year) {
+        List<Salary> list = salaryRepository.findByMonthAndYear(month, year);
+        for (Salary salary : list) {
+            salary.setStatus("APPROVED");
+            salaryRepository.save(salary);
+            // Gửi email khi duyệt lương
+            if (salary.getEmployee() != null) {
+                sendPayrollEmail(salary.getEmployee(), salary.getMonth(), salary.getYear(), salary.getTotalSalary());
+            }
+        }
+        return list.stream().map(this::toDto).collect(Collectors.toList());
+    }
+
+    public List<SalaryPayrollDto> approveMultipleSalaries(List<Long> ids, Integer month, Integer year) {
+        if (ids != null && !ids.isEmpty()) {
+            List<Salary> list = salaryRepository.findAllById(ids);
+            for (Salary salary : list) {
+                salary.setStatus("APPROVED");
+                salaryRepository.save(salary);
+                // Gửi email khi duyệt lương
+                if (salary.getEmployee() != null) {
+                    sendPayrollEmail(salary.getEmployee(), salary.getMonth(), salary.getYear(), salary.getTotalSalary());
+                }
+            }
+        }
+        return getSalariesByMonth(month, year);
     }
 
     /**

@@ -25,7 +25,13 @@ export class SalaryManagementComponent implements OnInit {
 
   filterType: string = 'ALL';
   filterDept: string = 'ALL';
+  searchName: string = '';
   departments: string[] = [];
+
+  // Pagination Configuration
+  pageSize = 10;
+  pageIndex = 0;
+  pageSizeOptions = [5, 10, 25, 50];
 
   // ── Doanh thu ─────────────────────────────────────────────────────────────
   monthlyRevenue = 0;
@@ -47,6 +53,8 @@ export class SalaryManagementComponent implements OnInit {
 
   // ── Confirm Dialog ────────────────────────────────────────────────────────
   confirmDialogVisible = false;
+  confirmBulkDialogVisible = false;
+  selectedSalaryIds = new Set<number>();
   salaryToApprove: any = null;
   approveEvent: Event | null = null;
 
@@ -86,6 +94,7 @@ export class SalaryManagementComponent implements OnInit {
   }
 
   loadSalaries() {
+    this.selectedSalaryIds.clear();
     this.http.get<any[]>(`${API}/salaries?month=${this.selectedMonth}&year=${this.selectedYear}`).subscribe({
       next: d => {
         this.salaries = d.map(s => {
@@ -108,6 +117,7 @@ export class SalaryManagementComponent implements OnInit {
   onPeriodChange() {
     this.salaries  = [];
     this.selectedSalary = null;
+    this.selectedSalaryIds.clear();
     this.loadRevenue();
     this.loadSalaries();
   }
@@ -182,12 +192,69 @@ export class SalaryManagementComponent implements OnInit {
     this.totalPenalty      = this.salaries.reduce((s, r) => s + (r.totalPenalty     || 0), 0);
   }
 
+  get hasPendingSalaries(): boolean {
+    return this.salaries.some(s => s.status !== 'APPROVED');
+  }
+
+  get hasPendingSelected(): boolean {
+    return this.salaries.some(s => s.status !== 'APPROVED' && this.selectedSalaryIds.has(s.salaryId));
+  }
+
+  toggleSelectSalary(salId: number, event: any) {
+    event.stopPropagation();
+    if (this.selectedSalaryIds.has(salId)) {
+      this.selectedSalaryIds.delete(salId);
+    } else {
+      this.selectedSalaryIds.add(salId);
+    }
+  }
+
+  isSalarySelected(salId: number): boolean {
+    return this.selectedSalaryIds.has(salId);
+  }
+
+  toggleSelectAll(event: any) {
+    const checked = event.target.checked;
+    if (checked) {
+      this.salaries.forEach(s => {
+        if (s.status !== 'APPROVED') {
+          this.selectedSalaryIds.add(s.salaryId);
+        }
+      });
+    } else {
+      this.selectedSalaryIds.clear();
+    }
+  }
+
+  isAllPendingSelected(): boolean {
+    const pendingSalaries = this.salaries.filter(s => s.status !== 'APPROVED');
+    if (pendingSalaries.length === 0) return false;
+    return pendingSalaries.every(s => this.selectedSalaryIds.has(s.salaryId));
+  }
+
   get filteredSalaries() {
     return this.salaries.filter(s => {
       const matchType = this.filterType === 'ALL' || s.employeeType === this.filterType;
       const matchDept = this.filterDept === 'ALL' || s.department === this.filterDept;
-      return matchType && matchDept;
+      
+      const nameRaw = s.employeeName || s.employee?.name || '';
+      const nameLower = this.removeAccents(nameRaw.toLowerCase());
+      const searchLower = this.removeAccents(this.searchName.trim().toLowerCase());
+      const matchName = !searchLower || nameLower.includes(searchLower);
+      
+      return matchType && matchDept && matchName;
     });
+  }
+
+  get pagedSalaries(): any[] {
+    const start = this.pageIndex * this.pageSize;
+    const end = start + this.pageSize;
+    return this.filteredSalaries.slice(start, end);
+  }
+
+  onPageChange(event: any) {
+    this.pageSize = event.pageSize;
+    this.pageIndex = event.pageIndex;
   }
 
   // ── Sửa lương trong bảng ──────────────────────────────────────────────────
@@ -323,6 +390,69 @@ export class SalaryManagementComponent implements OnInit {
     this.approveEvent = null;
   }
 
+  revertSalary(sal: any, event: Event) {
+    event.stopPropagation();
+    
+    this.http.put<any>(`${API}/salaries/${sal.salaryId}/revert`, {}).subscribe({
+      next: (updated) => {
+        const idx = this.salaries.findIndex(s => s.salaryId === sal.salaryId);
+        if (idx !== -1) this.salaries[idx] = updated;
+        this.recalcStats();
+        if (this.selectedSalary && this.selectedSalary.salaryId === sal.salaryId) {
+          this.selectedSalary = updated;
+        }
+        this.snackBar.open(`↩️ Đã hủy duyệt lương: ${sal.employeeName} (Trở về Chờ duyệt)`, 'Đóng', { duration: 3000 });
+      },
+      error: () => this.snackBar.open('❌ Lỗi khi hủy duyệt lương', 'Đóng', { duration: 3000 })
+    });
+  }
+
+  approveAll() {
+    if (this.selectedSalaryIds.size === 0) {
+      this.snackBar.open('⚠️ Hãy chọn ít nhất một nhân viên để duyệt lương!', 'Đóng', { duration: 3000 });
+      return;
+    }
+    this.confirmBulkDialogVisible = true;
+  }
+
+  confirmBulkApprove() {
+    this.confirmBulkDialogVisible = false;
+    this.loading = true;
+    
+    const selectedIds = Array.from(this.selectedSalaryIds);
+    this.http.put<any[]>(`${API}/salaries/approve-multiple?month=${this.selectedMonth}&year=${this.selectedYear}`, selectedIds).subscribe({
+      next: (updatedList) => {
+        this.salaries = updatedList.map(s => {
+          s.regularHours = s.regularHours != null ? Math.round(s.regularHours * 10) / 10 : 0;
+          s.otHours = s.otHours != null ? Math.round(s.otHours * 10) / 10 : 0;
+          s.baseSalary = s.baseSalary != null ? Math.round(s.baseSalary) : 0;
+          s.otSalary = s.otSalary != null ? Math.round(s.otSalary) : 0;
+          s.bonusAttendance = s.bonusAttendance != null ? Math.round(s.bonusAttendance) : 0;
+          s.bonusRevenue = s.bonusRevenue != null ? Math.round(s.bonusRevenue) : 0;
+          s.totalBonus = s.totalBonus != null ? Math.round(s.totalBonus) : 0;
+          s.totalPenalty = s.totalPenalty != null ? Math.round(s.totalPenalty) : 0;
+          s.totalSalary = s.totalSalary != null ? Math.round(s.totalSalary) : 0;
+          return s;
+        });
+        this.recalcStats();
+        this.loading = false;
+        
+        const countApproved = this.selectedSalaryIds.size;
+        this.selectedSalaryIds.clear();
+
+        if (this.selectedSalary) {
+          const matched = this.salaries.find(s => s.salaryId === this.selectedSalary.salaryId);
+          if (matched) this.selectedSalary = matched;
+        }
+        this.snackBar.open(`✅ Đã duyệt lương thành công cho ${countApproved} nhân viên được chọn!`, 'Đóng', { duration: 4000 });
+      },
+      error: () => {
+        this.loading = false;
+        this.snackBar.open('❌ Lỗi khi duyệt lương các nhân viên đã chọn', 'Đóng', { duration: 3000 });
+      }
+    });
+  }
+
   // ── Employee type ─────────────────────────────────────────────────────────
 
   editEmployeeType(emp: any) {
@@ -359,6 +489,350 @@ export class SalaryManagementComponent implements OnInit {
   exportExcel() {
     window.location.href = `${API}/salaries/export?month=${this.selectedMonth}&year=${this.selectedYear}`;
   }
+
+  exportPayslipPDF(sal: any) {
+    if (!sal) {
+      this.snackBar.open('⚠️ Không tìm thấy thông tin bảng lương!', 'Đóng', { duration: 3000 });
+      return;
+    }
+
+    const printWindow = window.open('', '_blank', 'width=800,height=800');
+    if (!printWindow) {
+      this.snackBar.open('⚠️ Trình duyệt đã chặn cửa sổ popup. Vui lòng cấp quyền mở popup để xuất phiếu lương!', 'Đóng', { duration: 5000 });
+      return;
+    }
+
+    const title = `PhieuLuong_${sal.employeeName.replace(/\s+/g, '_')}_T${sal.month}_${sal.year}`;
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>${title}</title>
+        <meta charset="utf-8">
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+          body {
+            font-family: 'Inter', sans-serif;
+            color: #1e293b;
+            background-color: #ffffff;
+            margin: 0;
+            padding: 40px;
+            font-size: 14px;
+            line-height: 1.5;
+          }
+          .payslip-container {
+            max-width: 700px;
+            margin: 0 auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+          }
+          .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 24px;
+            margin-bottom: 30px;
+          }
+          .logo-area h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #4f46e5, #6366f1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+          }
+          .logo-area p {
+            margin: 4px 0 0 0;
+            font-size: 12px;
+            color: #64748b;
+            font-weight: 500;
+          }
+          .title-area {
+            text-align: right;
+          }
+          .title-area h2 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 800;
+            color: #0f172a;
+          }
+          .title-area p {
+            margin: 6px 0 0 0;
+            font-size: 13px;
+            color: #4f46e5;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+          .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 30px;
+            background-color: #f8fafc;
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid #f1f5f9;
+          }
+          .info-item {
+            display: flex;
+            justify-content: space-between;
+          }
+          .info-label {
+            color: #64748b;
+            font-weight: 500;
+          }
+          .info-val {
+            font-weight: 700;
+            color: #0f172a;
+          }
+          .section-title {
+            font-size: 15px;
+            font-weight: 800;
+            color: #0f172a;
+            margin: 24px 0 12px 0;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e2e8f0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+          .slip-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 24px;
+          }
+          .slip-table th, .slip-table td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid #f1f5f9;
+          }
+          .slip-table th {
+            color: #64748b;
+            font-weight: 600;
+            font-size: 13px;
+            background-color: #f8fafc;
+          }
+          .slip-table td.amount {
+            text-align: right;
+            font-weight: 700;
+          }
+          .slip-table td.amount.green {
+            color: #16a34a;
+          }
+          .slip-table td.amount.red {
+            color: #dc2626;
+          }
+          .net-salary-card {
+            background: linear-gradient(135deg, #4f46e5, #6366f1);
+            color: white;
+            border-radius: 12px;
+            padding: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+            box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.25);
+          }
+          .net-title {
+            font-size: 15px;
+            font-weight: 700;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+          .net-amount {
+            font-size: 28px;
+            font-weight: 900;
+            letter-spacing: -0.5px;
+          }
+          .signature-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-top: 50px;
+            text-align: center;
+          }
+          .sig-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+          }
+          .sig-title {
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 80px;
+          }
+          .sig-name {
+            font-weight: 600;
+            color: #64748b;
+            border-top: 1px dashed #cbd5e1;
+            padding-top: 8px;
+            width: 180px;
+          }
+          @media print {
+            body {
+              padding: 0;
+              background-color: transparent;
+            }
+            .payslip-container {
+              border: none;
+              box-shadow: none;
+              padding: 0;
+              max-width: 100%;
+            }
+            .net-salary-card {
+              box-shadow: none;
+              background: linear-gradient(135deg, #4f46e5, #6366f1) !important;
+              color: white !important;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="payslip-container">
+          <div class="header">
+            <div class="logo-area">
+              <h1>☕ CoffeeHub HRM</h1>
+              <p>Hệ thống Quản lý Nhân sự & Tiền lương</p>
+            </div>
+            <div class="title-area">
+              <h2>PHIẾU LƯƠNG CHI TIẾT</h2>
+              <p>Tháng ${sal.month} / ${sal.year}</p>
+            </div>
+          </div>
+
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="info-label">Mã Nhân Viên:</span>
+              <span class="info-val">#${sal.employeeId || 'N/A'}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Họ và Tên:</span>
+              <span class="info-val">${sal.employeeName}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Phòng Ban:</span>
+              <span class="info-val">${sal.department || 'N/A'}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Chức Vụ:</span>
+              <span class="info-val">${sal.position || 'Nhân viên'}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Loại Nhân Viên:</span>
+              <span class="info-val">${this.typeLabel(sal.employeeType)}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Ngày / Giờ Công:</span>
+              <span class="info-val">
+                ${sal.workDays || 0} ngày (${(sal.regularHours || 0).toFixed(1)}h)
+              </span>
+            </div>
+          </div>
+
+          <div class="section-title">Chi Tiết Thu Nhập (Earnings)</div>
+          <table class="slip-table">
+            <thead>
+              <tr>
+                <th>Khoản thu nhập</th>
+                <th style="text-align: right;">Số tiền</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Lương cơ bản (Theo công chuẩn)</td>
+                <td class="amount">${this.fmt(sal.baseSalary)}</td>
+              </tr>
+              ${(sal.otHours || 0) > 0 ? `
+              <tr>
+                <td>Lương tăng ca (OT ${(sal.otHours || 0).toFixed(1)}h × 1.5)</td>
+                <td class="amount">${this.fmt(sal.otSalary)}</td>
+              </tr>
+              ` : ''}
+              ${(sal.bonusAttendance || 0) > 0 ? `
+              <tr>
+                <td>Thưởng chuyên cần (Đủ ngày công / Không đi trễ)</td>
+                <td class="amount green">+${this.fmt(sal.bonusAttendance)}</td>
+              </tr>
+              ` : ''}
+              ${(sal.bonusRevenue || 0) > 0 ? `
+              <tr>
+                <td>Thưởng hiệu suất doanh thu (Quỹ thưởng POOL)</td>
+                <td class="amount green">+${this.fmt(sal.bonusRevenue)}</td>
+              </tr>
+              ` : ''}
+            </tbody>
+          </table>
+
+          ${(sal.totalPenalty || 0) > 0 ? `
+          <div class="section-title">Chi Tiết Khấu Trừ (Deductions)</div>
+          <table class="slip-table">
+            <thead>
+              <tr>
+                <th>Khoản khấu trừ</th>
+                <th style="text-align: right;">Số tiền</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${(sal.penaltyLate || 0) > 0 ? `
+              <tr>
+                <td>Phạt đi trễ quá giờ quy định</td>
+                <td class="amount red">-${this.fmt(sal.penaltyLate)}</td>
+              </tr>
+              ` : ''}
+              ${(sal.penaltyNoCheckout || 0) > 0 ? `
+              <tr>
+                <td>Phạt thiếu thông tin Checkout</td>
+                <td class="amount red">-${this.fmt(sal.penaltyNoCheckout)}</td>
+              </tr>
+              ` : ''}
+              ${(sal.penaltyAbsent || 0) > 0 ? `
+              <tr>
+                <td>Phạt nghỉ không phép / Thiếu công chuẩn</td>
+                <td class="amount red">-${this.fmt(sal.penaltyAbsent)}</td>
+              </tr>
+              ` : ''}
+            </tbody>
+          </table>
+          ` : ''}
+
+          <div class="net-salary-card">
+            <div class="net-title">Tổng Thực Lĩnh (Net Take-home)</div>
+            <div class="net-amount">${this.fmt(sal.totalSalary)}</div>
+          </div>
+
+          <div class="signature-section">
+            <div class="sig-box">
+              <span class="sig-title">Người Lập Phiếu</span>
+              <span class="sig-name">Bộ phận Nhân sự</span>
+            </div>
+            <div class="sig-box">
+              <span class="sig-title">Nhân Viên Ký Nhận</span>
+              <span class="sig-name">${sal.employeeName}</span>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    printWindow.focus();
+    
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 500);
+  }
+
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -458,5 +932,13 @@ export class SalaryManagementComponent implements OnInit {
     }, 0);
 
     this.onSalaryFieldChange(this.editSalaryModel);
+  }
+
+  removeAccents(str: string): string {
+    return str
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/Đ/g, 'd');
   }
 }
