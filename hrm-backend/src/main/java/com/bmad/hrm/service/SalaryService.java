@@ -218,8 +218,11 @@ public class SalaryService {
             otSalary   = roundAmount(otHours * (emp.getSalaryBase() / 208.0) * OT_MULTIPLIER); // 26 days * 8 hours = 208
             
             // Tính phạt thiếu công đối với nhân viên Full-time và Manager (26 công chuẩn)
+            // Chỉ áp dụng phạt thiếu công khi tháng đã thực sự kết thúc (tránh phạt oan giữa tháng)
             double totalEffectiveDays = workDays + specialLeaveDays;
-            if ((type == EmployeeType.FULL_TIME || type == EmployeeType.MANAGER) && totalEffectiveDays < 26.0) {
+            boolean isMonthEnded = (year < LocalDate.now().getYear()) || 
+                                   (year == LocalDate.now().getYear() && month < LocalDate.now().getMonthValue());
+            if (isMonthEnded && (type == EmployeeType.FULL_TIME || type == EmployeeType.MANAGER) && totalEffectiveDays < 26.0) {
                 underTimePenalty = roundAmount((26.0 - totalEffectiveDays) * (emp.getSalaryBase() / 26.0));
             }
         } else {
