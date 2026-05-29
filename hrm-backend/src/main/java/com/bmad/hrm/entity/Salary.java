@@ -41,7 +41,10 @@ public class Salary {
 
     // ---- Lương ----
     @Column(name = "base_salary")
-    private Double baseSalary;       // Lương giờ/tháng cơ bản
+    private Double baseSalary;       // Lương giờ/tháng cơ bản gốc
+
+    @Column(name = "actual_base_salary")
+    private Double actualBaseSalary; // Lương cơ bản tính theo công thực tế
 
     @Column(name = "ot_salary")
     private Double otSalary;         // Lương OT

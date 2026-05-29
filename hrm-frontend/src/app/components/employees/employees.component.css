@@ -4,7 +4,7 @@
 .add-btn { height: 44px; border-radius: 14px !important; font-weight: 600; padding: 0 20px; box-shadow: var(--shadow-lg) !important; animation: fadeUp 0.4s ease; transition: background 0.3s }
 
 /* ===== STATS CARDS ===== */
-.stats-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; animation: fadeUp 0.5s ease; }
+.stats-cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 12px; animation: fadeUp 0.5s ease; }
 .stat-card { border-radius: 16px !important; padding: 12px 18px !important; display: flex; flex-direction: row !important; align-items: center; gap: 12px; box-shadow: var(--shadow-soft) !important;}
 .stat-card ::ng-deep .mat-mdc-card-content { padding: 0 !important; }
 .stat-icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
@@ -12,6 +12,8 @@
 .bg-indigo { background: linear-gradient(135deg, #4B49AC, #706cd1); box-shadow: 0 4px 10px rgba(75, 73, 172, 0.2); }
 .bg-emerald { background: linear-gradient(135deg, #10b981, #34d399); box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2); }
 .bg-rose { background: linear-gradient(135deg, #f43f5e, #fb7185); box-shadow: 0 4px 10px rgba(244, 63, 94, 0.2); }
+.bg-teal { background: linear-gradient(135deg, #0ea5e9, #38bdf8); box-shadow: 0 4px 10px rgba(14, 165, 233, 0.2); }
+.bg-slate { background: linear-gradient(135deg, #64748b, #94a3b8); box-shadow: 0 4px 10px rgba(100, 116, 139, 0.2); }
 .stat-info p { margin: 0; font-size: 10px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
 .stat-info h3 { margin: 2px 0 0 0; font-size: 20px; font-weight: 800; color: var(--text-main); line-height: 1; }
 

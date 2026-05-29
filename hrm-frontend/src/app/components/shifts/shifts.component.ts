@@ -225,14 +225,31 @@ export class ShiftsComponent implements OnInit {
   // Filter state
   filterShiftId: string = 'ALL';
 
+  get activeEmployees(): any[] {
+    return this.employees.filter(e => e.status !== 'LEAVE');
+  }
+
   get filteredEmployees(): any[] {
+    // 1. Filter active employees OR inactive ones who have assignments in the current week
+    const eligibleEmployees = this.employees.filter(emp => {
+      if (emp.status !== 'LEAVE') {
+        return true;
+      }
+      return this.weekDays.some(day => {
+        const assign = this.assignmentGrid[emp.id] && this.assignmentGrid[emp.id][day.dateStr];
+        return assign != null;
+      });
+    });
+
+    // 2. Apply the shift filter
     if (this.filterShiftId === 'ALL') {
-      return this.employees;
+      return eligibleEmployees;
     }
     
-    return this.employees.filter(emp => {
+    return eligibleEmployees.filter(emp => {
       return this.weekDays.some(day => {
-        const shiftIdVal = this.getAssignmentShiftId(emp.id, day.dateStr);
+        const assign = this.assignmentGrid[emp.id] && this.assignmentGrid[emp.id][day.dateStr];
+        const shiftIdVal = assign && assign.shift ? assign.shift.id : 'OFF';
         if (this.filterShiftId === 'OFF') {
           return shiftIdVal === 'OFF';
         } else {

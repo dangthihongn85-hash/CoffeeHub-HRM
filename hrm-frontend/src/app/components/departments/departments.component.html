@@ -1,7 +1,7 @@
 <div class="page-header">
   <div>
-    <h2 class="page-title">Phòng Ban & Chức Vụ</h2>
-    <p class="page-subtitle">Cấu trúc tổ chức quán cafe — thêm, sửa, xoá phòng ban và chức vụ</p>
+    <h2 class="page-title">Cơ Cấu Tổ Chức</h2>
+    <p class="page-subtitle">Quản lý danh sách phòng ban, định biên chức vụ và cơ cấu nhân sự</p>
   </div>
   <button mat-raised-button color="primary" class="add-dept-btn" (click)="showAddDept = !showAddDept">
     <mat-icon>{{ showAddDept ? 'close' : 'add_business' }}</mat-icon>
@@ -12,25 +12,40 @@
 <!-- Add Department Panel -->
 <mat-card class="add-panel" *ngIf="showAddDept">
   <div class="add-panel-inner">
-    <div class="panel-icon"><mat-icon>add_business</mat-icon></div>
-    <div class="panel-inputs">
-      <input class="inline-input" placeholder="Tên phòng ban (VD: Pha Chế, Phục Vụ...)" [(ngModel)]="newDept.name">
-      <input class="inline-input" placeholder="Mô tả ngắn" [(ngModel)]="newDept.description">
+    <div class="panel-header-wrap">
+      <div class="panel-icon"><mat-icon>add_business</mat-icon></div>
+      <div class="panel-title-block">
+        <h4>Thêm Phòng Ban Mới</h4>
+        <p>Thiết lập một bộ phận mới hoạt động trong sơ đồ tổ chức của quán</p>
+      </div>
     </div>
-    <button mat-raised-button color="accent" class="save-btn" (click)="saveDept()">
-      <mat-icon>check</mat-icon> Lưu
-    </button>
+    <div class="panel-body-wrap">
+      <div class="input-group">
+        <label>Tên phòng ban <span class="required-star">*</span></label>
+        <input class="inline-input" placeholder="Nhập tên phòng ban (VD: Pha Chế, Phục Vụ...)" [(ngModel)]="newDept.name">
+      </div>
+      <div class="input-group">
+        <label>Mô tả ngắn</label>
+        <input class="inline-input" placeholder="Nhập mô tả vai trò của bộ phận này" [(ngModel)]="newDept.description">
+      </div>
+    </div>
+    <div class="panel-footer-wrap">
+      <button mat-button class="cancel-panel-btn" (click)="showAddDept = false">Hủy bỏ</button>
+      <button mat-raised-button color="accent" class="save-btn" (click)="saveDept()">
+        <mat-icon>check</mat-icon> Tạo phòng ban
+      </button>
+    </div>
   </div>
 </mat-card>
 
-<div *ngIf="loading" style="text-align:center;padding:60px;">
-  <mat-spinner diameter="48" style="margin:auto;"></mat-spinner>
-  <p style="margin-top:16px;color:var(--text-muted);">Đang tải cơ cấu tổ chức...</p>
+<div *ngIf="loading" class="loading-container">
+  <mat-spinner diameter="40" class="loading-spinner"></mat-spinner>
+  <p>Đang tải cơ cấu tổ chức...</p>
 </div>
 
 <!-- Department Cards Grid -->
 <div class="dept-grid" *ngIf="!loading">
-  <mat-card class="dept-card" *ngFor="let dept of departments">
+  <mat-card class="dept-card" *ngFor="let dept of departments" [class.editing-card]="editingDeptId === dept.id">
     
     <!-- DEPT HEADER -->
     <div class="dept-header">
@@ -40,7 +55,7 @@
         </div>
         <div class="dept-title-block">
           <h3>{{ dept.name }}</h3>
-          <p>{{ dept.description || 'Không có mô tả' }} &bull; 
+          <p>{{ dept.description || 'Không có mô tả bộ phận' }} &bull; 
             <strong>{{ employeesOf(dept.name).length }} nhân viên</strong>
           </p>
         </div>
@@ -62,8 +77,8 @@
           <input class="inline-input" [(ngModel)]="editDeptModel.description" placeholder="Mô tả">
         </div>
         <div class="dept-actions">
-          <button mat-icon-button color="accent" (click)="saveEditDept()"><mat-icon>check_circle</mat-icon></button>
-          <button mat-icon-button color="warn" (click)="editingDeptId = null"><mat-icon>cancel</mat-icon></button>
+          <button mat-icon-button class="check-btn" (click)="saveEditDept()" title="Lưu thay đổi"><mat-icon>check</mat-icon></button>
+          <button mat-icon-button class="cancel-btn" (click)="editingDeptId = null" title="Hủy"><mat-icon>close</mat-icon></button>
         </div>
       </ng-container>
     </div>
@@ -71,7 +86,10 @@
     <!-- POSITIONS LIST -->
     <div class="positions-section">
       <div class="positions-header">
-        <span class="pos-label"><mat-icon>badge</mat-icon> Danh Sách Chức Vụ ({{ positionsOf(dept.name).length }})</span>
+        <span class="pos-label">
+          <mat-icon>badge</mat-icon> 
+          Danh Sách Chức Vụ ({{ positionsOf(dept.name).length }})
+        </span>
         <button mat-button class="add-pos-btn" (click)="showAddPos(dept.name)">
           <mat-icon>add</mat-icon> Thêm Chức Vụ
         </button>
@@ -79,39 +97,48 @@
 
       <!-- Add Position Inline -->
       <div class="add-pos-form" *ngIf="showAddPosDeptName === dept.name">
-        <input class="inline-input small" placeholder="Tên chức vụ mới..." [(ngModel)]="newPos.name">
-        <button mat-icon-button color="accent" (click)="savePos()"><mat-icon>check_circle</mat-icon></button>
-        <button mat-icon-button (click)="showAddPosDeptName = null"><mat-icon>close</mat-icon></button>
+        <div class="add-pos-inner">
+          <mat-icon class="input-icon">badge</mat-icon>
+          <input class="inline-input small" placeholder="Nhập tên chức vụ..." [(ngModel)]="newPos.name" (keyup.enter)="savePos()">
+          <div class="form-actions">
+            <button mat-icon-button class="check-btn" (click)="savePos()" title="Lưu"><mat-icon>check</mat-icon></button>
+            <button mat-icon-button class="cancel-btn" (click)="showAddPosDeptName = null" title="Hủy"><mat-icon>close</mat-icon></button>
+          </div>
+        </div>
       </div>
 
       <table class="mini-table positions-table">
         <thead>
           <tr>
-            <th>Tên Chức Vụ</th>
-            <th style="width: 100px;">Nhân Sự</th>
-            <th style="width: 100px; text-align: right;">Thao Tác</th>
+            <th>Chức Vụ</th>
+            <th style="width: 90px; text-align: center;">Nhân Sự</th>
+            <th style="width: 80px; text-align: right;">Thao Tác</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let pos of positionsOf(dept.name)">
+          <tr *ngFor="let pos of positionsOf(dept.name)" [class.editing-row]="editingPosId === pos.id">
             <ng-container *ngIf="editingPosId !== pos.id">
-              <td style="font-weight: 700; color: var(--primary);">{{ pos.name }}</td>
-              <td>
+              <td class="pos-name-cell">{{ pos.name }}</td>
+              <td style="text-align: center;">
                 <span class="pos-count-badge">{{ countEmployeesInPos(dept.name, pos.name) }}</span>
               </td>
               <td style="text-align: right;">
-                <button mat-icon-button class="mini-btn" (click)="startEditPos(pos)"><mat-icon>edit</mat-icon></button>
-                <button mat-icon-button class="mini-btn text-rose" (click)="deletePos(pos)"><mat-icon>delete_outline</mat-icon></button>
+                <button mat-icon-button class="mini-btn" (click)="startEditPos(pos)" title="Sửa"><mat-icon>edit</mat-icon></button>
+                <button mat-icon-button class="mini-btn text-rose" (click)="deletePos(pos)" title="Xóa"><mat-icon>delete_outline</mat-icon></button>
               </td>
             </ng-container>
 
             <!-- Edit pos item -->
             <ng-container *ngIf="editingPosId === pos.id">
-              <td><input class="inline-input xsmall" [(ngModel)]="editPosModel.name"></td>
-              <td>-</td>
+              <td>
+                <input class="inline-input xsmall" [(ngModel)]="editPosModel.name" (keyup.enter)="saveEditPos()" placeholder="Tên chức vụ">
+              </td>
+              <td style="text-align: center;">-</td>
               <td style="text-align: right;">
-                <button mat-icon-button color="accent" (click)="saveEditPos()"><mat-icon>check</mat-icon></button>
-                <button mat-icon-button (click)="editingPosId = null"><mat-icon>close</mat-icon></button>
+                <div class="edit-pos-actions">
+                  <button mat-icon-button class="check-btn" (click)="saveEditPos()" title="Lưu"><mat-icon>check</mat-icon></button>
+                  <button mat-icon-button class="cancel-btn" (click)="editingPosId = null" title="Hủy"><mat-icon>close</mat-icon></button>
+                </div>
               </td>
             </ng-container>
           </tr>
@@ -124,13 +151,13 @@
 
     <!-- EMPLOYEES in dept -->
     <div class="emp-list" *ngIf="employeesOf(dept.name).length > 0">
-      <div class="emp-list-header">Nhân Viên Hiện Tại</div>
+      <div class="emp-list-header">Nhân Viên Đang Hoạt Động</div>
       <div class="emp-chips">
         <div class="emp-chip" *ngFor="let emp of employeesOf(dept.name)">
-          <img [src]="'https://ui-avatars.com/api/?name=' + emp.name + '&background=e5ebfe&color=4B49AC&bold=true&size=28'" alt="">
-          <span>{{ emp.name }}</span>
+          <img [src]="'https://ui-avatars.com/api/?name=' + emp.name + '&background=e5ebfe&color=4B49AC&bold=true&size=28'" alt="{{ emp.name }}">
+          <span class="emp-chip-name">{{ emp.name }}</span>
           <span class="pos-chip">{{ emp.position }}</span>
-          <span class="status-dot" [class.active]="emp.status === 'ACTIVE'" [class.leave]="emp.status !== 'ACTIVE'"></span>
+          <span class="status-dot" [class.active]="emp.status === 'ACTIVE'" [class.leave]="emp.status !== 'ACTIVE'" [title]="emp.status === 'ACTIVE' ? 'Đang làm việc' : 'Nghỉ việc/Tạm dừng'"></span>
         </div>
       </div>
     </div>

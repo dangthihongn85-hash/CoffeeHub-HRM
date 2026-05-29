@@ -31,6 +31,7 @@ public class SalaryPayrollDto {
 
     // Lương
     private Double baseSalary;
+    private Double actualBaseSalary;
     private Double otSalary;
 
     // Thưởng

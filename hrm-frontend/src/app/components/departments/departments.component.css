@@ -1,96 +1,740 @@
-.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; animation: fadeUp 0.4s ease; }
-.page-title { margin: 0; font-size: 26px; font-weight: 800; color: var(--text-main); letter-spacing: -0.5px; }
-.page-subtitle { margin: 5px 0 0 0; color: var(--text-muted); font-size: 14px; }
-.add-dept-btn { height: 44px; border-radius: 14px !important; font-weight: 700 !important; padding: 0 20px; box-shadow: var(--shadow-lg) !important; }
-.add-dept-btn mat-icon { font-family: 'Material Icons' !important; }
+/* ═══════════════════════════════════════════════════════════════════════════
+   DEPARTMENTS & POSITIONS – Clean, Symmetrical & Professional CoffeeHub Theme
+   ═══════════════════════════════════════════════════════════════════════════ */
 
-/* ADD PANEL */
-.add-panel { border-radius: 20px !important; padding: 24px !important; margin-bottom: 24px; border: 2px dashed #c7d2fe !important; background: #f5f3ff !important; box-shadow: none !important; animation: fadeUp 0.3s ease; }
-.add-panel-inner { display: flex; align-items: center; gap: 16px; }
-.panel-icon { width: 48px; height: 48px; border-radius: 14px; background: var(--primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.panel-icon mat-icon { color: white; font-family: 'Material Icons' !important; }
-.panel-inputs { flex: 1; display: flex; gap: 12px; }
-.save-btn { border-radius: 12px !important; font-weight: 700 !important; height: 44px; }
-.save-btn mat-icon { font-family: 'Material Icons' !important; }
-
-/* GRID */
-.dept-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(540px, 1fr)); gap: 24px; animation: fadeUp 0.5s ease; }
-
-/* DEPT CARD */
-.dept-card { border-radius: 22px !important; padding: 0 !important; box-shadow: var(--shadow-soft) !important; border: 1px solid var(--border-light) !important; overflow: hidden; }
-
-.dept-header { display: flex; align-items: center; gap: 16px; padding: 22px 22px; background: linear-gradient(to right, #fafafa, #f5f7ff); border-bottom: 1px solid #f1f5f9; }
-.dept-icon { width: 50px; height: 50px; border-radius: 14px; background: linear-gradient(135deg, #4B49AC, #7674cc); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.dept-icon.edit-mode { background: linear-gradient(135deg, #f59e0b, #fbbf24) !important; }
-.dept-icon mat-icon { color: white; font-size: 26px; width: 26px; height: 26px; font-family: 'Material Icons' !important; }
-.dept-title-block { flex: 1; }
-.dept-title-block h3 { margin: 0 0 4px 0; font-size: 18px; font-weight: 800; color: var(--text-main); }
-.dept-title-block p { margin: 0; font-size: 13px; color: var(--text-muted); font-weight: 500; }
-.edit-dept-inputs { flex: 1; display: flex; gap: 10px; }
-.dept-actions { display: flex; gap: 4px; }
-.dept-actions button mat-icon { font-family: 'Material Icons' !important; }
-
-/* POSITIONS TABLE */
-.positions-section { padding: 18px 22px; border-bottom: 1px solid #f1f5f9; }
-.positions-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-.pos-label { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
-.pos-label mat-icon { font-size: 16px; width: 16px; height: 16px; font-family: 'Material Icons' !important; }
-.add-pos-btn { color: var(--primary) !important; font-weight: 700 !important; height: 32px; border-radius: 10px !important; font-size: 13px !important; }
-.add-pos-btn mat-icon { font-family: 'Material Icons' !important; font-size: 16px; }
-
-.positions-table { margin-top: 10px; width: 100%; }
-.positions-table th { background: transparent !important; padding: 8px 12px !important; color: #94a3b8 !important; border-bottom: 1px solid #f1f5f9 !important; }
-.positions-table td { padding: 10px 12px !important; border-bottom: 1px solid #f8fafc !important; }
-
-.pos-count-badge { background: #f1f5f9; color: #475569; padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 700; }
-.mini-btn { 
-  width: 32px !important; 
-  height: 32px !important; 
-  padding: 0 !important;
-  display: inline-flex !important;
+/* ── Page Header ──────────────────────────────────────────────────────────── */
+.page-header {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  justify-content: center;
-  line-height: normal !important;
-  min-width: unset !important;
+  margin-bottom: 24px;
 }
-.mini-btn mat-icon { 
-  font-size: 18px !important; 
-  width: 18px !important; 
-  height: 18px !important; 
+
+.page-title {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.5px;
+}
+
+.page-subtitle {
+  margin: 6px 0 0 0;
+  color: #64748b;
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+.add-dept-btn {
+  height: 42px;
+  border-radius: 10px !important;
+  font-weight: 700 !important;
+  padding: 0 20px !important;
+  background: var(--primary) !important;
+  color: white !important;
+  border: none !important;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: none !important;
+  transition: all 0.2s ease !important;
+}
+
+.add-dept-btn:hover {
+  background: var(--primary-hover) !important;
+}
+
+.add-dept-btn mat-icon {
+  font-family: 'Material Icons' !important;
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
   margin: 0 !important;
 }
-.text-rose { color: #f43f5e !important; }
 
-.inline-input.xsmall { padding: 5px 10px; font-size: 12px; width: 100%; }
-.add-pos-form { display: flex; align-items: center; gap: 8px; margin: 10px 0; background: #f5f7ff; padding: 8px; border-radius: 10px; }
+/* ── Add Department Panel ─────────────────────────────────────────────────── */
+.add-panel {
+  border-radius: 16px !important;
+  padding: 24px !important;
+  margin-bottom: 28px;
+  border: 1px solid #e2e8f0 !important;
+  background: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03) !important;
+}
 
-/* EMPLOYEES */
-.emp-list { padding: 16px 22px; }
-.emp-list-header { font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
-.emp-chips { display: flex; flex-wrap: wrap; gap: 8px; }
-.emp-chip { display: flex; align-items: center; gap: 8px; background: #f8fafc; border: 1px solid var(--border-light); border-radius: 12px; padding: 6px 12px; font-size: 13px; font-weight: 600; color: var(--text-main); }
-.emp-chip img { border-radius: 8px; width: 28px; height: 28px; }
-.pos-chip { background: #f0fdf4; color: #059669; border-radius: 8px; padding: 2px 8px; font-size: 11px; font-weight: 700; }
-.status-dot { width: 8px; height: 8px; border-radius: 50%; }
-.status-dot.active { background: #22c55e; }
-.status-dot.leave { background: #f43f5e; }
+.add-panel-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
 
-/* SHARED */
-.inline-input { border: 1px solid var(--border-light); border-radius: 10px; padding: 9px 14px; font-family: inherit; font-size: 14px; outline: none; background: white; transition: all 0.2s; }
-.inline-input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(75,73,172,0.1); }
-.inline-input.small { padding: 7px 12px; font-size: 13px; width: 200px; }
-button mat-icon { font-family: 'Material Icons' !important; }
+.panel-header-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 
-@keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+.panel-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #eef2ff;
+  color: #4B49AC;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
 
-/* ===== PREMIUM CONFIRMATION MODAL ===== */
+.panel-icon mat-icon {
+  font-family: 'Material Icons' !important;
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+}
+
+.panel-title-block h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.panel-title-block p {
+  margin: 2px 0 0 0;
+  font-size: 12.5px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.panel-body-wrap {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+}
+
+.input-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.input-group label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.required-star {
+  color: #ef4444;
+}
+
+.panel-footer-wrap {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 16px;
+}
+
+.cancel-panel-btn {
+  height: 38px;
+  border-radius: 8px !important;
+  font-weight: 700 !important;
+  padding: 0 16px !important;
+  color: #64748b !important;
+  transition: all 0.2s !important;
+}
+
+.cancel-panel-btn:hover {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+.save-btn {
+  border-radius: 8px !important;
+  font-weight: 700 !important;
+  height: 38px;
+  padding: 0 18px !important;
+  background: #10b981 !important;
+  color: white !important;
+  border: none !important;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: none !important;
+}
+
+.save-btn:hover {
+  background: #059669 !important;
+}
+
+.save-btn mat-icon {
+  font-family: 'Material Icons' !important;
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  margin: 0 !important;
+}
+
+/* ── Grid Layout ──────────────────────────────────────────────────────────── */
+.dept-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
+  gap: 24px;
+}
+
+/* ── Department Card ───────────────────────────────────────────────────────── */
+.dept-card {
+  border-radius: 16px !important;
+  padding: 0 !important;
+  background: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03) !important;
+  border: 1px solid #e2e8f0 !important;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.dept-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06) !important;
+  border-color: #cbd5e1 !important;
+}
+
+.dept-card.editing-card {
+  border-color: rgba(245, 158, 11, 0.4) !important;
+}
+
+.dept-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 24px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.dept-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: #eef2ff;
+  color: #4B49AC;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.dept-icon.edit-mode {
+  background: #fffbeb !important;
+  color: #d97706 !important;
+}
+
+.dept-icon mat-icon {
+  font-size: 22px;
+  width: 22px;
+  height: 22px;
+  font-family: 'Material Icons' !important;
+}
+
+.dept-title-block {
+  flex: 1;
+}
+
+.dept-title-block h3 {
+  margin: 0 0 4px 0;
+  font-size: 18px;
+  font-weight: 850;
+  color: #0f172a;
+  letter-spacing: -0.25px;
+}
+
+.dept-title-block p {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.dept-title-block p strong {
+  color: #4B49AC;
+  background: rgba(75, 73, 172, 0.06);
+  padding: 1.5px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+.edit-dept-inputs {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.edit-dept-inputs .inline-input {
+  padding: 6px 12px;
+  font-size: 13px;
+  width: 100%;
+  height: 32px;
+}
+
+/* ── Centering and Preventing Clip of Icons (CRITICAL FIX FOR ALL BUTTONS) ── */
+.dept-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.dept-actions button {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: none !important;
+  transition: all 0.2s ease !important;
+  position: relative !important;
+  overflow: visible !important;
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #64748b !important;
+}
+
+.dept-actions button:hover {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+  border-color: #94a3b8 !important;
+}
+
+.dept-actions button.mat-mdc-button-base.mat-primary {
+  color: #4B49AC !important;
+}
+
+.dept-actions button.mat-mdc-button-base.mat-primary:hover {
+  background: #eef2ff !important;
+  border-color: rgba(75, 73, 172, 0.3) !important;
+}
+
+.dept-actions button.mat-mdc-button-base.mat-warn {
+  color: #ef4444 !important;
+}
+
+.dept-actions button.mat-mdc-button-base.mat-warn:hover {
+  background: #fef2f2 !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+}
+
+/* Compact circular action buttons specifically for inline forms and mini tables */
+.form-actions button, 
+.edit-pos-actions button, 
+.mini-btn {
+  width: 26px !important;
+  height: 26px !important;
+  min-width: 26px !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: none !important;
+  transition: all 0.2s ease !important;
+  position: relative !important;
+  overflow: visible !important;
+}
+
+.mini-btn {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Clear touch target bounds completely */
+.dept-actions button ::ng-deep .mat-mdc-button-touch-target,
+.form-actions button ::ng-deep .mat-mdc-button-touch-target,
+.edit-pos-actions button ::ng-deep .mat-mdc-button-touch-target,
+.mini-btn ::ng-deep .mat-mdc-button-touch-target {
+  display: none !important;
+}
+
+/* Precise icon sizes and absolute centering inside all circular buttons */
+.dept-actions button mat-icon {
+  font-size: 18px !important;
+  width: 18px !important;
+  height: 18px !important;
+  line-height: 18px !important;
+  display: inline-block !important;
+  overflow: visible !important;
+  margin: 0 !important;
+  text-align: center !important;
+}
+
+.form-actions button mat-icon,
+.edit-pos-actions button mat-icon,
+.mini-btn mat-icon {
+  font-size: 15px !important;
+  width: 15px !important;
+  height: 15px !important;
+  line-height: 15px !important;
+  display: inline-block !important;
+  overflow: visible !important;
+  margin: 0 !important;
+  text-align: center !important;
+}
+
+/* Dynamic color definitions for Action buttons (Icons remain fully colorful!) */
+button.check-btn {
+  background: #ecfdf5 !important;
+  border: 1px solid rgba(16, 185, 129, 0.25) !important;
+  color: #10b981 !important;
+}
+
+button.check-btn:hover {
+  background: #d1fae5 !important;
+  border-color: rgba(16, 185, 129, 0.5) !important;
+  color: #059669 !important;
+}
+
+button.cancel-btn {
+  background: #fef2f2 !important;
+  border: 1px solid rgba(239, 68, 68, 0.25) !important;
+  color: #ef4444 !important;
+}
+
+button.cancel-btn:hover {
+  background: #fee2e2 !important;
+  border-color: rgba(239, 68, 68, 0.5) !important;
+  color: #dc2626 !important;
+}
+
+/* ── Positions List (Clean, Flat & Compact) ───────────────────────────────── */
+.positions-section {
+  padding: 12px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  background: white;
+}
+
+.positions-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.pos-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pos-label mat-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  font-family: 'Material Icons' !important;
+  color: #4B49AC;
+}
+
+.add-pos-btn {
+  color: #4B49AC !important;
+  font-weight: 700 !important;
+  height: 28px;
+  border-radius: 6px !important;
+  font-size: 12px !important;
+  background: rgba(75, 73, 172, 0.05) !important;
+  border: 1px solid rgba(75, 73, 172, 0.1) !important;
+  padding: 0 10px !important;
+  transition: all 0.2s ease !important;
+}
+
+.add-pos-btn:hover {
+  background: rgba(75, 73, 172, 0.1);
+}
+
+.add-pos-btn mat-icon {
+  font-family: 'Material Icons' !important;
+  font-size: 14px;
+  margin-right: 2px;
+}
+
+.add-pos-form {
+  margin: 6px 0;
+  background: #f8fafc;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+}
+
+.add-pos-inner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.add-pos-inner .input-icon {
+  color: #4B49AC;
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+}
+
+.add-pos-inner .inline-input.small {
+  flex: 1;
+  padding: 4px 10px;
+  font-size: 12.5px;
+  height: 30px;
+  border-radius: 6px;
+  border: 1.5px solid #cbd5e1;
+}
+
+.add-pos-inner .inline-input.small:focus {
+  border-color: #4B49AC;
+}
+
+.form-actions {
+  display: flex;
+  gap: 4px;
+}
+
+/* Elegant minimalist positions table layout */
+.positions-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 4px;
+}
+
+.positions-table th {
+  background: transparent !important;
+  padding: 6px 10px !important;
+  color: #94a3b8 !important;
+  font-size: 10.5px !important;
+  font-weight: 800 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid #f1f5f9 !important;
+}
+
+.positions-table td {
+  padding: 7px 12px !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  vertical-align: middle;
+  font-size: 12.5px;
+  background: #ffffff !important;
+  transition: all 0.2s ease;
+}
+
+.positions-table tr:hover td {
+  background: #f8fafc !important;
+}
+
+.positions-table tr.editing-row td {
+  background: #faf5ff !important;
+}
+
+.pos-name-cell {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.pos-count-badge {
+  background: #f1f5f9;
+  color: #475569;
+  padding: 1.5px 6px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #cbd5e1;
+}
+
+/* Mini Action Buttons - Always Colored by default (Edit = Indigo, Delete = Rose) */
+.mini-btn {
+  color: #4B49AC !important; /* Always Indigo/Primary by default */
+}
+
+.mini-btn:hover {
+  background: #eef2ff !important;
+  color: #3b3986 !important;
+}
+
+.mini-btn.text-rose {
+  color: #ef4444 !important; /* Always Rose/Red by default */
+}
+
+.mini-btn.text-rose:hover {
+  background: #fef2f2 !important;
+  color: #dc2626 !important;
+  border-color: rgba(239, 68, 68, 0.2) !important;
+}
+
+.inline-input.xsmall {
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  height: 28px;
+  border-radius: 5px;
+  width: 100%;
+}
+
+.edit-pos-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.no-pos {
+  text-align: center;
+  color: #94a3b8;
+  font-size: 12.5px;
+  padding: 12px 0 !important;
+  font-style: italic;
+  border-bottom: none !important;
+  background: #f8fafc !important;
+  border-radius: 8px;
+}
+
+/* ── Employee Chips (Clean, Symmetrical Flex Row Layout) ──────────────────── */
+.emp-list {
+  padding: 16px 20px;
+  background: #fafafa;
+}
+
+.emp-list-header {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+}
+
+.emp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.emp-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 6px 12px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.01);
+  transition: all 0.2s ease;
+}
+
+.emp-chip:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.emp-chip img {
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+}
+
+.emp-chip-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.pos-chip {
+  background: rgba(16, 185, 129, 0.05);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.1);
+  border-radius: 4px;
+  padding: 1.5px 5px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.25px;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-left: 2px;
+}
+
+.status-dot.active {
+  background: #10b981;
+}
+
+.status-dot.leave {
+  background: #ef4444;
+}
+
+/* ── Shared Controls ──────────────────────────────────────────────────────── */
+.inline-input {
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-family: inherit;
+  font-size: 13.5px;
+  outline: none;
+  background: white;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  color: #0f172a;
+}
+
+.inline-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(75, 73, 172, 0.1);
+  background: white;
+}
+
+.inline-input.small {
+  padding: 6px 12px;
+  font-size: 13px;
+  width: 200px;
+  font-weight: 600;
+}
+
+.loading-container {
+  text-align: center;
+  padding: 60px 24px;
+}
+
+.loading-spinner {
+  margin: 0 auto;
+}
+
+.loading-container p {
+  margin-top: 14px;
+  color: #64748b;
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+/* ── PREMIUM CONFIRMATION MODAL ─────────────────────────────────────────── */
 .glass-overlay-confirm {
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(15, 23, 42, 0.4);
+  background: rgba(15, 23, 42, 0.35);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   z-index: 2000;
@@ -103,31 +747,33 @@ button mat-icon { font-family: 'Material Icons' !important; }
 .confirm-modal-card {
   width: 90%;
   max-width: 400px;
-  background: rgba(255, 255, 255, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
-  border-radius: 20px;
-  padding: 32px 24px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  border-radius: 16px;
+  padding: 28px;
   text-align: center;
   animation: scaleUpConfirm 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  box-sizing: border-box;
 }
 
 @keyframes scaleUpConfirm {
-  from { transform: scale(0.9) translateY(10px); opacity: 0; }
-  to { transform: scale(1) translateY(0); opacity: 1; }
+  from {
+    transform: scale(0.95) translateY(8px);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
 }
 
 .confirm-icon-box {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: #fef2f2;
-  color: #ef4444;
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: #fff1f2;
+  color: #f43f5e;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -135,9 +781,10 @@ button mat-icon { font-family: 'Material Icons' !important; }
 }
 
 .confirm-icon-box mat-icon {
-  font-size: 32px;
-  width: 32px;
-  height: 32px;
+  font-size: 28px;
+  width: 28px;
+  height: 28px;
+  font-family: 'Material Icons' !important;
 }
 
 .confirm-modal-card h3 {
@@ -150,50 +797,91 @@ button mat-icon { font-family: 'Material Icons' !important; }
 .confirm-modal-card p {
   margin: 0 0 24px;
   font-size: 14px;
-  color: #475569;
+  color: #64748b;
   line-height: 1.5;
+  font-weight: 500;
 }
 
 .confirm-actions {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   justify-content: center;
 }
 
 .confirm-btn-cancel {
   flex: 1;
-  padding: 10px 16px;
+  height: 42px;
   border-radius: 10px;
   border: 1.5px solid #cbd5e1;
   background: white;
   font-size: 14px;
   font-weight: 700;
-  color: #475569;
+  color: #64748b;
   cursor: pointer;
   transition: all 0.2s;
+  outline: none;
 }
 
 .confirm-btn-cancel:hover {
-  background: #f1f5f9;
+  background: #f8fafc;
   color: #0f172a;
 }
 
 .confirm-btn-yes {
-  flex: 1;
-  padding: 10px 16px;
+  flex: 1.1;
+  height: 42px;
   border-radius: 10px;
   border: none;
-  background: linear-gradient(135deg, #ef4444, #dc2626);
+  background: #ef4444;
   font-size: 14px;
   font-weight: 700;
   color: white;
   cursor: pointer;
   transition: all 0.2s;
-  box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.2);
+  outline: none;
 }
 
 .confirm-btn-yes:hover {
-  background: linear-gradient(135deg, #dc2626, #b91c1c);
-  transform: translateY(-1px);
-  box-shadow: 0 6px 12px -1px rgba(239, 68, 68, 0.3);
+  background: #dc2626;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────────── */
+@media (max-width: 1200px) {
+  .dept-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .add-dept-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .panel-body-wrap {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .add-panel {
+    padding: 16px !important;
+  }
+  .positions-table th, .positions-table td {
+    padding: 8px 6px !important;
+  }
+  .emp-chips {
+    gap: 6px;
+  }
+  .emp-chip {
+    width: 100%;
+  }
 }

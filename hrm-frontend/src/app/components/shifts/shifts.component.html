@@ -404,7 +404,7 @@
         <div class="form-group">
           <label>Chọn Nhân Viên</label>
           <select class="modal-select-styled" [(ngModel)]="bulkModel.employeeId">
-            <option *ngFor="let emp of employees" [value]="emp.id">{{ emp.name }} ({{ emp.position || 'N/A' }})</option>
+            <option *ngFor="let emp of activeEmployees" [value]="emp.id">{{ emp.name }} ({{ emp.position || 'N/A' }})</option>
           </select>
         </div>
 

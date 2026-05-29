@@ -145,7 +145,7 @@
       <div class="rule-block">
         <div class="rule-title"><span class="badge badge-parttime">Part-time</span></div>
         <ul>
-          <li>20,000₫/giờ · OT ×1.5</li>
+          <li>20,000₫/giờ · ❌ Không tính tăng ca (OT)</li>
           <li>❌ Không thưởng doanh thu</li>
           <li>❌ Không thưởng chuyên cần</li>
           <li>❌ Không có chế độ phép / đặc biệt</li>
@@ -154,8 +154,10 @@
       <div class="rule-block">
         <div class="rule-title"><span class="badge badge-fulltime">Full-time</span></div>
         <ul>
-          <li>25,000₫/giờ · OT ×1.5</li>
-          <li>✅ Thưởng chuyên cần: +200,000₫ (Công + Nghỉ đặc biệt ≥ 26 ngày)</li>
+          <li>Lương CB hợp đồng cố định (tự cấu hình riêng)</li>
+          <li>Lương thực tế = (Lương CB gốc × ngày làm) / 26</li>
+          <li>Lương tăng ca OT = (Lương CB gốc / 208) × giờ OT × 1.5</li>
+          <li>✅ Thưởng chuyên cần: +200,000₫ (Công ≥ 26 ngày)</li>
           <li>✅ Không đi trễ trong tháng: +100,000₫</li>
           <li>✅ Thưởng quỹ doanh thu POOL (hệ số ×1)</li>
         </ul>
@@ -226,7 +228,7 @@
               </select>
             </td>
             <td>
-              <span *ngIf="editingEmpId !== emp.id" style="font-weight: 600;">{{ fmt(emp.salaryBase) }}</span>
+              <span *ngIf="editingEmpId !== emp.id" style="font-weight: 600;">{{ fmt(emp.salaryBase, emp.employeeType === 'PART_TIME') }}</span>
               <input *ngIf="editingEmpId === emp.id" type="number" class="revenue-input" [(ngModel)]="emp.salaryBase" style="width: 130px; padding: 6px; font-size: 14px; border-radius: 6px;" />
             </td>
             <td style="display: flex; gap: 5px;">
@@ -303,9 +305,31 @@
         {{ loading ? 'Đang tính...' : 'Tính Lương Tháng' }}
       </button>
 
-      <button mat-raised-button class="animate-btn" (click)="approveAll()" [disabled]="loading || salaries.length === 0 || (selectedSalaryIds.size === 0 && !hasPendingSalaries)" *ngIf="salaries.length > 0" style="background: linear-gradient(135deg, #10b981, #059669); color: white; margin-left: 10px; border-radius: 12px; height: 42px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2); border: none; padding: 0 16px;">
+      <!-- 1. Duyệt Lương -->
+      <button mat-raised-button class="animate-btn" (click)="approveAll()" 
+              [disabled]="loading || salaries.length === 0" 
+              *ngIf="salaries.length > 0" 
+              style="background: linear-gradient(135deg, #10b981, #059669); color: white; margin-left: 10px; border-radius: 12px; height: 42px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2); border: none; padding: 0 16px;">
         <mat-icon style="font-family: 'Material Icons' !important;">done_all</mat-icon>
-        {{ selectedSalaryIds.size > 0 ? 'Duyệt ' + selectedSalaryIds.size + ' Lương Đã Chọn' : 'Duyệt Lương Hàng Loạt' }}
+        Duyệt Lương
+      </button>
+
+      <!-- 2. Hủy Duyệt -->
+      <button mat-raised-button class="animate-btn" (click)="rejectSelected()" 
+              [disabled]="loading || salaries.length === 0" 
+              *ngIf="salaries.length > 0" 
+              style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; margin-left: 10px; border-radius: 12px; height: 42px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.2); border: none; padding: 0 16px;">
+        <mat-icon style="font-family: 'Material Icons' !important;">block</mat-icon>
+        Hủy Duyệt
+      </button>
+
+      <!-- 3. Back -->
+      <button mat-raised-button class="animate-btn" (click)="revertSelected()" 
+              [disabled]="loading || salaries.length === 0" 
+              *ngIf="salaries.length > 0" 
+              style="background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; margin-left: 10px; border-radius: 12px; height: 42px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 4px 10px rgba(99, 102, 241, 0.2); border: none; padding: 0 16px;">
+        <mat-icon style="font-family: 'Material Icons' !important;">replay</mat-icon>
+        Back
       </button>
     </div>
 
@@ -328,16 +352,16 @@
           <tr>
             <th style="width: 45px; text-align: center; vertical-align: middle;">
               <input type="checkbox" 
-                     [checked]="isAllPendingSelected()" 
+                     [checked]="isAllSelected()" 
                      (change)="toggleSelectAll($event)"
                      style="width: 18px; height: 18px; border-radius: 4px; border: 1.5px solid #cbd5e1; cursor: pointer; accent-color: #3b82f6;" 
-                     title="Chọn tất cả chưa duyệt" />
+                     title="Chọn tất cả" />
             </th>
             <th>Nhân Viên</th>
-            <th>Loại NV</th>
             <th>Ngày làm</th>
             <th>Tổng giờ</th>
-            <th>Lương CB</th>
+            <th>Lương CB Gốc</th>
+            <th>Lương Thực Tế</th>
             <th>OT</th>
             <th>Thưởng</th>
             <th>Phạt</th>
@@ -350,26 +374,22 @@
           <tr *ngFor="let sal of pagedSalaries" class="payroll-row" [class.approved-row]="sal.status === 'APPROVED'" (click)="openDetail(sal)">
             <td style="text-align: center; vertical-align: middle;" (click)="$event.stopPropagation()">
               <input type="checkbox" 
-                     *ngIf="sal.status !== 'APPROVED'"
                      [checked]="isSalarySelected(sal.salaryId)" 
                      (change)="toggleSelectSalary(sal.salaryId, $event)"
                      style="width: 18px; height: 18px; border-radius: 4px; border: 1.5px solid #cbd5e1; cursor: pointer; accent-color: #3b82f6;" />
-              <mat-icon *ngIf="sal.status === 'APPROVED'" style="color: #10b981; font-size: 20px; width: 20px; height: 20px; font-family: 'Material Icons' !important;">check_circle</mat-icon>
             </td>
             <td>
               <div class="employee-cell">
-                <img class="avatar-sm"
+                <img class="avatar-emp"
                      [src]="'https://ui-avatars.com/api/?name='+(sal.employeeName||sal.employee?.name)+'&background=e5ebfe&color=4B49AC&bold=true'">
-                <div>
+                <div class="emp-info">
                   <div class="emp-name">{{ sal.employeeName || sal.employee?.name }}</div>
+                  <span class="emp-badge" [ngClass]="typeBadge(sal.employeeType)">
+                    {{ typeLabel(sal.employeeType) }}
+                  </span>
                   <div class="emp-dept">{{ sal.department || sal.employee?.department }}</div>
                 </div>
               </div>
-            </td>
-            <td>
-              <span class="badge" [ngClass]="typeBadge(sal.employeeType)">
-                {{ typeLabel(sal.employeeType) }}
-              </span>
             </td>
             <td>
               <span>{{ (sal.workDays || 0) | number:'1.1-2' }} ngày</span>
@@ -378,35 +398,49 @@
               <span>{{ (sal.regularHours||0).toFixed(1) }}h</span>
             </td>
             <td class="money-col">
-              <span>{{ fmt(sal.baseSalary) }}</span>
+              <span>{{ fmt(sal.baseSalary, sal.employeeType === 'PART_TIME') }}</span>
+            </td>
+            <td class="money-col" style="color: #4f46e5; font-weight: 700;">
+              <span>{{ fmt(sal.actualBaseSalary != null ? sal.actualBaseSalary : sal.baseSalary) }}</span>
             </td>
             <td class="money-col">
-              <span>{{ fmt(sal.otSalary) }}</span>
+              <span *ngIf="sal.employeeType !== 'PART_TIME'">{{ fmt(sal.otSalary) }}</span>
+              <span *ngIf="sal.employeeType === 'PART_TIME'" style="color: #cbd5e1;">—</span>
             </td>
             <td class="money-col green">
-              <span>{{ fmt(sal.totalBonus) }}</span>
+              <span *ngIf="sal.employeeType !== 'PART_TIME'">{{ fmt(sal.totalBonus) }}</span>
+              <span *ngIf="sal.employeeType === 'PART_TIME'" style="color: #cbd5e1;">—</span>
             </td>
             <td class="money-col red">
               <span>{{ fmt(sal.totalPenalty) }}</span>
             </td>
             <td class="money-col total-col">{{ fmt(sal.totalSalary) }}</td>
             <td>
-              <span class="status-badge" [class.pending]="sal.status !== 'APPROVED'" [class.approved]="sal.status === 'APPROVED'">
-                {{ sal.status === 'APPROVED' ? 'Đã duyệt' : 'Chờ duyệt' }}
+              <span class="status-badge" 
+                    [class.pending]="sal.status === 'PENDING'" 
+                    [class.approved]="sal.status === 'APPROVED'"
+                    [class.rejected]="sal.status === 'REJECTED'">
+                {{ sal.status === 'APPROVED' ? 'Đã duyệt' : (sal.status === 'REJECTED' ? 'Hủy duyệt' : 'Chờ duyệt') }}
               </span>
             </td>
             <td class="actions-cell" (click)="$event.stopPropagation()">
-              <div class="action-row">
-                <button mat-icon-button color="primary" (click)="editSalary(sal, $event)" title="Chỉnh sửa">
-                  <mat-icon>edit</mat-icon>
+              <div class="action-row" style="display: flex; gap: 4px; justify-content: flex-end; align-items: center;">
+                <!-- 1. Hủy duyệt (Reject) - visible for PENDING or APPROVED -->
+                <button *ngIf="sal.status !== 'REJECTED'" mat-icon-button style="color: #ef4444;" (click)="rejectSalary(sal, $event)" title="Hủy duyệt (Từ chối)">
+                  <mat-icon style="font-family: 'Material Icons' !important;">block</mat-icon>
                 </button>
-                <button *ngIf="sal.status !== 'APPROVED'" mat-icon-button color="accent" (click)="approveSalary(sal, $event)" title="Duyệt lương">
-                  <mat-icon>check_circle</mat-icon>
+                <!-- 2. Duyệt (Approve) - visible for PENDING or REJECTED -->
+                <button *ngIf="sal.status !== 'APPROVED'" mat-icon-button style="color: #10b981;" (click)="approveSalary(sal, $event)" title="Duyệt lương">
+                  <mat-icon style="font-family: 'Material Icons' !important;">check_circle</mat-icon>
                 </button>
-                <button *ngIf="sal.status === 'APPROVED'" mat-icon-button color="warn" (click)="revertSalary(sal, $event)" title="Hủy duyệt (Về chờ duyệt)">
+                <!-- 3. Back (Khôi phục chờ duyệt) - visible for APPROVED or REJECTED -->
+                <button *ngIf="sal.status !== 'PENDING'" mat-icon-button style="color: #6366f1;" (click)="revertSalary(sal, $event)" title="Khôi phục trạng thái Chờ duyệt">
                   <mat-icon style="font-family: 'Material Icons' !important;">replay</mat-icon>
                 </button>
-                <mat-icon class="detail-icon" (click)="openDetail(sal)">chevron_right</mat-icon>
+                <!-- 4. Sửa (Edit) - always visible -->
+                <button mat-icon-button style="color: #f59e0b;" (click)="editSalary(sal, $event)" title="Chỉnh sửa">
+                  <mat-icon style="font-family: 'Material Icons' !important;">edit</mat-icon>
+                </button>
               </div>
             </td>
           </tr>
@@ -445,7 +479,7 @@
       <div class="detail-title">📅 Chấm Công</div>
       <div class="detail-row"><span>Ngày làm</span><strong>{{ (selectedSalary.workDays || 0) | number:'1.1-2' }} ngày</strong></div>
       <div class="detail-row"><span>Giờ thường</span><strong>{{ (selectedSalary.regularHours||0).toFixed(1) }}h</strong></div>
-      <div class="detail-row"><span>Giờ OT</span><strong>{{ (selectedSalary.otHours||0).toFixed(1) }}h</strong></div>
+      <div class="detail-row" [style.opacity]="selectedSalary.employeeType === 'PART_TIME' ? 0.5 : 1"><span>Giờ OT</span><strong>{{ selectedSalary.employeeType === 'PART_TIME' ? '—' : (selectedSalary.otHours||0).toFixed(1) + 'h' }}</strong></div>
       <div class="detail-row" *ngIf="selectedSalary.lateDays"><span>Đi trễ</span><strong class="red">{{ selectedSalary.lateDays }} lần</strong></div>
       <div class="detail-row" *ngIf="selectedSalary.noCheckoutDays"><span>Thiếu checkout</span><strong class="red">{{ selectedSalary.noCheckoutDays }} ngày</strong></div>
       <div class="detail-row" *ngIf="selectedSalary.specialLeaveDays"><span>Nghỉ đặc biệt</span><strong class="green">{{ selectedSalary.specialLeaveDays }} ngày</strong></div>
@@ -454,15 +488,22 @@
 
     <div class="detail-section">
       <div class="detail-title">💵 Lương</div>
-      <div class="detail-row"><span>Lương cơ bản</span><strong>{{ fmt(selectedSalary.baseSalary) }}</strong></div>
-      <div class="detail-row" *ngIf="(selectedSalary.otSalary||0) > 0"><span>Lương OT</span><strong>{{ fmt(selectedSalary.otSalary) }}</strong></div>
+      <div class="detail-row">
+        <span>{{ selectedSalary.employeeType === 'PART_TIME' ? 'Mức lương theo giờ' : 'Lương cơ bản gốc' }}</span>
+        <strong>{{ fmt(selectedSalary.baseSalary, selectedSalary.employeeType === 'PART_TIME') }}</strong>
+      </div>
+      <div class="detail-row" style="color: #4f46e5;">
+        <span>{{ selectedSalary.employeeType === 'PART_TIME' ? 'Lương tính theo giờ' : 'Lương theo công' }}</span>
+        <strong>{{ fmt(selectedSalary.actualBaseSalary != null ? selectedSalary.actualBaseSalary : selectedSalary.baseSalary) }}</strong>
+      </div>
+      <div class="detail-row" *ngIf="selectedSalary.employeeType === 'PART_TIME' || (selectedSalary.otSalary||0) > 0" [style.opacity]="selectedSalary.employeeType === 'PART_TIME' ? 0.5 : 1"><span>Lương OT</span><strong>{{ selectedSalary.employeeType === 'PART_TIME' ? '—' : fmt(selectedSalary.otSalary) }}</strong></div>
     </div>
 
-    <div class="detail-section">
+    <div class="detail-section" [style.opacity]="selectedSalary.employeeType === 'PART_TIME' ? 0.5 : 1">
       <div class="detail-title">🎁 Thưởng</div>
-      <div class="detail-row"><span>Thưởng chuyên cần</span><strong class="green">{{ fmt(selectedSalary.bonusAttendance) }}</strong></div>
-      <div class="detail-row"><span>Thưởng doanh thu</span><strong class="gold">{{ fmt(selectedSalary.bonusRevenue) }}</strong></div>
-      <div class="detail-row total-row"><span>Tổng thưởng</span><strong class="green">+{{ fmt(selectedSalary.totalBonus) }}</strong></div>
+      <div class="detail-row"><span>Thưởng chuyên cần</span><strong [class.green]="selectedSalary.employeeType !== 'PART_TIME'">{{ selectedSalary.employeeType === 'PART_TIME' ? '—' : fmt(selectedSalary.bonusAttendance) }}</strong></div>
+      <div class="detail-row"><span>Thưởng doanh thu</span><strong [class.gold]="selectedSalary.employeeType !== 'PART_TIME'">{{ selectedSalary.employeeType === 'PART_TIME' ? '—' : fmt(selectedSalary.bonusRevenue) }}</strong></div>
+      <div class="detail-row total-row"><span>Tổng thưởng</span><strong [class.green]="selectedSalary.employeeType !== 'PART_TIME'">{{ selectedSalary.employeeType === 'PART_TIME' ? '—' : ('+' + fmt(selectedSalary.totalBonus)) }}</strong></div>
     </div>
 
     <div class="detail-section" *ngIf="(selectedSalary.totalPenalty||0) > 0">
@@ -474,28 +515,41 @@
     </div>
 
     <div class="detail-total">
-      <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 16px;">
         <div>
           <span>Tổng Thực Nhận Tháng {{ selectedSalary.month }}/{{ selectedSalary.year }}</span>
-          <strong>{{ fmt(selectedSalary.totalSalary) }}</strong>
+          <strong style="display: block; font-size: 26px; font-weight: 900; color: var(--primary); margin-top: 4px;">{{ fmt(selectedSalary.totalSalary) }}</strong>
         </div>
-        <div class="status-badge" [class.pending]="selectedSalary.status !== 'APPROVED'" [class.approved]="selectedSalary.status === 'APPROVED'">
-          {{ selectedSalary.status === 'APPROVED' ? 'Đã duyệt' : 'Chờ duyệt' }}
+        <div class="status-badge" 
+             [class.pending]="selectedSalary.status === 'PENDING'" 
+             [class.approved]="selectedSalary.status === 'APPROVED'"
+             [class.rejected]="selectedSalary.status === 'REJECTED'">
+          {{ selectedSalary.status === 'APPROVED' ? 'Đã duyệt' : (selectedSalary.status === 'REJECTED' ? 'Hủy duyệt' : 'Chờ duyệt') }}
         </div>
       </div>
       
-      <div style="margin-top: 20px; display: flex; gap: 10px;" *ngIf="selectedSalary.status !== 'APPROVED'">
-        <button mat-flat-button color="accent" style="flex: 1; height: 48px; border-radius: 12px; font-weight: 700;" (click)="approveSalary(selectedSalary, $event)">
-          <mat-icon>check_circle</mat-icon> DUYỆT LƯƠNG
-        </button>
-      </div>
-      <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;" *ngIf="selectedSalary.status === 'APPROVED'">
-        <button mat-stroked-button color="primary" style="height: 48px; border-radius: 12px; font-weight: 700; width: 100%;" (click)="exportPayslipPDF(selectedSalary)">
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <!-- Export PDF: only for APPROVED status -->
+        <button *ngIf="selectedSalary.status === 'APPROVED'" mat-stroked-button color="primary" style="height: 44px; border-radius: 12px; font-weight: 700; width: 100%;" (click)="exportPayslipPDF(selectedSalary)">
           <mat-icon>picture_as_pdf</mat-icon> XUẤT PHIẾU LƯƠNG (PDF)
         </button>
-        <button mat-stroked-button color="warn" style="height: 48px; border-radius: 12px; font-weight: 700; width: 100%;" (click)="revertSalary(selectedSalary, $event)">
-          <mat-icon style="font-family: 'Material Icons' !important;">replay</mat-icon> HỦY DUYỆT LƯƠNG
-        </button>
+        
+        <div style="display: flex; gap: 8px; width: 100%;">
+          <!-- 1. DUYỆT LƯƠNG (sets APPROVED) - visible for PENDING or REJECTED -->
+          <button *ngIf="selectedSalary.status !== 'APPROVED'" mat-flat-button color="accent" style="flex: 1; height: 44px; border-radius: 12px; font-weight: 700; background: #10b981; color: white;" (click)="approveSalary(selectedSalary, $event)">
+            <mat-icon>check_circle</mat-icon> DUYỆT
+          </button>
+          
+          <!-- 2. HỦY DUYỆT (sets REJECTED) - visible for PENDING or APPROVED -->
+          <button *ngIf="selectedSalary.status !== 'REJECTED'" mat-flat-button color="warn" style="flex: 1; height: 44px; border-radius: 12px; font-weight: 700; background: #ef4444; color: white;" (click)="rejectSalary(selectedSalary, $event)">
+            <mat-icon style="font-family: 'Material Icons' !important;">block</mat-icon> HỦY DUYỆT
+          </button>
+          
+          <!-- 3. BACK VỀ CHỜ DUYỆT (sets PENDING) - visible for APPROVED or REJECTED -->
+          <button *ngIf="selectedSalary.status !== 'PENDING'" mat-stroked-button color="primary" style="flex: 1; height: 44px; border-radius: 12px; font-weight: 700;" (click)="revertSalary(selectedSalary, $event)">
+            <mat-icon style="font-family: 'Material Icons' !important;">replay</mat-icon> BACK
+          </button>
+        </div>
       </div>
     </div>
   </ng-container>
@@ -539,6 +593,44 @@
   </div>
 </div>
 
+<!-- ── CUSTOM PREMIUM BULK REVERT CONFIRMATION DIALOG ── -->
+<div class="confirm-dialog-overlay" *ngIf="confirmBulkRevertDialogVisible" (click)="confirmBulkRevertDialogVisible = false">
+  <div class="confirm-dialog-card" (click)="$event.stopPropagation()">
+    <div class="confirm-dialog-icon" style="background: rgba(99, 102, 241, 0.1); color: #6366f1;">
+      <mat-icon style="font-family: 'Material Icons' !important;">replay</mat-icon>
+    </div>
+    <h3>Xác nhận khôi phục trạng thái Chờ duyệt</h3>
+    <p>Bạn có chắc chắn muốn khôi phục trạng thái Chờ duyệt cho <strong>{{ selectedSalaryIds.size }} nhân viên đã được chọn</strong> trong <strong>Tháng {{ selectedMonth }}/{{ selectedYear }}</strong>?</p>
+    <div class="confirm-dialog-warning" style="background: rgba(99, 102, 241, 0.05); border-left: 4px solid #6366f1; color: #4338ca; display: flex; align-items: center; gap: 8px; padding: 12px; border-radius: 8px; margin-top: 15px; text-align: left;">
+      <mat-icon style="font-family: 'Material Icons' !important;">info</mat-icon>
+      <span>Trạng thái bảng lương của các nhân sự được chọn sẽ chuyển sang "Chờ duyệt".</span>
+    </div>
+    <div class="confirm-dialog-actions">
+      <button class="confirm-btn-cancel" (click)="confirmBulkRevertDialogVisible = false">Hủy</button>
+      <button class="confirm-btn-ok" style="background: linear-gradient(135deg, #6366f1, #4f46e5); box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);" (click)="confirmBulkRevert()">Khôi Phục Đã Chọn</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── CUSTOM PREMIUM BULK REJECT CONFIRMATION DIALOG ── -->
+<div class="confirm-dialog-overlay" *ngIf="confirmBulkRejectDialogVisible" (click)="confirmBulkRejectDialogVisible = false">
+  <div class="confirm-dialog-card" (click)="$event.stopPropagation()">
+    <div class="confirm-dialog-icon" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;">
+      <mat-icon style="font-family: 'Material Icons' !important;">block</mat-icon>
+    </div>
+    <h3>Xác nhận hủy duyệt lương chọn lọc</h3>
+    <p>Bạn có chắc chắn muốn hủy duyệt lương cho <strong>{{ selectedSalaryIds.size }} nhân viên đã được chọn</strong> trong <strong>Tháng {{ selectedMonth }}/{{ selectedYear }}</strong>?</p>
+    <div class="confirm-dialog-warning" style="background: rgba(239, 68, 68, 0.05); border-left: 4px solid #ef4444; color: #b91c1c; display: flex; align-items: center; gap: 8px; padding: 12px; border-radius: 8px; margin-top: 15px; text-align: left;">
+      <mat-icon style="font-family: 'Material Icons' !important;">info</mat-icon>
+      <span>Trạng thái bảng lương của các nhân sự được chọn sẽ chuyển sang "Hủy duyệt".</span>
+    </div>
+    <div class="confirm-dialog-actions">
+      <button class="confirm-btn-cancel" (click)="confirmBulkRejectDialogVisible = false">Hủy</button>
+      <button class="confirm-btn-ok" style="background: linear-gradient(135deg, #ef4444, #dc2626); box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3);" (click)="confirmBulkReject()">Hủy Duyệt Đã Chọn</button>
+    </div>
+  </div>
+</div>
+
 <!-- 4. DEDICATED PREMIUM GLASSMORPHISM SALARY EDIT MODAL -->
 <div class="glass-overlay" *ngIf="showEditModal" (click)="showEditModal = false">
   <div class="glass-modal-card" (click)="$event.stopPropagation()" style="max-width: 580px; background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(20px); border-radius: 24px; border: 1px solid rgba(99, 102, 241, 0.15); box-shadow: 0 25px 50px -12px rgba(99, 102, 241, 0.15);">
@@ -569,36 +661,46 @@
           <input type="number" class="modal-input-styled" [(ngModel)]="editSalaryModel.regularHours" (ngModelChange)="onSalaryFieldChange(editSalaryModel)">
         </div>
 
-        <!-- Base Salary input (only editable for FT & MG) -->
-        <div class="form-group" style="grid-column: span 2;" *ngIf="editSalaryModel.employeeType !== 'PART_TIME'">
-          <label style="font-weight: 700; font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Lương cơ bản (VNĐ)</label>
-          <input type="text" class="modal-input-styled" [ngModel]="editSalaryModel.baseSalaryStr" (input)="onCurrencyInput('baseSalary', $event)" style="font-weight: 700; color: var(--primary);">
+        <!-- Base Salary input -->
+        <div class="form-group">
+          <label style="font-weight: 700; font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">
+            {{ editSalaryModel.employeeType === 'PART_TIME' ? 'Mức lương theo giờ (VNĐ)' : 'Lương cơ bản gốc (VNĐ)' }}
+          </label>
+          <input type="text" class="modal-input-styled" [ngModel]="editSalaryModel.baseSalaryStr" (input)="onCurrencyInput('baseSalary', $event)" style="font-weight: 700; color: var(--text-muted);">
+        </div>
+
+        <!-- Actual Base Salary input -->
+        <div class="form-group">
+          <label style="font-weight: 700; font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">
+            {{ editSalaryModel.employeeType === 'PART_TIME' ? 'Lương tính theo giờ (VNĐ)' : 'Lương theo công (VNĐ)' }}
+          </label>
+          <input type="text" class="modal-input-styled" [ngModel]="editSalaryModel.actualBaseSalaryStr" (input)="onCurrencyInput('actualBaseSalary', $event)" style="font-weight: 700; color: #4f46e5;">
         </div>
 
         <!-- OT Hours input -->
-        <div class="form-group">
+        <div class="form-group" [style.opacity]="editSalaryModel.employeeType === 'PART_TIME' ? 0.5 : 1">
           <label style="font-weight: 700; font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Số giờ OT (h)</label>
-          <input type="number" class="modal-input-styled" [(ngModel)]="editSalaryModel.otHours" (ngModelChange)="onSalaryFieldChange(editSalaryModel)">
+          <input type="number" class="modal-input-styled" [(ngModel)]="editSalaryModel.otHours" (ngModelChange)="onSalaryFieldChange(editSalaryModel)" [disabled]="editSalaryModel.employeeType === 'PART_TIME'">
         </div>
 
         <!-- Calculated OT Salary display -->
-        <div class="form-group">
+        <div class="form-group" [style.opacity]="editSalaryModel.employeeType === 'PART_TIME' ? 0.5 : 1">
           <label style="font-weight: 700; font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Lương OT tính toán</label>
           <div style="background: rgba(99,102,241,0.05); padding: 10px 14px; border-radius: 12px; font-weight: 700; color: var(--text-main); font-size: 14px; height: 44px; display: flex; align-items: center; border: 1px solid rgba(99,102,241,0.1);">
-            {{ fmt(editSalaryModel.otSalary) }}
+            {{ editSalaryModel.employeeType === 'PART_TIME' ? '—' : fmt(editSalaryModel.otSalary) }}
           </div>
         </div>
 
         <!-- Attendance Bonus input -->
-        <div class="form-group">
+        <div class="form-group" [style.opacity]="editSalaryModel.employeeType === 'PART_TIME' ? 0.5 : 1">
           <label style="font-weight: 700; font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Thưởng chuyên cần (VNĐ)</label>
-          <input type="text" class="modal-input-styled" [ngModel]="editSalaryModel.bonusAttendanceStr" (input)="onCurrencyInput('bonusAttendance', $event)" style="color: #22c55e; font-weight: 700;">
+          <input type="text" class="modal-input-styled" [ngModel]="editSalaryModel.bonusAttendanceStr" (input)="onCurrencyInput('bonusAttendance', $event)" style="color: #22c55e; font-weight: 700;" [disabled]="editSalaryModel.employeeType === 'PART_TIME'">
         </div>
 
         <!-- Revenue/KPI Bonus input -->
-        <div class="form-group">
+        <div class="form-group" [style.opacity]="editSalaryModel.employeeType === 'PART_TIME' ? 0.5 : 1">
           <label style="font-weight: 700; font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Thưởng KPI/Doanh thu (VNĐ)</label>
-          <input type="text" class="modal-input-styled" [ngModel]="editSalaryModel.bonusRevenueStr" (input)="onCurrencyInput('bonusRevenue', $event)" style="color: #eab308; font-weight: 700;">
+          <input type="text" class="modal-input-styled" [ngModel]="editSalaryModel.bonusRevenueStr" (input)="onCurrencyInput('bonusRevenue', $event)" style="color: #eab308; font-weight: 700;" [disabled]="editSalaryModel.employeeType === 'PART_TIME'">
         </div>
 
         <!-- Penalty input -->

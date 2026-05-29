@@ -18,6 +18,8 @@ export class EmployeesComponent implements OnInit {
 
   loading = true;
   filterExpanded = true;
+  totalFullTime = 0;
+  totalPartTime = 0;
   totalActive = 0;
   totalLeave = 0;
 
@@ -197,6 +199,8 @@ export class EmployeesComponent implements OnInit {
   }
 
   calculateStats() {
+    this.totalFullTime = this.employees.filter(e => e.employeeType === 'FULL_TIME' || e.employeeType === 'MANAGER').length;
+    this.totalPartTime = this.employees.filter(e => e.employeeType === 'PART_TIME').length;
     this.totalActive = this.employees.filter(e => e.status === 'ACTIVE').length;
     this.totalLeave = this.employees.filter(e => e.status === 'LEAVE').length;
   }
@@ -284,22 +288,34 @@ export class EmployeesComponent implements OnInit {
 
   toggleStatus(emp: any) {
     if(this.editingId) return; // disabled while editing
-    const oldStatus = emp.status;
-    emp.status = emp.status === 'ACTIVE' ? 'LEAVE' : 'ACTIVE';
-    this.http.put<any>(`http://localhost:8080/api/employees/${emp.id}`, emp).subscribe({
-      next: () => {
-        this.calculateStats();
-        this.snackBar.open(`Đã cập nhật trạng thái thành ${emp.status}`, 'Đóng', {duration: 2000});
-      },
-      error: () => {
-        emp.status = oldStatus;
-        this.snackBar.open('❌ Cập nhật thất bại', 'Đóng', {duration: 3000});
+    const currentStatus = emp.status;
+    const newStatus = currentStatus === 'ACTIVE' ? 'LEAVE' : 'ACTIVE';
+    const actionText = newStatus === 'ACTIVE' ? 'đang làm việc (Active)' : 'nghỉ việc (Inactive)';
+    
+    this.openConfirm(
+      'Thay đổi trạng thái nhân sự',
+      `Bạn có chắc chắn muốn chuyển trạng thái nhân viên "${emp.name}" sang ${actionText}?`,
+      () => {
+        emp.status = newStatus;
+        this.http.put<any>(`http://localhost:8080/api/employees/${emp.id}`, emp).subscribe({
+          next: () => {
+            this.calculateStats();
+            this.snackBar.open(`Đã cập nhật trạng thái thành ${newStatus === 'ACTIVE' ? 'Active' : 'Inactive'}`, 'Đóng', {duration: 2500});
+          },
+          error: () => {
+            emp.status = currentStatus;
+            this.snackBar.open('❌ Cập nhật thất bại', 'Đóng', {duration: 3000});
+          }
+        });
       }
-    });
+    );
   }
 
-  fmt(val: number | null | undefined): string {
+  fmt(val: number | null | undefined, isHourly: boolean = false): string {
     if (!val || val === 0) return '0 ₫';
+    if (isHourly) {
+      return val.toLocaleString('vi-VN') + ' ₫/giờ';
+    }
     const rounded = Math.round(val / 1000) * 1000;
     return rounded.toLocaleString('vi-VN') + ' ₫';
   }

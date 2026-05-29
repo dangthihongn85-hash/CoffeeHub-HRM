@@ -86,8 +86,21 @@ public class SalaryService {
      * Trả về danh sách SalaryPayrollDto đã có thưởng doanh thu POOL.
      */
     public List<SalaryPayrollDto> calculateAllSalaries(Integer month, Integer year) {
-        List<Employee> employees = employeeRepository.findAll().stream()
-                .filter(e -> e.getRole() != Role.ADMIN)
+        List<Employee> allEmployees = employeeRepository.findAll().stream()
+                .filter(e -> e.getRole() != com.bmad.hrm.entity.Role.ADMIN)
+                .collect(Collectors.toList());
+
+        LocalDate monthStart = LocalDate.of(year, month, 1);
+        LocalDate monthEnd   = monthStart.withDayOfMonth(monthStart.lengthOfMonth());
+
+        List<Employee> employees = allEmployees.stream()
+                .filter(e -> {
+                    if (!"LEAVE".equals(e.getStatus())) {
+                        return true;
+                    }
+                    // For inactive (LEAVE) employees, check if they have any attendance records in this month
+                    return !attendanceRepository.findByEmployeeIdAndDateBetween(e.getId(), monthStart, monthEnd).isEmpty();
+                })
                 .collect(Collectors.toList());
 
         // ── Bước 1: lấy doanh thu → tính quỹ POOL ──────────────────────────
@@ -194,12 +207,16 @@ public class SalaryService {
 
             if (a.getCheckInTime() != null && a.getCheckOutTime() != null) {
                 double hoursWorked = computeHours(a.getCheckInTime(), a.getCheckOutTime());
-                double stdHours = a.getShift() != null ? a.getShift().getStandardHours() : DAILY_NORMAL_HOURS;
-                if (hoursWorked <= stdHours) {
-                    regularHours += hoursWorked;
+                if (type == EmployeeType.PART_TIME) {
+                    regularHours += hoursWorked; // Part-time tính toàn bộ giờ làm là giờ thường
                 } else {
-                    regularHours += stdHours;
-                    otHours      += (hoursWorked - stdHours);
+                    double stdHours = a.getShift() != null ? a.getShift().getStandardHours() : DAILY_NORMAL_HOURS;
+                    if (hoursWorked <= stdHours) {
+                        regularHours += hoursWorked;
+                    } else {
+                        regularHours += stdHours;
+                        otHours      += (hoursWorked - stdHours);
+                    }
                 }
             }
         }
@@ -209,28 +226,26 @@ public class SalaryService {
 
         // ── Luồng: Tính lương cơ bản ─────────────────────────────────────────
         double baseSalary;
+        double actualBaseSalary;
         double otSalary;
 
-        double underTimePenalty = 0.0;
-
-        if (emp.getSalaryBase() != null && emp.getSalaryBase() > 0) {
-            baseSalary = roundAmount(emp.getSalaryBase()); // Giữ nguyên lương cơ bản gốc
-            otSalary   = roundAmount(otHours * (emp.getSalaryBase() / 208.0) * OT_MULTIPLIER); // 26 days * 8 hours = 208
+        if (type == EmployeeType.PART_TIME) {
+            double hourlyRate = (emp.getSalaryBase() != null && emp.getSalaryBase() > 0) ? emp.getSalaryBase() : PART_TIME_HOURLY;
+            baseSalary = hourlyRate; // Lương cơ bản là mức lương theo giờ
+            actualBaseSalary = roundAmount(regularHours * hourlyRate);
+            otSalary = 0.0; // Part-time không có OT
+        } else if (emp.getSalaryBase() != null && emp.getSalaryBase() > 0) {
+            baseSalary = roundAmount(emp.getSalaryBase()); // Lương cơ bản gốc
             
-            // Tính phạt thiếu công đối với nhân viên Full-time và Manager (26 công chuẩn)
-            // Chỉ áp dụng phạt thiếu công khi tháng đã thực sự kết thúc (tránh phạt oan giữa tháng)
+            // Lương thực tế tính tỷ lệ theo số ngày làm thực tế (gồm cả nghỉ đặc biệt được hưởng nguyên lương)
+            // Tối đa 100% lương cơ bản gốc khi đạt đủ hoặc vượt 26 công chuẩn
             double totalEffectiveDays = workDays + specialLeaveDays;
-            boolean isMonthEnded = (year < LocalDate.now().getYear()) || 
-                                   (year == LocalDate.now().getYear() && month < LocalDate.now().getMonthValue());
-            if (isMonthEnded && (type == EmployeeType.FULL_TIME || type == EmployeeType.MANAGER) && totalEffectiveDays < 26.0) {
-                underTimePenalty = roundAmount((26.0 - totalEffectiveDays) * (emp.getSalaryBase() / 26.0));
-            }
+            double paidDays = Math.min(26.0, totalEffectiveDays);
+            actualBaseSalary = roundAmount((emp.getSalaryBase() * paidDays) / 26.0);
+            
+            otSalary   = roundAmount(otHours * (emp.getSalaryBase() / 208.0) * OT_MULTIPLIER); // 26 days * 8 hours = 208
         } else {
             switch (type) {
-                case PART_TIME:
-                    baseSalary = regularHours * PART_TIME_HOURLY;
-                    otSalary   = otHours * PART_TIME_HOURLY * OT_MULTIPLIER;
-                    break;
                 case MANAGER:
                     baseSalary = MANAGER_BASE + MANAGER_ALLOWANCE;
                     otSalary   = 0.0; // Manager không OT
@@ -240,14 +255,15 @@ public class SalaryService {
                     otSalary   = otHours * FULL_TIME_HOURLY * OT_MULTIPLIER;
                     break;
             }
+            actualBaseSalary = baseSalary;
         }
 
         // ── Luồng: Thưởng/Phạt ──────────────────────────────────────────────
         // Phạt (áp dụng cho tất cả loại NORMAL)
         double penaltyLateAmt     = roundAmount(lateDays     * PENALTY_LATE);
         double penaltyNoCheckAmt  = roundAmount(noCheckout   * PENALTY_NO_CHECKOUT);
-        // Cộng gộp phạt đi làm thiếu công chuẩn vào cột phạt vắng/thiếu giờ
-        double penaltyAbsentAmt   = roundAmount(absentNoPerm * PENALTY_ABSENT_NO_PERM + underTimePenalty);
+        // Chỉ phạt vắng đối với số ngày nghỉ không phép thực tế
+        double penaltyAbsentAmt   = roundAmount(absentNoPerm * PENALTY_ABSENT_NO_PERM);
         double totalPenalty       = roundAmount(penaltyLateAmt + penaltyNoCheckAmt + penaltyAbsentAmt);
 
         // Thưởng chuyên cần (chỉ Full-time và Manager)
@@ -270,12 +286,13 @@ public class SalaryService {
         double totalBonus = roundAmount(bonusAttendance + bonusRevenue);
 
         // ── Luồng: Tính lương cuối ───────────────────────────────────────────
-        double totalSalary = roundAmount(baseSalary + otSalary + totalBonus - totalPenalty);
+        double totalSalary = roundAmount(actualBaseSalary + otSalary + totalBonus - totalPenalty);
         if (totalSalary < 0) totalSalary = 0;
 
         // Nếu không đi làm ngày nào (0 ngày và 0 công), thực lĩnh và tất cả khoản lương, thưởng, phạt tự động bằng 0
         if (workDays == 0.0 && regularHours == 0.0) {
             baseSalary = 0.0;
+            actualBaseSalary = 0.0;
             otSalary = 0.0;
             bonusAttendance = 0.0;
             bonusRevenue = 0.0;
@@ -298,6 +315,7 @@ public class SalaryService {
         salary.setOtHours(otHours);
         salary.setWorkDays(workDays);
         salary.setBaseSalary(baseSalary);
+        salary.setActualBaseSalary(actualBaseSalary);
         salary.setOtSalary(otSalary);
         salary.setBonusAttendance(bonusAttendance);
         salary.setBonusRevenue(bonusRevenue);
@@ -326,6 +344,7 @@ public class SalaryService {
                 .otHours(otHours)
                 .workDays(workDays)
                 .baseSalary(baseSalary)
+                .actualBaseSalary(actualBaseSalary)
                 .otSalary(otSalary)
                 .bonusAttendance(bonusAttendance)
                 .bonusRevenue(bonusRevenue)
@@ -351,13 +370,14 @@ public class SalaryService {
         salary.setRegularHours(roundHours(dto.getRegularHours()));
         salary.setOtHours(roundHours(dto.getOtHours()));
         salary.setBaseSalary(roundAmount(dto.getBaseSalary()));
+        salary.setActualBaseSalary(roundAmount(dto.getActualBaseSalary() != null ? dto.getActualBaseSalary() : dto.getBaseSalary()));
         salary.setOtSalary(roundAmount(dto.getOtSalary()));
         salary.setBonusAttendance(roundAmount(dto.getBonusAttendance()));
         salary.setBonusRevenue(roundAmount(dto.getBonusRevenue()));
         salary.setTotalPenalty(roundAmount(dto.getTotalPenalty()));
         
         // Recalculate total
-        double totalSalary = (salary.getBaseSalary() != null ? salary.getBaseSalary() : 0)
+        double totalSalary = (salary.getActualBaseSalary() != null ? salary.getActualBaseSalary() : 0)
                            + (salary.getOtSalary() != null ? salary.getOtSalary() : 0)
                            + (salary.getBonusAttendance() != null ? salary.getBonusAttendance() : 0)
                            + (salary.getBonusRevenue() != null ? salary.getBonusRevenue() : 0)
@@ -397,6 +417,13 @@ public class SalaryService {
         return toDto(salaryRepository.save(salary));
     }
 
+    public SalaryPayrollDto rejectSalary(Long id) {
+        Salary salary = salaryRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy bảng lương: " + id));
+        salary.setStatus("REJECTED");
+        return toDto(salaryRepository.save(salary));
+    }
+
     public List<SalaryPayrollDto> approveAllSalaries(Integer month, Integer year) {
         List<Salary> list = salaryRepository.findByMonthAndYear(month, year);
         for (Salary salary : list) {
@@ -420,6 +447,28 @@ public class SalaryService {
                 if (salary.getEmployee() != null) {
                     sendPayrollEmail(salary.getEmployee(), salary.getMonth(), salary.getYear(), salary.getTotalSalary());
                 }
+            }
+        }
+        return getSalariesByMonth(month, year);
+    }
+
+    public List<SalaryPayrollDto> revertMultipleSalaries(List<Long> ids, Integer month, Integer year) {
+        if (ids != null && !ids.isEmpty()) {
+            List<Salary> list = salaryRepository.findAllById(ids);
+            for (Salary salary : list) {
+                salary.setStatus("PENDING");
+                salaryRepository.save(salary);
+            }
+        }
+        return getSalariesByMonth(month, year);
+    }
+
+    public List<SalaryPayrollDto> rejectMultipleSalaries(List<Long> ids, Integer month, Integer year) {
+        if (ids != null && !ids.isEmpty()) {
+            List<Salary> list = salaryRepository.findAllById(ids);
+            for (Salary salary : list) {
+                salary.setStatus("REJECTED");
+                salaryRepository.save(salary);
             }
         }
         return getSalariesByMonth(month, year);
@@ -463,6 +512,7 @@ public class SalaryService {
                 .otHours(s.getOtHours())
                 .workDays(s.getWorkDays())
                 .baseSalary(s.getBaseSalary())
+                .actualBaseSalary(s.getActualBaseSalary())
                 .otSalary(s.getOtSalary())
                 .bonusAttendance(s.getBonusAttendance())
                 .bonusRevenue(s.getBonusRevenue())

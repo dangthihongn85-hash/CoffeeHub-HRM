@@ -14,17 +14,31 @@
     </div>
   </mat-card>
   <mat-card class="stat-card">
-    <div class="stat-icon bg-emerald"><mat-icon>how_to_reg</mat-icon></div>
+    <div class="stat-icon bg-teal"><mat-icon>check_circle</mat-icon></div>
     <div class="stat-info">
-      <p>Đang Hoạt Động</p>
+      <p>Đang Làm Việc</p>
       <h3>{{ totalActive }}</h3>
     </div>
   </mat-card>
   <mat-card class="stat-card">
-    <div class="stat-icon bg-rose"><mat-icon>event_busy</mat-icon></div>
+    <div class="stat-icon bg-slate"><mat-icon>block</mat-icon></div>
     <div class="stat-info">
-      <p>Nghỉ Phép</p>
+      <p>Đã Nghỉ Việc</p>
       <h3>{{ totalLeave }}</h3>
+    </div>
+  </mat-card>
+  <mat-card class="stat-card">
+    <div class="stat-icon bg-emerald"><mat-icon>badge</mat-icon></div>
+    <div class="stat-info">
+      <p>Nhân sự Full-time</p>
+      <h3>{{ totalFullTime }}</h3>
+    </div>
+  </mat-card>
+  <mat-card class="stat-card">
+    <div class="stat-icon bg-rose"><mat-icon>schedule</mat-icon></div>
+    <div class="stat-info">
+      <p>Nhân sự Part-time</p>
+      <h3>{{ totalPartTime }}</h3>
     </div>
   </mat-card>
 </div>
@@ -114,8 +128,8 @@
           <mat-icon class="filter-select-icon">person_outline</mat-icon>
           <mat-select [(value)]="filterStatus" (selectionChange)="onSearch()" disableOptionCentering class="filter-mat-select" panelClass="filter-dropdown-panel">
             <mat-option value="">Tất cả trạng thái</mat-option>
-            <mat-option value="ACTIVE">Đi làm</mat-option>
-            <mat-option value="LEAVE">Nghỉ</mat-option>
+            <mat-option value="ACTIVE">Active</mat-option>
+            <mat-option value="LEAVE">Inactive</mat-option>
           </mat-select>
         </div>
       </div>
@@ -182,8 +196,8 @@
         <td><!-- Empty for Face ID in add row --></td>
         <td>
           <select class="inline-input" [(ngModel)]="newEmployee.status">
-            <option value="ACTIVE">Đi làm</option>
-            <option value="LEAVE">Nghỉ</option>
+            <option value="ACTIVE">Active</option>
+            <option value="LEAVE">Inactive</option>
           </select>
         </td>
         <td>
@@ -207,7 +221,7 @@
               {{ emp.employeeType === 'FULL_TIME' ? 'Full-time' : (emp.employeeType === 'PART_TIME' ? 'Part-time' : (emp.employeeType === 'MANAGER' ? 'Manager' : 'N/A')) }}
             </span>
           </td>
-          <td style="font-weight: 600;">{{ fmt(emp.salaryBase) }}</td>
+          <td style="font-weight: 600;">{{ fmt(emp.salaryBase, emp.employeeType === 'PART_TIME') }}</td>
           <td style="color: #64748b;">{{ emp.email }}</td>
           <td>
             <span *ngIf="emp.faceDescriptor" class="chip-inline green" style="background: #e6f4ea; color: #137333; display: inline-flex; align-items: center; gap: 4px;">
@@ -222,7 +236,7 @@
                   [ngClass]="emp.status === 'ACTIVE' ? 'active' : 'leave'"
                   (click)="toggleStatus(emp)"
                   title="Click để đổi trạng thái">
-              {{ emp.status === 'ACTIVE' ? 'Đi làm' : 'Nghỉ' }}
+              {{ emp.status === 'ACTIVE' ? 'Active' : 'Inactive' }}
             </span>
           </td>
           <td>
@@ -267,7 +281,7 @@
           <td><input class="inline-input" type="email" [(ngModel)]="editModel.email"></td>
           <td><!-- Empty for Face ID in edit row --></td>
           <td>
-            <span class="status-badge" [ngClass]="editModel.status === 'ACTIVE' ? 'active' : 'leave'">{{ editModel.status === 'ACTIVE' ? 'Đi làm' : 'Nghỉ' }}</span>
+            <span class="status-badge" [ngClass]="editModel.status === 'ACTIVE' ? 'active' : 'leave'">{{ editModel.status === 'ACTIVE' ? 'Active' : 'Inactive' }}</span>
           </td>
           <td style="display: flex; gap: 5px;">
             <button mat-icon-button color="accent" (click)="saveEdit()"><mat-icon>check_circle</mat-icon></button>

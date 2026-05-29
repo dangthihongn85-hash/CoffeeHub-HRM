@@ -223,9 +223,76 @@
 .payroll-row { cursor: pointer; transition: background 0.18s; }
 .payroll-row:hover { background: #f8fafc; }
 
-.employee-cell { display: flex; align-items: center; gap: 10px; }
-.emp-name { font-weight: 700; color: #1e293b; font-size: 14px; }
-.emp-dept { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.employee-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.employee-cell .avatar-emp {
+  width: 42px !important;
+  height: 42px !important;
+  border-radius: 12px;
+  border: 2px solid rgba(75, 73, 172, 0.08);
+  box-shadow: 0 4px 10px rgba(75, 73, 172, 0.05);
+  flex-shrink: 0;
+  object-fit: cover;
+  display: block;
+  transition: all 0.25s ease;
+}
+.employee-cell:hover .avatar-emp {
+  transform: scale(1.05);
+  border-color: rgba(75, 73, 172, 0.2);
+  box-shadow: 0 6px 14px rgba(75, 73, 172, 0.1);
+}
+.emp-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.emp-name {
+  font-weight: 800;
+  color: #0f172a;
+  font-size: 14px;
+  line-height: 1.2;
+  transition: color 0.2s ease;
+}
+.employee-cell:hover .emp-name {
+  color: var(--primary);
+}
+.emp-dept {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 600;
+  line-height: 1.1;
+}
+.emp-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 2.5px 7px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+.emp-badge.badge-fulltime {
+  background: rgba(3, 105, 161, 0.06) !important;
+  color: #0284c7 !important;
+  border: 1px solid rgba(3, 105, 161, 0.15) !important;
+}
+.emp-badge.badge-parttime {
+  background: rgba(217, 119, 6, 0.06) !important;
+  color: #d97706 !important;
+  border: 1px solid rgba(217, 119, 6, 0.15) !important;
+}
+.emp-badge.badge-manager {
+  background: rgba(109, 40, 217, 0.06) !important;
+  color: #7c3aed !important;
+  border: 1px solid rgba(109, 40, 217, 0.15) !important;
+}
 
 .hours-cell { display: flex; flex-direction: column; gap: 2px; font-size: 13px; font-weight: 600; }
 .hours-cell .text-muted { font-size: 11px; font-weight: 500; color: var(--text-muted); }
@@ -247,6 +314,7 @@
 }
 .status-badge.pending { background: #fff7ed; color: #c2410c; border: 1px solid #ffedd5; }
 .status-badge.approved { background: #ecfdf5; color: #047857; border: 1px solid #d1fae5; }
+.status-badge.rejected { background: #fef2f2; color: #b91c1c; border: 1px solid #fee2e2; }
 
 .approved-row { opacity: 0.85; background: #fcfcfc; }
 .approved-row:hover { background: #f8fafc; }

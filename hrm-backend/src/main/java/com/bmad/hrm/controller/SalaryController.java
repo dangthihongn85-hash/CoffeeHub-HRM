@@ -75,6 +75,11 @@ public class SalaryController {
         return ResponseEntity.ok(salaryService.revertSalary(id));
     }
 
+    @PutMapping("/{id}/reject")
+    public ResponseEntity<SalaryPayrollDto> rejectSalary(@PathVariable Long id) {
+        return ResponseEntity.ok(salaryService.rejectSalary(id));
+    }
+
     @PutMapping("/approve-all")
     public ResponseEntity<List<SalaryPayrollDto>> approveAllSalaries(
             @RequestParam Integer month, @RequestParam Integer year) {
@@ -87,6 +92,22 @@ public class SalaryController {
             @RequestParam Integer month,
             @RequestParam Integer year) {
         return ResponseEntity.ok(salaryService.approveMultipleSalaries(ids, month, year));
+    }
+
+    @PutMapping("/revert-multiple")
+    public ResponseEntity<List<SalaryPayrollDto>> revertMultipleSalaries(
+            @RequestBody List<Long> ids,
+            @RequestParam Integer month,
+            @RequestParam Integer year) {
+        return ResponseEntity.ok(salaryService.revertMultipleSalaries(ids, month, year));
+    }
+
+    @PutMapping("/reject-multiple")
+    public ResponseEntity<List<SalaryPayrollDto>> rejectMultipleSalaries(
+            @RequestBody List<Long> ids,
+            @RequestParam Integer month,
+            @RequestParam Integer year) {
+        return ResponseEntity.ok(salaryService.rejectMultipleSalaries(ids, month, year));
     }
 
     // ── Xuất bảng lương CSV (UTF-8 BOM cho Excel) ────────────────────────────

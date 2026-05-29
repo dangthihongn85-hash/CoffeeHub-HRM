@@ -101,6 +101,7 @@ export class SalaryManagementComponent implements OnInit {
           s.regularHours = s.regularHours != null ? Math.round(s.regularHours * 10) / 10 : 0;
           s.otHours = s.otHours != null ? Math.round(s.otHours * 10) / 10 : 0;
           s.baseSalary = s.baseSalary != null ? Math.round(s.baseSalary) : 0;
+          s.actualBaseSalary = s.actualBaseSalary != null ? Math.round(s.actualBaseSalary) : s.baseSalary;
           s.otSalary = s.otSalary != null ? Math.round(s.otSalary) : 0;
           s.bonusAttendance = s.bonusAttendance != null ? Math.round(s.bonusAttendance) : 0;
           s.bonusRevenue = s.bonusRevenue != null ? Math.round(s.bonusRevenue) : 0;
@@ -167,6 +168,7 @@ export class SalaryManagementComponent implements OnInit {
           s.regularHours = s.regularHours != null ? Math.round(s.regularHours * 10) / 10 : 0;
           s.otHours = s.otHours != null ? Math.round(s.otHours * 10) / 10 : 0;
           s.baseSalary = s.baseSalary != null ? Math.round(s.baseSalary) : 0;
+          s.actualBaseSalary = s.actualBaseSalary != null ? Math.round(s.actualBaseSalary) : s.baseSalary;
           s.otSalary = s.otSalary != null ? Math.round(s.otSalary) : 0;
           s.bonusAttendance = s.bonusAttendance != null ? Math.round(s.bonusAttendance) : 0;
           s.bonusRevenue = s.bonusRevenue != null ? Math.round(s.bonusRevenue) : 0;
@@ -216,20 +218,27 @@ export class SalaryManagementComponent implements OnInit {
   toggleSelectAll(event: any) {
     const checked = event.target.checked;
     if (checked) {
-      this.salaries.forEach(s => {
-        if (s.status !== 'APPROVED') {
-          this.selectedSalaryIds.add(s.salaryId);
-        }
+      this.pagedSalaries.forEach(s => {
+        this.selectedSalaryIds.add(s.salaryId);
       });
     } else {
-      this.selectedSalaryIds.clear();
+      this.pagedSalaries.forEach(s => {
+        this.selectedSalaryIds.delete(s.salaryId);
+      });
     }
   }
 
-  isAllPendingSelected(): boolean {
-    const pendingSalaries = this.salaries.filter(s => s.status !== 'APPROVED');
-    if (pendingSalaries.length === 0) return false;
-    return pendingSalaries.every(s => this.selectedSalaryIds.has(s.salaryId));
+  isAllSelected(): boolean {
+    if (this.pagedSalaries.length === 0) return false;
+    return this.pagedSalaries.every(s => this.selectedSalaryIds.has(s.salaryId));
+  }
+
+  get hasApprovedSelected(): boolean {
+    return this.salaries.some(s => s.status === 'APPROVED' && this.selectedSalaryIds.has(s.salaryId));
+  }
+
+  get hasRevertableSelected(): boolean {
+    return this.salaries.some(s => s.status !== 'REJECTED' && this.selectedSalaryIds.has(s.salaryId));
   }
 
   get filteredSalaries() {
@@ -263,6 +272,7 @@ export class SalaryManagementComponent implements OnInit {
     event.stopPropagation();
     this.editSalaryModel = JSON.parse(JSON.stringify(sal));
     this.editSalaryModel.baseSalaryStr = this.formatCurrencyInput(this.editSalaryModel.baseSalary);
+    this.editSalaryModel.actualBaseSalaryStr = this.formatCurrencyInput(this.editSalaryModel.actualBaseSalary != null ? this.editSalaryModel.actualBaseSalary : this.editSalaryModel.baseSalary);
     this.editSalaryModel.bonusAttendanceStr = this.formatCurrencyInput(this.editSalaryModel.bonusAttendance);
     this.editSalaryModel.bonusRevenueStr = this.formatCurrencyInput(this.editSalaryModel.bonusRevenue);
     this.editSalaryModel.totalPenaltyStr = this.formatCurrencyInput(this.editSalaryModel.totalPenalty);
@@ -277,54 +287,66 @@ export class SalaryManagementComponent implements OnInit {
   }
 
   onSalaryFieldChange(sal: any) {
+    const emp = this.employees.find(e => e.id === sal.employeeId);
     const HOURLY_RATE_FT = 25000;
-    const HOURLY_RATE_PT = 20000;
+    const HOURLY_RATE_PT = (emp && emp.salaryBase > 0) ? emp.salaryBase : 20000;
     const OT_MULTIPLIER = 1.5;
 
     // Round input hours first to exactly 1 decimal place (e.g. 5.8333333333 = 5.8, 5.877778 = 5.9)
     sal.regularHours = sal.regularHours != null ? Math.round(sal.regularHours * 10) / 10 : 0;
     sal.otHours = sal.otHours != null ? Math.round(sal.otHours * 10) / 10 : 0;
 
-    // IF Part-time: Lương CB = giờ làm * hourly_rate
+    // IF Part-time: Lương CB = giờ làm * hourly_rate, không có OT, không có Thưởng
     if (sal.employeeType === 'PART_TIME') {
-      sal.baseSalary = Math.round((sal.regularHours || 0) * HOURLY_RATE_PT);
-    } else if (sal.employeeType === 'FULL_TIME') {
-      const emp = this.employees.find(e => e.id === sal.employeeId);
+      // Gộp toàn bộ giờ OT (nếu lỡ nhập) thành giờ thường và set otHours = 0
+      sal.regularHours = Math.round(((sal.regularHours || 0) + (sal.otHours || 0)) * 10) / 10;
+      sal.otHours = 0;
+      sal.baseSalary = HOURLY_RATE_PT; // Lưu trữ mức lương theo giờ
+      sal.actualBaseSalary = Math.round((sal.regularHours || 0) * HOURLY_RATE_PT);
+      sal.bonusAttendance = 0;
+      sal.bonusRevenue = 0;
+      sal.totalBonus = 0;
+    } else {
       const originalBase = emp ? emp.salaryBase : 0;
       if (originalBase > 0) {
         // Giữ nguyên lương cơ bản gốc
         sal.baseSalary = Math.round(originalBase);
 
-        // Tính phạt đi làm thiếu giờ chuẩn (208h, hụt quá 4h mới phạt)
-        let underTimePenalty = 0;
-        if ((sal.regularHours || 0) < 208.0) {
-          const deficit = 208.0 - sal.regularHours;
-          if (deficit > 4.0) {
-            underTimePenalty = Math.round(deficit * (originalBase / 208.0));
-          }
-        }
+        // Tính tỷ lệ lương thực tế theo số ngày làm việc thực tế
+        const totalEffectiveDays = (sal.workDays || 0) + (sal.specialLeaveDays || 0);
+        const paidDays = Math.min(26.0, totalEffectiveDays);
+        sal.actualBaseSalary = Math.round((originalBase * paidDays) / 26.0);
 
-        // Cập nhật lại các khoản phạt cụ thể
-        const penaltyLate = (sal.lateDays || 0) * 20000;
+        // Cập nhật lại các khoản phạt cụ thể (chỉ phạt đi muộn, thiếu check-out, nghỉ không phép)
+        const penaltyLate = (sal.lateDays || 0) * 50000;
         const penaltyNoCheckout = (sal.noCheckoutDays || 0) * 50000;
         const penaltyAbsentNoPerm = (sal.absentNoPerm || 0) * 100000;
 
         sal.penaltyLate = penaltyLate;
         sal.penaltyNoCheckout = penaltyNoCheckout;
-        sal.penaltyAbsent = Math.round(penaltyAbsentNoPerm + underTimePenalty);
+        sal.penaltyAbsent = Math.round(penaltyAbsentNoPerm);
 
-        // Tổng phạt = các phạt vi phạm + phạt thiếu giờ
+        // Tổng phạt = các phạt vi phạm
         sal.totalPenalty = Math.round(penaltyLate + penaltyNoCheckout + sal.penaltyAbsent);
+      } else {
+        sal.baseSalary = sal.employeeType === 'MANAGER' ? 8500000 : Math.round((sal.regularHours || 0) * HOURLY_RATE_FT);
+        sal.actualBaseSalary = sal.baseSalary;
       }
     }
 
     // Tính OT Salary (VNĐ)
-    const rate = sal.employeeType === 'PART_TIME' ? HOURLY_RATE_PT : HOURLY_RATE_FT;
-    sal.otSalary = Math.round((sal.otHours || 0) * rate * OT_MULTIPLIER);
+    let rate;
+    if (sal.employeeType === 'PART_TIME') {
+      rate = HOURLY_RATE_PT;
+      sal.otSalary = 0; // Part-time không có OT
+    } else {
+      rate = (emp && emp.salaryBase > 0) ? (emp.salaryBase / 208.0) : HOURLY_RATE_FT;
+      sal.otSalary = Math.round((sal.otHours || 0) * rate * OT_MULTIPLIER);
+    }
 
-    // Gross = base + OT + Thưởng (VNĐ)
+    // Gross = actualBaseSalary + OT + Thưởng (VNĐ)
     const totalBonus = Math.round((sal.bonusAttendance || 0) + (sal.bonusRevenue || 0));
-    const gross = Math.round((sal.baseSalary || 0) + (sal.otSalary || 0) + totalBonus);
+    const gross = Math.round((sal.actualBaseSalary || 0) + (sal.otSalary || 0) + totalBonus);
 
     // Net = Gross - Phạt (VNĐ)
     sal.totalSalary = Math.round(gross - (sal.totalPenalty || 0));
@@ -335,6 +357,7 @@ export class SalaryManagementComponent implements OnInit {
 
     // Sync the string properties for UI inputs
     sal.baseSalaryStr = this.formatCurrencyInput(sal.baseSalary);
+    sal.actualBaseSalaryStr = this.formatCurrencyInput(sal.actualBaseSalary);
     sal.bonusAttendanceStr = this.formatCurrencyInput(sal.bonusAttendance);
     sal.bonusRevenueStr = this.formatCurrencyInput(sal.bonusRevenue);
     sal.totalPenaltyStr = this.formatCurrencyInput(sal.totalPenalty);
@@ -401,9 +424,26 @@ export class SalaryManagementComponent implements OnInit {
         if (this.selectedSalary && this.selectedSalary.salaryId === sal.salaryId) {
           this.selectedSalary = updated;
         }
-        this.snackBar.open(`↩️ Đã hủy duyệt lương: ${sal.employeeName} (Trở về Chờ duyệt)`, 'Đóng', { duration: 3000 });
+        this.snackBar.open(`↩️ Đã khôi phục trạng thái chờ duyệt: ${sal.employeeName}`, 'Đóng', { duration: 3000 });
       },
-      error: () => this.snackBar.open('❌ Lỗi khi hủy duyệt lương', 'Đóng', { duration: 3000 })
+      error: () => this.snackBar.open('❌ Lỗi khi khôi phục bảng lương', 'Đóng', { duration: 3000 })
+    });
+  }
+
+  rejectSalary(sal: any, event: Event) {
+    event.stopPropagation();
+    
+    this.http.put<any>(`${API}/salaries/${sal.salaryId}/reject`, {}).subscribe({
+      next: (updated) => {
+        const idx = this.salaries.findIndex(s => s.salaryId === sal.salaryId);
+        if (idx !== -1) this.salaries[idx] = updated;
+        this.recalcStats();
+        if (this.selectedSalary && this.selectedSalary.salaryId === sal.salaryId) {
+          this.selectedSalary = updated;
+        }
+        this.snackBar.open(`❌ Đã hủy duyệt (Từ chối): ${sal.employeeName}`, 'Đóng', { duration: 3000 });
+      },
+      error: () => this.snackBar.open('❌ Lỗi khi hủy duyệt bảng lương', 'Đóng', { duration: 3000 })
     });
   }
 
@@ -426,6 +466,7 @@ export class SalaryManagementComponent implements OnInit {
           s.regularHours = s.regularHours != null ? Math.round(s.regularHours * 10) / 10 : 0;
           s.otHours = s.otHours != null ? Math.round(s.otHours * 10) / 10 : 0;
           s.baseSalary = s.baseSalary != null ? Math.round(s.baseSalary) : 0;
+          s.actualBaseSalary = s.actualBaseSalary != null ? Math.round(s.actualBaseSalary) : s.baseSalary;
           s.otSalary = s.otSalary != null ? Math.round(s.otSalary) : 0;
           s.bonusAttendance = s.bonusAttendance != null ? Math.round(s.bonusAttendance) : 0;
           s.bonusRevenue = s.bonusRevenue != null ? Math.round(s.bonusRevenue) : 0;
@@ -449,6 +490,104 @@ export class SalaryManagementComponent implements OnInit {
       error: () => {
         this.loading = false;
         this.snackBar.open('❌ Lỗi khi duyệt lương các nhân viên đã chọn', 'Đóng', { duration: 3000 });
+      }
+    });
+  }
+
+  confirmBulkRevertDialogVisible = false;
+
+  revertSelected() {
+    if (this.selectedSalaryIds.size === 0) {
+      this.snackBar.open('⚠️ Hãy chọn ít nhất một nhân viên để khôi phục chờ duyệt!', 'Đóng', { duration: 3000 });
+      return;
+    }
+    this.confirmBulkRevertDialogVisible = true;
+  }
+
+  confirmBulkRevert() {
+    this.confirmBulkRevertDialogVisible = false;
+    this.loading = true;
+    
+    const selectedIds = Array.from(this.selectedSalaryIds);
+    this.http.put<any[]>(`${API}/salaries/revert-multiple?month=${this.selectedMonth}&year=${this.selectedYear}`, selectedIds).subscribe({
+      next: (updatedList) => {
+        this.salaries = updatedList.map(s => {
+          s.regularHours = s.regularHours != null ? Math.round(s.regularHours * 10) / 10 : 0;
+          s.otHours = s.otHours != null ? Math.round(s.otHours * 10) / 10 : 0;
+          s.baseSalary = s.baseSalary != null ? Math.round(s.baseSalary) : 0;
+          s.actualBaseSalary = s.actualBaseSalary != null ? Math.round(s.actualBaseSalary) : s.baseSalary;
+          s.otSalary = s.otSalary != null ? Math.round(s.otSalary) : 0;
+          s.bonusAttendance = s.bonusAttendance != null ? Math.round(s.bonusAttendance) : 0;
+          s.bonusRevenue = s.bonusRevenue != null ? Math.round(s.bonusRevenue) : 0;
+          s.totalBonus = s.totalBonus != null ? Math.round(s.totalBonus) : 0;
+          s.totalPenalty = s.totalPenalty != null ? Math.round(s.totalPenalty) : 0;
+          s.totalSalary = s.totalSalary != null ? Math.round(s.totalSalary) : 0;
+          return s;
+        });
+        this.recalcStats();
+        this.loading = false;
+        
+        const countReverted = this.selectedSalaryIds.size;
+        this.selectedSalaryIds.clear();
+
+        if (this.selectedSalary) {
+          const matched = this.salaries.find(s => s.salaryId === this.selectedSalary.salaryId);
+          if (matched) this.selectedSalary = matched;
+        }
+        this.snackBar.open(`↩️ Đã khôi phục chờ duyệt thành công cho ${countReverted} nhân viên được chọn!`, 'Đóng', { duration: 4000 });
+      },
+      error: () => {
+        this.loading = false;
+        this.snackBar.open('❌ Lỗi khi khôi phục chờ duyệt các nhân viên đã chọn', 'Đóng', { duration: 3000 });
+      }
+    });
+  }
+
+  confirmBulkRejectDialogVisible = false;
+
+  rejectSelected() {
+    if (this.selectedSalaryIds.size === 0) {
+      this.snackBar.open('⚠️ Hãy chọn ít nhất một nhân viên để hủy duyệt!', 'Đóng', { duration: 3000 });
+      return;
+    }
+    this.confirmBulkRejectDialogVisible = true;
+  }
+
+  confirmBulkReject() {
+    this.confirmBulkRejectDialogVisible = false;
+    this.loading = true;
+    
+    const selectedIds = Array.from(this.selectedSalaryIds);
+    this.http.put<any[]>(`${API}/salaries/reject-multiple?month=${this.selectedMonth}&year=${this.selectedYear}`, selectedIds).subscribe({
+      next: (updatedList) => {
+        this.salaries = updatedList.map(s => {
+          s.regularHours = s.regularHours != null ? Math.round(s.regularHours * 10) / 10 : 0;
+          s.otHours = s.otHours != null ? Math.round(s.otHours * 10) / 10 : 0;
+          s.baseSalary = s.baseSalary != null ? Math.round(s.baseSalary) : 0;
+          s.actualBaseSalary = s.actualBaseSalary != null ? Math.round(s.actualBaseSalary) : s.baseSalary;
+          s.otSalary = s.otSalary != null ? Math.round(s.otSalary) : 0;
+          s.bonusAttendance = s.bonusAttendance != null ? Math.round(s.bonusAttendance) : 0;
+          s.bonusRevenue = s.bonusRevenue != null ? Math.round(s.bonusRevenue) : 0;
+          s.totalBonus = s.totalBonus != null ? Math.round(s.totalBonus) : 0;
+          s.totalPenalty = s.totalPenalty != null ? Math.round(s.totalPenalty) : 0;
+          s.totalSalary = s.totalSalary != null ? Math.round(s.totalSalary) : 0;
+          return s;
+        });
+        this.recalcStats();
+        this.loading = false;
+        
+        const countRejected = this.selectedSalaryIds.size;
+        this.selectedSalaryIds.clear();
+
+        if (this.selectedSalary) {
+          const matched = this.salaries.find(s => s.salaryId === this.selectedSalary.salaryId);
+          if (matched) this.selectedSalary = matched;
+        }
+        this.snackBar.open(`❌ Đã hủy duyệt thành công cho ${countRejected} nhân viên được chọn!`, 'Đóng', { duration: 4000 });
+      },
+      error: () => {
+        this.loading = false;
+        this.snackBar.open('❌ Lỗi khi hủy duyệt các nhân viên đã chọn', 'Đóng', { duration: 3000 });
       }
     });
   }
@@ -747,8 +886,8 @@ export class SalaryManagementComponent implements OnInit {
             </thead>
             <tbody>
               <tr>
-                <td>Lương cơ bản (Theo công chuẩn)</td>
-                <td class="amount">${this.fmt(sal.baseSalary)}</td>
+                <td>${sal.employeeType === 'PART_TIME' ? 'Lương theo giờ (' + sal.regularHours + 'h × ' + this.fmt(sal.baseSalary, true) + ')' : 'Lương cơ bản (Theo công chuẩn)'}</td>
+                <td class="amount">${this.fmt(sal.actualBaseSalary != null ? sal.actualBaseSalary : sal.baseSalary)}</td>
               </tr>
               ${(sal.otHours || 0) > 0 ? `
               <tr>
@@ -836,8 +975,11 @@ export class SalaryManagementComponent implements OnInit {
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
-  fmt(val: number | null | undefined): string {
+  fmt(val: number | null | undefined, isHourly: boolean = false): string {
     if (!val || val === 0) return '0 ₫';
+    if (isHourly) {
+      return val.toLocaleString('vi-VN') + ' ₫/giờ';
+    }
     const rounded = Math.round(val / 1000) * 1000;
     return rounded.toLocaleString('vi-VN') + ' ₫';
   }
