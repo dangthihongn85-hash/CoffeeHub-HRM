@@ -194,8 +194,14 @@ public class SalaryService {
                 absentNoPerm++;
             }
 
-            if (a.getStatus() == AttendanceStatus.LATE) {
-                lateDays++;
+            // Phạt đi trễ nghiêm khắc dựa trên giờ check-in thực tế, không phụ thuộc trạng thái hiển thị của ngày hôm đó
+            if (a.getCheckInTime() != null) {
+                LocalTime shiftStart = a.getShift() != null ? a.getShift().getStartTime() : SHIFT_START;
+                long lateMinutes = a.getCheckInTime().isAfter(shiftStart)
+                        ? java.time.Duration.between(shiftStart, a.getCheckInTime()).toMinutes() : 0;
+                if (lateMinutes > 10) {
+                    lateDays++;
+                }
             }
 
             // Check missing checkout

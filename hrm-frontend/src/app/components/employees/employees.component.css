@@ -359,6 +359,22 @@
 .inline-input { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; font-family: inherit; }
 .inline-input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(75,73,172, 0.2); }
 
+/* Compact mode for editing row and adding row to keep it single-line */
+.editing-row td, .add-row-form td {
+  padding: 8px 10px !important;
+}
+.editing-row .inline-input, .add-row-form .inline-input {
+  padding: 6px 8px !important;
+  height: 32px !important;
+  font-size: 13px !important;
+  border-radius: 6px !important;
+}
+.editing-row .avatar-sm, .add-row-form .avatar-sm {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 8px !important;
+}
+
 .avatar-sm { width: 40px; height: 40px; border-radius: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
 .avatar-sm img { width: 100%; height: 100%; object-fit: cover; }
 

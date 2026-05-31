@@ -356,7 +356,7 @@ export class EmployeesComponent implements OnInit {
         this.modalAbsentWithPerm = data.filter(r => r.status === 'ABSENT').length;
         this.modalAbsentNoPerm = data.filter(r => r.status === 'ABSENT_NO_PERMISSION').length;
         this.modalSpecialLeave = data.filter(r => r.status === 'SPECIAL_LEAVE').length;
-        this.modalLateEarly = data.filter(r => r.status === 'LATE' || r.status === 'EARLY').length;
+        this.modalLateEarly = data.filter(r => this.isRowLate(r) || this.isRowEarly(r)).length;
         
         this.generateCalendarDays();
         this.loadingAttendance = false;
@@ -526,5 +526,30 @@ export class EmployeesComponent implements OnInit {
       this.confirmAction();
     }
     this.closeConfirm();
+  }
+
+  timeToMinutes(timeStr: string): number {
+    if (!timeStr) return 0;
+    const parts = timeStr.split(':');
+    if (parts.length < 2) return 0;
+    const hours = parseInt(parts[0], 10);
+    const minutes = parseInt(parts[1], 10);
+    return hours * 60 + minutes;
+  }
+
+  isRowLate(row: any): boolean {
+    if (!row || !row.checkInTime || !row.shift || !row.shift.startTime) return false;
+    if (row.status === 'ABSENT' || row.status === 'ABSENT_NO_PERMISSION' || row.status === 'SPECIAL_LEAVE') return false;
+    const checkInMin = this.timeToMinutes(row.checkInTime);
+    const shiftStartMin = this.timeToMinutes(row.shift.startTime);
+    return checkInMin - shiftStartMin > 10;
+  }
+
+  isRowEarly(row: any): boolean {
+    if (!row || !row.checkOutTime || !row.shift || !row.shift.endTime) return false;
+    if (row.status === 'ABSENT' || row.status === 'ABSENT_NO_PERMISSION' || row.status === 'SPECIAL_LEAVE') return false;
+    const checkOutMin = this.timeToMinutes(row.checkOutTime);
+    const shiftEndMin = this.timeToMinutes(row.shift.endTime);
+    return checkOutMin < shiftEndMin;
   }
 }

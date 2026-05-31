@@ -21,6 +21,7 @@ public class FaceAttendanceService {
 
     private final EmployeeRepository employeeRepository;
     private final AttendanceRepository attendanceRepository;
+    private final TimekeepingService timekeepingService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /** Euclidean distance threshold for face matching (face-api.js standard: < 0.6 = same person) */
@@ -84,25 +85,7 @@ public class FaceAttendanceService {
      */
     public Attendance faceCheckIn(List<Double> descriptor) {
         Employee employee = matchFace(descriptor);
-
-        LocalDate today = LocalDate.now();
-        Optional<Attendance> existing = attendanceRepository.findByEmployeeIdAndDate(employee.getId(), today);
-        if (existing.isPresent() && existing.get().getCheckInTime() != null) {
-            throw new RuntimeException(employee.getName() + " đã check-in hôm nay rồi!");
-        }
-
-        LocalTime now = LocalTime.now();
-        AttendanceStatus status = now.isAfter(LocalTime.of(8, 30))
-                ? AttendanceStatus.LATE
-                : AttendanceStatus.ON_TIME;
-
-        Attendance attendance = existing.orElse(new Attendance());
-        attendance.setEmployee(employee);
-        attendance.setDate(today);
-        attendance.setCheckInTime(now);
-        attendance.setStatus(status);
-
-        return attendanceRepository.save(attendance);
+        return timekeepingService.checkIn(employee.getId());
     }
 
     /**
@@ -110,23 +93,7 @@ public class FaceAttendanceService {
      */
     public Attendance faceCheckOut(List<Double> descriptor) {
         Employee employee = matchFace(descriptor);
-
-        LocalDate today = LocalDate.now();
-        Attendance attendance = attendanceRepository.findByEmployeeIdAndDate(employee.getId(), today)
-                .orElseThrow(() -> new RuntimeException(employee.getName() + " chưa check-in hôm nay!"));
-
-        if (attendance.getCheckOutTime() != null) {
-            throw new RuntimeException(employee.getName() + " đã check-out hôm nay rồi!");
-        }
-
-        LocalTime now = LocalTime.now();
-        attendance.setCheckOutTime(now);
-
-        if (now.isBefore(LocalTime.of(17, 30)) && attendance.getStatus() == AttendanceStatus.ON_TIME) {
-            attendance.setStatus(AttendanceStatus.EARLY);
-        }
-
-        return attendanceRepository.save(attendance);
+        return timekeepingService.checkOut(employee.getId());
     }
 
     /**

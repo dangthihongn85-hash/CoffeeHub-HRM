@@ -151,144 +151,159 @@
   <div class="table-wrapper" *ngIf="!loading || filteredEmployees.length > 0">
     <table class="custom-table">
       <thead>
-      <tr>
-        <th>Họ và Tên</th>
-        <th>Chức vụ</th>
-        <th>Phòng ban</th>
-        <th>Loại lương</th>
-        <th>Lương cơ bản</th>
-        <th>Email</th>
-        <th>Face ID</th>
-        <th>Trạng thái</th>
-        <th>Thao tác</th>
-      </tr>
-    </thead>
-    <tbody>
-      
-      <!-- ADD FORM -->
-      <tr *ngIf="isAdding" class="add-row-form">
-        <td style="padding: 10px 15px;">
-          <input class="inline-input" type="text" placeholder="Nhập họ tên" [(ngModel)]="newEmployee.name">
-        </td>
-        <td>
-          <select class="inline-input" [(ngModel)]="newEmployee.department" (change)="onDeptChange(newEmployee.department)">
-            <option value="" disabled selected>Chọn phòng ban</option>
-            <option *ngFor="let d of availableDepartments" [value]="d.name">{{ d.name }}</option>
-          </select>
-        </td>
-        <td>
-          <select class="inline-input" [(ngModel)]="newEmployee.position">
-            <option value="" disabled selected>Chọn chức vụ</option>
-            <option *ngFor="let p of filteredPositions" [value]="p.name">{{ p.name }}</option>
-          </select>
-        </td>
-        <td>
-          <select class="inline-input" [(ngModel)]="newEmployee.employeeType">
-            <option value="FULL_TIME">Full-time</option>
-            <option value="PART_TIME">Part-time</option>
-            <option value="MANAGER">Manager</option>
-          </select>
-        </td>
-        <td>
-          <input class="inline-input" type="number" placeholder="Lương CB" [(ngModel)]="newEmployee.salaryBase">
-        </td>
-        <td><input class="inline-input" type="email" placeholder="Email" [(ngModel)]="newEmployee.email"></td>
-        <td><!-- Empty for Face ID in add row --></td>
-        <td>
-          <select class="inline-input" [(ngModel)]="newEmployee.status">
-            <option value="ACTIVE">Active</option>
-            <option value="LEAVE">Inactive</option>
-          </select>
-        </td>
-        <td>
-          <button mat-flat-button color="accent" (click)="saveEmployee()"><mat-icon>save</mat-icon> Lưu</button>
-        </td>
-      </tr>
-
-      <tr *ngFor="let emp of pagedEmployees">
-        <!-- NORMAL ROW -->
-        <ng-container *ngIf="editingId !== emp.id">
-          <td style="display:flex; align-items:center; gap: 12px;">
-            <div class="avatar-sm">
-              <img [src]="'https://ui-avatars.com/api/?name=' + emp.name + '&background=e5ebfe&color=4B49AC&bold=true'" alt="Avatar">
+        <tr>
+          <th style="width: 22%; min-width: 220px;">Họ và Tên</th>
+          <th style="width: 12%; min-width: 130px;">Chức vụ</th>
+          <th style="width: 12%; min-width: 130px;">Phòng ban</th>
+          <th style="width: 10%; min-width: 110px;">Loại lương</th>
+          <th style="width: 10%; min-width: 110px;">Lương cơ bản</th>
+          <th style="width: 15%; min-width: 160px;">Email</th>
+          <th style="width: 8%; min-width: 90px;">Face ID</th>
+          <th style="width: 8%; min-width: 90px;">Trạng thái</th>
+          <th style="width: 8%; min-width: 80px;">Thao tác</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+        <!-- ADD FORM -->
+        <tr *ngIf="isAdding" class="add-row-form">
+          <td>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div class="avatar-sm">
+                <img [src]="'https://ui-avatars.com/api/?name=' + (newEmployee.name || 'N') + '&background=e5ebfe&color=4B49AC&bold=true'" alt="Avatar">
+              </div>
+              <input class="inline-input" type="text" placeholder="Nhập họ tên" [(ngModel)]="newEmployee.name" style="flex: 1; min-width: 0;">
             </div>
-            <span style="font-weight: 700; color: #1e293b;">{{ emp.name }}</span>
-          </td>
-          <td><span class="pos-badge">{{ emp.position || 'N/A' }}</span></td>
-          <td>{{ emp.department || 'N/A' }}</td>
-          <td>
-            <span class="type-badge" [ngClass]="emp.employeeType">
-              {{ emp.employeeType === 'FULL_TIME' ? 'Full-time' : (emp.employeeType === 'PART_TIME' ? 'Part-time' : (emp.employeeType === 'MANAGER' ? 'Manager' : 'N/A')) }}
-            </span>
-          </td>
-          <td style="font-weight: 600;">{{ fmt(emp.salaryBase, emp.employeeType === 'PART_TIME') }}</td>
-          <td style="color: #64748b;">{{ emp.email }}</td>
-          <td>
-            <span *ngIf="emp.faceDescriptor" class="chip-inline green" style="background: #e6f4ea; color: #137333; display: inline-flex; align-items: center; gap: 4px;">
-               <mat-icon style="font-size: 16px; width: 16px; height: 16px;">face</mat-icon> Đã ĐK
-            </span>
-            <span *ngIf="!emp.faceDescriptor" class="chip-inline" style="background: #f1f3f4; color: #5f6368; display: inline-flex; align-items: center;">
-               Chưa ĐK
-            </span>
           </td>
           <td>
-            <span class="status-badge"
-                  [ngClass]="emp.status === 'ACTIVE' ? 'active' : 'leave'"
-                  (click)="toggleStatus(emp)"
-                  title="Click để đổi trạng thái">
-              {{ emp.status === 'ACTIVE' ? 'Active' : 'Inactive' }}
-            </span>
+            <select class="inline-input" [(ngModel)]="newEmployee.position">
+              <option value="" disabled selected>Chọn chức vụ</option>
+              <option *ngFor="let p of filteredPositions" [value]="p.name">{{ p.name }}</option>
+            </select>
           </td>
           <td>
-            <button mat-icon-button color="accent" (click)="openAttendanceModal(emp)" title="Quản lý chấm công theo ngày" style="color: #6366f1;">
-              <mat-icon>calendar_month</mat-icon>
-            </button>
-            <button mat-icon-button color="primary" (click)="startEdit(emp)" title="Chỉnh sửa">
-              <mat-icon>edit_calendar</mat-icon>
-            </button>
-            <button mat-icon-button color="warn" (click)="deleteEmployee(emp.id)" title="Xóa">
-              <mat-icon>delete_outline</mat-icon>
-            </button>
-          </td>
-        </ng-container>
-
-        <!-- EDIT FORM -->
-        <ng-container *ngIf="editingId === emp.id">
-          <td style="padding: 10px 15px;">
-            <input class="inline-input" type="text" [(ngModel)]="editModel.name">
-          </td>
-          <td>
-            <select class="inline-input" [(ngModel)]="editModel.department" (change)="onDeptChange(editModel.department)">
+            <select class="inline-input" [(ngModel)]="newEmployee.department" (change)="onDeptChange(newEmployee.department)">
+              <option value="" disabled selected>Chọn phòng ban</option>
               <option *ngFor="let d of availableDepartments" [value]="d.name">{{ d.name }}</option>
             </select>
           </td>
           <td>
-            <select class="inline-input" [(ngModel)]="editModel.position">
-              <!-- When editing, we might need to show all positions of current dept initially -->
-              <option *ngFor="let p of allPositions" [value]="p.name" [hidden]="p.departmentName !== editModel.department">{{ p.name }}</option>
-            </select>
-          </td>
-          <td>
-            <select class="inline-input" [(ngModel)]="editModel.employeeType">
+            <select class="inline-input" [(ngModel)]="newEmployee.employeeType">
               <option value="FULL_TIME">Full-time</option>
               <option value="PART_TIME">Part-time</option>
               <option value="MANAGER">Manager</option>
             </select>
           </td>
           <td>
-            <input class="inline-input" type="number" [(ngModel)]="editModel.salaryBase">
+            <input class="inline-input" type="number" placeholder="Lương CB" [(ngModel)]="newEmployee.salaryBase">
           </td>
-          <td><input class="inline-input" type="email" [(ngModel)]="editModel.email"></td>
-          <td><!-- Empty for Face ID in edit row --></td>
+          <td><input class="inline-input" type="email" placeholder="Email" [(ngModel)]="newEmployee.email"></td>
+          <td><!-- Empty for Face ID in add row --></td>
           <td>
-            <span class="status-badge" [ngClass]="editModel.status === 'ACTIVE' ? 'active' : 'leave'">{{ editModel.status === 'ACTIVE' ? 'Active' : 'Inactive' }}</span>
+            <select class="inline-input" [(ngModel)]="newEmployee.status">
+              <option value="ACTIVE">Active</option>
+              <option value="LEAVE">Inactive</option>
+            </select>
           </td>
-          <td style="display: flex; gap: 5px;">
-            <button mat-icon-button color="accent" (click)="saveEdit()"><mat-icon>check_circle</mat-icon></button>
-            <button mat-icon-button color="warn" (click)="cancelEdit()"><mat-icon>cancel</mat-icon></button>
+          <td>
+            <button mat-flat-button color="accent" (click)="saveEmployee()"><mat-icon>save</mat-icon> Lưu</button>
           </td>
-        </ng-container>
-      </tr>
+        </tr>
+
+        <tr *ngFor="let emp of pagedEmployees" [class.editing-row]="editingId === emp.id">
+          <!-- NORMAL ROW -->
+          <ng-container *ngIf="editingId !== emp.id">
+            <td>
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <div class="avatar-sm">
+                  <img [src]="'https://ui-avatars.com/api/?name=' + emp.name + '&background=e5ebfe&color=4B49AC&bold=true'" alt="Avatar">
+                </div>
+                <span style="font-weight: 700; color: #1e293b;">{{ emp.name }}</span>
+              </div>
+            </td>
+            <td><span class="pos-badge">{{ emp.position || 'N/A' }}</span></td>
+            <td>{{ emp.department || 'N/A' }}</td>
+            <td>
+              <span class="type-badge" [ngClass]="emp.employeeType">
+                {{ emp.employeeType === 'FULL_TIME' ? 'Full-time' : (emp.employeeType === 'PART_TIME' ? 'Part-time' : (emp.employeeType === 'MANAGER' ? 'Manager' : 'N/A')) }}
+              </span>
+            </td>
+            <td style="font-weight: 600;">{{ fmt(emp.salaryBase, emp.employeeType === 'PART_TIME') }}</td>
+            <td style="color: #64748b;">{{ emp.email }}</td>
+            <td>
+              <span *ngIf="emp.faceDescriptor" class="chip-inline green" style="background: #e6f4ea; color: #137333; display: inline-flex; align-items: center; gap: 4px;">
+                 <mat-icon style="font-size: 16px; width: 16px; height: 16px;">face</mat-icon> Đã ĐK
+              </span>
+              <span *ngIf="!emp.faceDescriptor" class="chip-inline" style="background: #f1f3f4; color: #5f6368; display: inline-flex; align-items: center;">
+                 Chưa ĐK
+              </span>
+            </td>
+            <td>
+              <span class="status-badge"
+                    [ngClass]="emp.status === 'ACTIVE' ? 'active' : 'leave'"
+                    (click)="toggleStatus(emp)"
+                    title="Click để đổi trạng thái">
+                {{ emp.status === 'ACTIVE' ? 'Active' : 'Inactive' }}
+              </span>
+            </td>
+            <td>
+              <div style="display: flex; gap: 4px; align-items: center; white-space: nowrap;">
+                <button mat-icon-button color="accent" (click)="openAttendanceModal(emp)" title="Quản lý chấm công theo ngày" style="color: #6366f1;">
+                  <mat-icon>calendar_month</mat-icon>
+                </button>
+                <button mat-icon-button color="primary" (click)="startEdit(emp)" title="Chỉnh sửa">
+                  <mat-icon>edit_calendar</mat-icon>
+                </button>
+                <button mat-icon-button color="warn" (click)="deleteEmployee(emp.id)" title="Xóa">
+                  <mat-icon>delete_outline</mat-icon>
+                </button>
+              </div>
+            </td>
+          </ng-container>
+
+          <!-- EDIT FORM -->
+          <ng-container *ngIf="editingId === emp.id">
+            <td>
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <div class="avatar-sm">
+                  <img [src]="'https://ui-avatars.com/api/?name=' + editModel.name + '&background=e5ebfe&color=4B49AC&bold=true'" alt="Avatar">
+                </div>
+                <input class="inline-input" type="text" [(ngModel)]="editModel.name" style="flex: 1; min-width: 0;">
+              </div>
+            </td>
+            <td>
+              <select class="inline-input" [(ngModel)]="editModel.position">
+                <option *ngFor="let p of allPositions" [value]="p.name" [hidden]="p.departmentName !== editModel.department">{{ p.name }}</option>
+              </select>
+            </td>
+            <td>
+              <select class="inline-input" [(ngModel)]="editModel.department" (change)="onDeptChange(editModel.department)">
+                <option *ngFor="let d of availableDepartments" [value]="d.name">{{ d.name }}</option>
+              </select>
+            </td>
+            <td>
+              <select class="inline-input" [(ngModel)]="editModel.employeeType">
+                <option value="FULL_TIME">Full-time</option>
+                <option value="PART_TIME">Part-time</option>
+                <option value="MANAGER">Manager</option>
+              </select>
+            </td>
+            <td>
+              <input class="inline-input" type="number" [(ngModel)]="editModel.salaryBase">
+            </td>
+            <td><input class="inline-input" type="email" [(ngModel)]="editModel.email"></td>
+            <td><!-- Empty for Face ID in edit row --></td>
+            <td>
+              <span class="status-badge" [ngClass]="editModel.status === 'ACTIVE' ? 'active' : 'leave'">{{ editModel.status === 'ACTIVE' ? 'Active' : 'Inactive' }}</span>
+            </td>
+            <td>
+              <div style="display: flex; gap: 5px;">
+                <button mat-icon-button color="accent" (click)="saveEdit()" title="Lưu lại"><mat-icon>check_circle</mat-icon></button>
+                <button mat-icon-button color="warn" (click)="cancelEdit()" title="Hủy bỏ"><mat-icon>cancel</mat-icon></button>
+              </div>
+            </td>
+          </ng-container>
+        </tr>
 
       <tr *ngIf="filteredEmployees.length === 0 && !isAdding && !loading">
          <td colspan="9" style="text-align: center; padding: 40px; color: #888;">
@@ -501,9 +516,20 @@
               <!-- Status Badge / Select -->
               <td>
                 <ng-container *ngIf="!day.editing">
-                  <span class="chip-status" [ngClass]="day.record ? getStatusBadgeClass(day.record.status) : 'chip-gray'">
+                  <!-- Nếu chưa có dữ liệu chấm công hoặc là ngày nghỉ/vắng mặt -->
+                  <span class="chip-status" [ngClass]="day.record ? getStatusBadgeClass(day.record.status) : 'chip-gray'" *ngIf="!day.record || day.record.status === 'ABSENT' || day.record.status === 'ABSENT_NO_PERMISSION' || day.record.status === 'SPECIAL_LEAVE'">
                     {{ getStatusText(day.record ? day.record.status : '', day.dateStr) }}
                   </span>
+
+                  <!-- Nếu đi làm bình thường -->
+                  <ng-container *ngIf="day.record && day.record.status !== 'ABSENT' && day.record.status !== 'ABSENT_NO_PERMISSION' && day.record.status !== 'SPECIAL_LEAVE'">
+                    <!-- Đúng giờ -->
+                    <span class="chip-status chip-green" *ngIf="!isRowLate(day.record) && !isRowEarly(day.record)">Đúng giờ</span>
+                    
+                    <!-- Đi trễ và Về sớm: hiển thị đồng thời hoặc riêng lẻ -->
+                    <span class="chip-status chip-orange" *ngIf="isRowLate(day.record)" style="margin-right: 4px;">Đi trễ</span>
+                    <span class="chip-status chip-orange" *ngIf="isRowEarly(day.record)">Về sớm</span>
+                  </ng-container>
                 </ng-container>
                 <ng-container *ngIf="day.editing">
                   <select class="modal-select" [(ngModel)]="day.editStatus"

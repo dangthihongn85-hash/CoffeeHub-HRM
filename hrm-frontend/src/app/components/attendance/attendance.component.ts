@@ -31,7 +31,13 @@ export class AttendanceComponent implements OnInit, OnDestroy {
 
   async ngOnInit() {
     this.http.get<any[]>('http://localhost:8080/api/employees').subscribe({
-      next: data => this.employees = data,
+      next: data => {
+        this.employees = data;
+        if (data && data.length > 0) {
+          this.selectedEmployeeId = data[0].id;
+          this.loadSummary();
+        }
+      },
       error: () => {}
     });
     await this.loadModels();
@@ -183,9 +189,9 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     ).subscribe({
       next: data => {
         this.summaryData = data;
-        this.summaryStats.onTime = data.filter(d => d.status === 'ON_TIME').length;
-        this.summaryStats.late = data.filter(d => d.status === 'LATE').length;
-        this.summaryStats.early = data.filter(d => d.status === 'EARLY').length;
+        this.summaryStats.onTime = data.filter(d => !this.isRowLate(d) && !this.isRowEarly(d) && d.status !== 'ABSENT' && d.status !== 'ABSENT_NO_PERMISSION' && d.status !== 'SPECIAL_LEAVE').length;
+        this.summaryStats.late = data.filter(d => this.isRowLate(d)).length;
+        this.summaryStats.early = data.filter(d => this.isRowEarly(d)).length;
         this.summaryLoading = false;
       },
       error: () => {
@@ -193,5 +199,35 @@ export class AttendanceComponent implements OnInit, OnDestroy {
         this.snackBar.open('Chưa có dữ liệu chấm công tháng này.', 'Đóng', { duration: 3000 });
       }
     });
+  }
+
+  getSelectedEmployeeName(): string {
+    const emp = this.employees.find(e => e.id === Number(this.selectedEmployeeId));
+    return emp ? emp.name : '—';
+  }
+
+  timeToMinutes(timeStr: string): number {
+    if (!timeStr) return 0;
+    const parts = timeStr.split(':');
+    if (parts.length < 2) return 0;
+    const hours = parseInt(parts[0], 10);
+    const minutes = parseInt(parts[1], 10);
+    return hours * 60 + minutes;
+  }
+
+  isRowLate(row: any): boolean {
+    if (!row || !row.checkInTime || !row.shift || !row.shift.startTime) return false;
+    if (row.status === 'ABSENT' || row.status === 'ABSENT_NO_PERMISSION' || row.status === 'SPECIAL_LEAVE') return false;
+    const checkInMin = this.timeToMinutes(row.checkInTime);
+    const shiftStartMin = this.timeToMinutes(row.shift.startTime);
+    return checkInMin - shiftStartMin > 10;
+  }
+
+  isRowEarly(row: any): boolean {
+    if (!row || !row.checkOutTime || !row.shift || !row.shift.endTime) return false;
+    if (row.status === 'ABSENT' || row.status === 'ABSENT_NO_PERMISSION' || row.status === 'SPECIAL_LEAVE') return false;
+    const checkOutMin = this.timeToMinutes(row.checkOutTime);
+    const shiftEndMin = this.timeToMinutes(row.shift.endTime);
+    return checkOutMin < shiftEndMin;
   }
 }
