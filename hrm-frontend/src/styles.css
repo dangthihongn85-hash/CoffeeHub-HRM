@@ -63,3 +63,22 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #cfd8dc; border-radius: 10px; }
 ::-webkit-scrollbar-thumb:hover { background: #b0bec5; }
+
+/* Hiển thị nút tăng/giảm số (spin buttons) ở gần cuối khi di chuột vào (hover) */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+input[type="number"]:hover::-webkit-inner-spin-button,
+input[type="number"]:hover::-webkit-outer-spin-button {
+  -webkit-appearance: inner-spin-button;
+  cursor: pointer;
+}
+input[type="number"]:hover {
+  -moz-appearance: number-input;
+}

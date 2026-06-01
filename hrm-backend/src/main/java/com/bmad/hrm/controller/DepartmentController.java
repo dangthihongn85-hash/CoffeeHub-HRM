@@ -20,6 +20,7 @@ public class DepartmentController {
 
     private final DepartmentRepository departmentRepository;
     private final PositionRepository positionRepository;
+    private final com.bmad.hrm.repository.EmployeeRepository employeeRepository;
 
     // ===== DEPARTMENTS =====
 
@@ -37,11 +38,24 @@ public class DepartmentController {
     }
 
     @PutMapping("/{id}")
+    @Transactional
     public ResponseEntity<?> updateDepartment(@PathVariable Long id, @RequestBody Department updated) {
         return departmentRepository.findById(id).map(dept -> {
-            dept.setName(updated.getName());
+            String oldName = dept.getName();
+            String newName = updated.getName();
+            
+            dept.setName(newName);
             dept.setDescription(updated.getDescription());
-            return ResponseEntity.ok(departmentRepository.save(dept));
+            Department saved = departmentRepository.save(dept);
+            
+            if (oldName != null && !oldName.equals(newName)) {
+                // Propagate to positions under this department
+                positionRepository.updateDepartmentName(oldName, newName);
+                // Propagate to employees under this department
+                employeeRepository.updateEmployeeDepartmentName(oldName, newName);
+            }
+            
+            return ResponseEntity.ok(saved);
         }).orElse(ResponseEntity.notFound().build());
     }
 
@@ -73,11 +87,22 @@ public class DepartmentController {
     }
 
     @PutMapping("/positions/{id}")
+    @Transactional
     public ResponseEntity<?> updatePosition(@PathVariable Long id, @RequestBody Position updated) {
         return positionRepository.findById(id).map(pos -> {
-            pos.setName(updated.getName());
+            String oldName = pos.getName();
+            String newName = updated.getName();
+            
+            pos.setName(newName);
             pos.setDepartmentName(updated.getDepartmentName());
-            return ResponseEntity.ok(positionRepository.save(pos));
+            Position saved = positionRepository.save(pos);
+            
+            if (oldName != null && !oldName.equals(newName)) {
+                // Propagate to employees holding this position
+                employeeRepository.updateEmployeePositionName(oldName, newName);
+            }
+            
+            return ResponseEntity.ok(saved);
         }).orElse(ResponseEntity.notFound().build());
     }
 

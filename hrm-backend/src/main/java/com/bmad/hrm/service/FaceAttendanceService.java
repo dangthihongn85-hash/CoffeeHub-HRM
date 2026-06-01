@@ -48,7 +48,7 @@ public class FaceAttendanceService {
      */
     public Employee matchFace(List<Double> incomingDescriptor) {
         List<Employee> registeredEmployees = employeeRepository.findAll().stream()
-                .filter(e -> e.getFaceDescriptor() != null && !e.getFaceDescriptor().isEmpty())
+                .filter(e -> e.getFaceDescriptor() != null && !e.getFaceDescriptor().isEmpty() && !"DELETED".equals(e.getStatus()))
                 .toList();
 
         if (registeredEmployees.isEmpty()) {

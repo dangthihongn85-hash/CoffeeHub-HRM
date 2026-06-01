@@ -30,10 +30,32 @@ export class EmployeesComponent implements OnInit {
   pagedEmployees: any[] = [];
 
   isAdding = false;
-  newEmployee: any = { name: '', department: '', email: '', position: '', status: 'ACTIVE', password: 'password123', salaryBase: 15000000, role: 'EMPLOYEE', employeeType: 'FULL_TIME' };
+  newEmployee: any = { name: '', department: '', email: '', position: '', status: 'ACTIVE', password: 'password123', salaryBase: 6000000, role: 'EMPLOYEE', employeeType: 'FULL_TIME' };
+  systemConfig: any = {};
 
   editingId: number | null = null;
   editModel: any = {};
+
+  fetchSystemConfig() {
+    this.http.get<any>('http://localhost:8080/api/salaries/config').subscribe({
+      next: (data) => {
+        this.systemConfig = data;
+        // Default new employee's salary base
+        this.newEmployee.salaryBase = data.fullTimeBaseSalary || 6000000;
+      }
+    });
+  }
+
+  onEmployeeTypeChange(model: any) {
+    if (!this.systemConfig) return;
+    if (model.employeeType === 'PART_TIME') {
+      model.salaryBase = this.systemConfig.partTimeHourlyRate || 20000;
+    } else if (model.employeeType === 'MANAGER') {
+      model.salaryBase = this.systemConfig.managerBaseSalary || 8000000;
+    } else if (model.employeeType === 'FULL_TIME') {
+      model.salaryBase = this.systemConfig.fullTimeBaseSalary || 6000000;
+    }
+  }
 
   // For dynamic dropdowns
   availableDepartments: any[] = [];
@@ -61,6 +83,11 @@ export class EmployeesComponent implements OnInit {
   modalLateEarly = 0;
 
   filterAttendanceStatus = 'ALL';
+  validationErrors: any = {};
+  
+  clearValidationErrors() {
+    this.validationErrors = {};
+  }
 
   // Confirmation Modal State
   showConfirmModal = false;
@@ -74,6 +101,7 @@ export class EmployeesComponent implements OnInit {
     this.fetchData();
     this.loadDropdowns();
     this.loadShifts();
+    this.fetchSystemConfig();
   }
 
   loadDropdowns() {
@@ -207,14 +235,22 @@ export class EmployeesComponent implements OnInit {
 
   toggleAdd() {
     this.isAdding = !this.isAdding;
-    this.newEmployee = { name: '', department: '', email: '', position: '', status: 'ACTIVE', password: 'password123', salaryBase: 15000000, role: 'EMPLOYEE', employeeType: 'FULL_TIME' };
+    this.newEmployee = { name: '', department: '', email: '', position: '', status: 'ACTIVE', password: 'password123', salaryBase: (this.systemConfig.fullTimeBaseSalary || 6000000), role: 'EMPLOYEE', employeeType: 'FULL_TIME' };
   }
 
   saveEmployee() {
-    if(!this.newEmployee.name || !this.newEmployee.email) {
-      this.snackBar.open('⚠️ Vui lòng điền đủ Tên và Email', 'Đóng', {duration: 3000});
-      return;
+    this.clearValidationErrors();
+    let hasError = false;
+    if(!this.newEmployee.name || !this.newEmployee.name.trim()) {
+      this.validationErrors.newEmployeeName = '⚠️ Vui lòng nhập tên!';
+      hasError = true;
     }
+    if(!this.newEmployee.email || !this.newEmployee.email.trim()) {
+      this.validationErrors.newEmployeeEmail = '⚠️ Vui lòng nhập email!';
+      hasError = true;
+    }
+    
+    if (hasError) return;
     
     this.loading = true;
     this.http.post<any>('http://localhost:8080/api/employees', this.newEmployee).subscribe({
@@ -247,10 +283,17 @@ export class EmployeesComponent implements OnInit {
   }
 
   saveEdit() {
-    if(!this.editModel.name || !this.editModel.email) {
-      this.snackBar.open('Tên và Email không được để trống!', 'Đóng', {duration: 3000});
-      return;
+    this.clearValidationErrors();
+    let hasError = false;
+    if(!this.editModel.name || !this.editModel.name.trim()) {
+      this.validationErrors.editEmployeeName = '⚠️ Tên không được để trống!';
+      hasError = true;
     }
+    if(!this.editModel.email || !this.editModel.email.trim()) {
+      this.validationErrors.editEmployeeEmail = '⚠️ Email không được để trống!';
+      hasError = true;
+    }
+    if (hasError) return;
     this.http.put<any>(`http://localhost:8080/api/employees/${this.editingId}`, this.editModel).subscribe({
       next: (res) => {
         const idx = this.employees.findIndex(e => e.id === this.editingId);
@@ -412,16 +455,29 @@ export class EmployeesComponent implements OnInit {
     day.editCheckIn = day.record && day.record.checkInTime ? day.record.checkInTime.substring(0, 5) : '08:00';
     day.editCheckOut = day.record && day.record.checkOutTime ? day.record.checkOutTime.substring(0, 5) : '17:00';
     day.editStatus = day.record ? day.record.status : 'ON_TIME';
-    day.editShiftId = day.record && day.record.shift ? day.record.shift.id : (this.availableShifts.length > 0 ? this.availableShifts[0].id : null);
+    if (day.record) {
+      day.editShiftId = day.record.shift ? day.record.shift.id : -1;
+    } else {
+      day.editShiftId = -1; // Default to OFF for unassigned/rest days
+    }
   }
 
   cancelEditDay(day: any) {
     day.editing = false;
   }
 
+  onShiftChange(day: any) {
+    if (day.editShiftId == -1) {
+      day.editCheckIn = null;
+      day.editCheckOut = null;
+    }
+  }
+
   saveDayAttendance(day: any) {
+    const isExplicitOff = day.editShiftId == -1 || day.editShiftId === '-1';
+
     // Basic frontend validations
-    if (day.editStatus !== 'ABSENT' && day.editStatus !== 'ABSENT_NO_PERMISSION' && day.editStatus !== 'SPECIAL_LEAVE') {
+    if (!isExplicitOff && day.editStatus !== 'ABSENT' && day.editStatus !== 'ABSENT_NO_PERMISSION' && day.editStatus !== 'SPECIAL_LEAVE') {
       if (!day.editCheckIn) {
         this.snackBar.open('⚠️ Giờ check-in không được để trống khi đi làm!', 'Đóng', {duration: 3000});
         return;
@@ -432,6 +488,8 @@ export class EmployeesComponent implements OnInit {
       }
     }
 
+    const shiftIdVal = day.editShiftId === 'null' || day.editShiftId === null || day.editShiftId === -1 || day.editShiftId === '-1' ? -1 : Number(day.editShiftId);
+
     const body = {
       date: day.dateStr,
       checkInTime: (day.editStatus === 'ABSENT' || day.editStatus === 'ABSENT_NO_PERMISSION' || day.editStatus === 'SPECIAL_LEAVE')
@@ -439,7 +497,7 @@ export class EmployeesComponent implements OnInit {
       checkOutTime: (day.editStatus === 'ABSENT' || day.editStatus === 'ABSENT_NO_PERMISSION' || day.editStatus === 'SPECIAL_LEAVE')
                     ? null : (day.editCheckOut ? day.editCheckOut + ':00' : null),
       status: day.editStatus,
-      shiftId: day.editShiftId
+      shiftId: shiftIdVal
     };
 
     this.http.post<any>(`http://localhost:8080/api/attendance/${this.selectedEmpForAttendance.id}/manual`, body).subscribe({

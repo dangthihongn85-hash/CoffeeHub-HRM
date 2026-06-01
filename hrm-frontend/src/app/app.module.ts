@@ -16,6 +16,7 @@ import { SalaryComponent } from './components/salary/salary.component';
 import { SalaryManagementComponent } from './components/salary-management/salary-management.component';
 import { DepartmentsComponent } from './components/departments/departments.component';
 import { ShiftsComponent } from './components/shifts/shifts.component';
+import { SettingsComponent } from './components/settings/settings.component';
 
 import { MatButtonModule } from '@angular/material/button';
 import { MatInputModule } from '@angular/material/input';
@@ -26,7 +27,7 @@ import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatListModule } from '@angular/material/list';
 import { MatTableModule } from '@angular/material/table';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSnackBarModule, MAT_SNACK_BAR_DEFAULT_OPTIONS } from '@angular/material/snack-bar';
 import { MatPaginatorModule } from '@angular/material/paginator';
 import { MatSelectModule } from '@angular/material/select';
 
@@ -40,7 +41,8 @@ import { MatSelectModule } from '@angular/material/select';
     ShiftsComponent,
     SalaryComponent,
     SalaryManagementComponent,
-    DepartmentsComponent
+    DepartmentsComponent,
+    SettingsComponent
   ],
   imports: [
     BrowserModule,
@@ -62,7 +64,8 @@ import { MatSelectModule } from '@angular/material/select';
     MatSelectModule
   ],
   providers: [
-    { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true }
+    { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true },
+    { provide: MAT_SNACK_BAR_DEFAULT_OPTIONS, useValue: { duration: 3000, horizontalPosition: 'end', verticalPosition: 'top' } }
   ],
   bootstrap: [AppComponent]
 })

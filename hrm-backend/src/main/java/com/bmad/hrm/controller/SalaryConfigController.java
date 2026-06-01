@@ -19,11 +19,7 @@ public class SalaryConfigController {
     @GetMapping
     public SalaryConfig getConfig() {
         return repository.findAll().stream().findFirst()
-                .orElse(SalaryConfig.builder()
-                        .latePenalty(100000.0)
-                        .perfectAttendanceBonus(500000.0)
-                        .requiredPerfectDays(20)
-                        .build());
+                .orElse(SalaryConfig.builder().build());
     }
 
     @PostMapping

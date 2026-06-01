@@ -51,14 +51,53 @@
         <p>Chọn nhân viên và nhấn "Đăng Ký" để lưu khuôn mặt hiện tại vào hệ thống.</p>
         
         <div class="register-form">
-          <select [(ngModel)]="selectedEmployeeId" (change)="loadSummary()" class="emp-select">
-            <option *ngFor="let emp of employees" [value]="emp.id">
-              {{ emp.name }} ({{ emp.position }}) 
-              {{ emp.faceDescriptor ? '✅ Đã ĐK' : '❌ Chưa ĐK' }}
-            </option>
-          </select>
+          <!-- Premium Searchable Select for Face Registration -->
+          <div class="custom-select-container">
+            <!-- Select Trigger Box -->
+            <div class="select-trigger" [class.open]="adminDropdownOpen" (click)="toggleAdminDropdown($event)">
+              <mat-icon class="trigger-icon">face</mat-icon>
+              <span class="trigger-text">{{ getSelectedEmployeeRegisterLabel() }}</span>
+              <mat-icon class="trigger-chevron">{{ adminDropdownOpen ? 'expand_less' : 'expand_more' }}</mat-icon>
+            </div>
+            
+            <!-- Dropdown Panel (Absolute positioned) -->
+            <div class="custom-dropdown-panel" *ngIf="adminDropdownOpen" (click)="$event.stopPropagation()">
+              <!-- Search input placed INSIDE the dropdown select panel -->
+              <div class="dropdown-search-box">
+                <mat-icon>search</mat-icon>
+                <input type="text" [(ngModel)]="adminSearchTerm" placeholder="Tìm tên nhân viên..." (input)="onAdminFilterChange()" />
+                <button class="clear-search-btn" *ngIf="adminSearchTerm" (click)="clearAdminSearch($event)">
+                  <mat-icon>close</mat-icon>
+                </button>
+              </div>
+              
+              <!-- List of options -->
+              <div class="dropdown-options-list">
+                <div *ngFor="let emp of adminFilteredEmployees" 
+                     class="dropdown-option" 
+                     [class.selected]="emp.id === Number(selectedRegisterEmployeeId)"
+                     (click)="selectEmployeeRegister(emp, $event)">
+                  <div class="option-avatar">
+                    <img [src]="'https://ui-avatars.com/api/?name=' + emp.name + '&background=e5ebfe&color=4B49AC&bold=true'" alt="Avatar">
+                  </div>
+                  <div class="option-details">
+                    <span class="option-name">
+                      {{ emp.name }} 
+                      <small style="margin-left: 6px; font-weight: 700; color: #10b981;" *ngIf="emp.faceDescriptor">✅ Đã ĐK</small>
+                      <small style="margin-left: 6px; font-weight: 700; color: #ef4444;" *ngIf="!emp.faceDescriptor">❌ Chưa ĐK</small>
+                    </span>
+                    <span class="option-subtitle">{{ emp.department || 'Không phòng ban' }} · {{ emp.position }}</span>
+                  </div>
+                  <mat-icon class="option-check" *ngIf="emp.id === Number(selectedRegisterEmployeeId)">check</mat-icon>
+                </div>
+                <div *ngIf="adminFilteredEmployees.length === 0" class="no-options-found">
+                  Không tìm thấy nhân viên
+                </div>
+              </div>
+            </div>
+          </div>
           
-          <button mat-raised-button color="primary" class="register-btn" (click)="registerFace()" [disabled]="scanning || !modelsLoaded">
+          <button mat-raised-button color="primary" class="register-btn" (click)="registerFace()" [disabled]="scanning || !modelsLoaded || !selectedRegisterEmployeeId">
             <mat-icon>face</mat-icon> Đăng Ký Face
           </button>
         </div>
@@ -71,18 +110,84 @@
     <div class="summary-toolbar">
       <div>
         <h3>Lịch Sử Chấm Công Cá Nhân (Tháng)</h3>
-        <p>Lịch sử chấm công của nhân viên đang chọn trong mục "Đăng Ký".</p>
+        <p>Chọn tiêu chí tra cứu, tìm kiếm và lọc theo phòng ban để hiển thị lịch sử chi tiết.</p>
       </div>
-      <div class="summary-filters">
-        <select [(ngModel)]="summaryMonth" (change)="loadSummary()" class="emp-select small">
-          <option *ngFor="let m of [1,2,3,4,5,6,7,8,9,10,11,12]" [value]="m">Tháng {{ m }}</option>
+    </div>
+
+    <!-- Elegant Filters Row specifically for the table -->
+    <div class="table-filter-bar">
+      <!-- Department Filter -->
+      <div class="filter-item">
+        <label>Phòng ban</label>
+        <select [(ngModel)]="selectedDepartment" class="dept-select" (change)="onFilterChange()">
+          <option value="">Tất cả phòng ban</option>
+          <option *ngFor="let dept of getDepartments()" [value]="dept">{{ dept }}</option>
         </select>
-        <select [(ngModel)]="summaryYear" (change)="loadSummary()" class="emp-select small">
-          <option [value]="2025">2025</option>
-          <option [value]="2026">2026</option>
-        </select>
-        <button mat-raised-button color="primary" class="load-btn" (click)="loadSummary()">
-          <mat-icon>search</mat-icon> Xem
+      </div>
+
+      <!-- Premium Searchable Select for Employee -->
+      <div class="filter-item employee-search-select-wrapper">
+        <label>Chọn Nhân viên</label>
+        <div class="custom-select-container">
+          <!-- Select Trigger Box -->
+          <div class="select-trigger" [class.open]="dropdownOpen" (click)="toggleDropdown($event)">
+            <mat-icon class="trigger-icon">person</mat-icon>
+            <span class="trigger-text">{{ getSelectedEmployeeLabel() }}</span>
+            <mat-icon class="trigger-chevron">{{ dropdownOpen ? 'expand_less' : 'expand_more' }}</mat-icon>
+          </div>
+          
+          <!-- Dropdown Panel (Absolute positioned) -->
+          <div class="custom-dropdown-panel" *ngIf="dropdownOpen" (click)="$event.stopPropagation()">
+            <!-- Search input placed INSIDE the dropdown select panel -->
+            <div class="dropdown-search-box">
+              <mat-icon>search</mat-icon>
+              <input type="text" [(ngModel)]="searchTerm" placeholder="Tìm tên nhân viên..." (input)="onFilterChange()" />
+              <button class="clear-search-btn" *ngIf="searchTerm" (click)="clearSearch($event)">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+            
+            <!-- List of options -->
+            <div class="dropdown-options-list">
+              <div *ngFor="let emp of filteredEmployees" 
+                   class="dropdown-option" 
+                   [class.selected]="emp.id === Number(selectedEmployeeId)"
+                   (click)="selectEmployee(emp, $event)">
+                <div class="option-avatar">
+                  <img [src]="'https://ui-avatars.com/api/?name=' + emp.name + '&background=e5ebfe&color=4B49AC&bold=true'" alt="Avatar">
+                </div>
+                <div class="option-details">
+                  <span class="option-name">{{ emp.name }}</span>
+                  <span class="option-subtitle">{{ emp.department || 'Không phòng ban' }} · {{ emp.position }}</span>
+                </div>
+                <mat-icon class="option-check" *ngIf="emp.id === Number(selectedEmployeeId)">check</mat-icon>
+              </div>
+              <div *ngIf="filteredEmployees.length === 0" class="no-options-found">
+                Không tìm thấy nhân viên
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Month & Year Select -->
+      <div class="filter-item date-filter">
+        <label>Tháng/Năm</label>
+        <div class="date-selects">
+          <select [(ngModel)]="summaryMonth" (change)="loadSummary()" class="date-select">
+            <option *ngFor="let m of [1,2,3,4,5,6,7,8,9,10,11,12]" [value]="m">Tháng {{ m }}</option>
+          </select>
+          <select [(ngModel)]="summaryYear" (change)="loadSummary()" class="date-select">
+            <option [value]="2025">2025</option>
+            <option [value]="2026">2026</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Tra Cứu Button -->
+      <div class="filter-item action-item">
+        <button mat-raised-button color="primary" class="load-btn" (click)="loadSummary()" [disabled]="!selectedEmployeeId">
+          <mat-icon>search</mat-icon> Tra Cứu
         </button>
       </div>
     </div>
@@ -104,6 +209,7 @@
             <tr>
               <th>Ngày</th>
               <th>Tên Nhân Viên</th>
+              <th>Phòng Ban</th>
               <th>Giờ Check-in</th>
               <th>Giờ Check-out</th>
               <th>Trạng thái</th>
@@ -113,6 +219,7 @@
             <tr *ngFor="let row of summaryData">
               <td>{{ row.date }}</td>
               <td>{{ getSelectedEmployeeName() }}</td>
+              <td>{{ getSelectedEmployeeDepartment() }}</td>
               <td>{{ row.checkInTime || '—' }}</td>
               <td>{{ row.checkOutTime || '—' }}</td>
               <td>

@@ -82,7 +82,7 @@ public class FaceAttendanceController {
     @GetMapping("/registered-employees")
     public ResponseEntity<List<Employee>> getRegisteredEmployees() {
         List<Employee> employees = employeeRepository.findAll().stream()
-            .filter(e -> e.getFaceDescriptor() != null && !e.getFaceDescriptor().isEmpty())
+            .filter(e -> e.getFaceDescriptor() != null && !e.getFaceDescriptor().isEmpty() && !"DELETED".equals(e.getStatus()))
             .toList();
         return ResponseEntity.ok(employees);
     }

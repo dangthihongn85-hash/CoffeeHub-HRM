@@ -27,12 +27,14 @@ public class SalaryPayrollDto {
     // Giờ công
     private Double regularHours;
     private Double otHours;
+    private Double holidayHours;
     private Double workDays;
 
     // Lương
     private Double baseSalary;
     private Double actualBaseSalary;
     private Double otSalary;
+    private Double holidaySalary;
 
     // Thưởng
     private Double bonusAttendance;   // Thưởng chuyên cần

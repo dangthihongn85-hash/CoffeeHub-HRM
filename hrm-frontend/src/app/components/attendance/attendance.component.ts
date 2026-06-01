@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, HostListener } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import * as faceapi from 'face-api.js';
@@ -18,7 +18,16 @@ export class AttendanceComponent implements OnInit, OnDestroy {
 
   // Mock selector for registering face (Admin)
   selectedEmployeeId = 1;
+  selectedRegisterEmployeeId = 1;
   employees: any[] = [];
+  searchTerm: string = '';
+  selectedDepartment: string = '';
+  filteredEmployees: any[] = [];
+  adminSearchTerm: string = '';
+  adminFilteredEmployees: any[] = [];
+  dropdownOpen = false;
+  adminDropdownOpen = false;
+  Number = Number;
 
   // For monthly summary
   summaryMonth = new Date().getMonth() + 1;
@@ -33,14 +42,134 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     this.http.get<any[]>('http://localhost:8080/api/employees').subscribe({
       next: data => {
         this.employees = data;
+        this.filteredEmployees = data;
+        this.adminFilteredEmployees = data;
         if (data && data.length > 0) {
           this.selectedEmployeeId = data[0].id;
+          this.selectedRegisterEmployeeId = data[0].id;
           this.loadSummary();
         }
       },
       error: () => {}
     });
     await this.loadModels();
+  }
+
+  getSelectedEmployeeDepartment(): string {
+    const emp = this.employees.find(e => e.id === Number(this.selectedEmployeeId));
+    return emp ? (emp.department || '—') : '—';
+  }
+
+  getDepartments(): string[] {
+    const depts = this.employees.map(e => e.department).filter(Boolean);
+    return Array.from(new Set(depts));
+  }
+
+  onFilterChange() {
+    const term = (this.searchTerm || '').toLowerCase().trim();
+    const dept = this.selectedDepartment || '';
+    
+    this.filteredEmployees = this.employees.filter(emp => {
+      const matchName = emp.name.toLowerCase().includes(term);
+      const matchDept = !dept || emp.department === dept;
+      return matchName && matchDept;
+    });
+
+    if (this.filteredEmployees.length > 0) {
+      const exists = this.filteredEmployees.some(emp => emp.id === Number(this.selectedEmployeeId));
+      if (!exists) {
+        this.selectedEmployeeId = this.filteredEmployees[0].id;
+        this.loadSummary();
+      }
+    } else {
+      this.selectedEmployeeId = 0;
+      this.summaryData = [];
+    }
+  }
+
+  onAdminFilterChange() {
+    const term = (this.adminSearchTerm || '').toLowerCase().trim();
+    
+    this.adminFilteredEmployees = this.employees.filter(emp => {
+      return emp.name.toLowerCase().includes(term);
+    });
+
+    if (this.adminFilteredEmployees.length > 0) {
+      const exists = this.adminFilteredEmployees.some(emp => emp.id === Number(this.selectedRegisterEmployeeId));
+      if (!exists) {
+        this.selectedRegisterEmployeeId = this.adminFilteredEmployees[0].id;
+      }
+    } else {
+      this.selectedRegisterEmployeeId = 0;
+    }
+  }
+
+  toggleDropdown(event: Event) {
+    event.stopPropagation();
+    this.adminDropdownOpen = false;
+    this.dropdownOpen = !this.dropdownOpen;
+    if (this.dropdownOpen) {
+      setTimeout(() => {
+        const input = document.querySelector('.table-filter-bar .dropdown-search-box input') as HTMLInputElement;
+        if (input) input.focus();
+      }, 50);
+    }
+  }
+
+  selectEmployee(emp: any, event: Event) {
+    event.stopPropagation();
+    this.selectedEmployeeId = emp.id;
+    this.loadSummary();
+    this.dropdownOpen = false;
+  }
+
+  getSelectedEmployeeLabel(): string {
+    const emp = this.employees.find(e => e.id === Number(this.selectedEmployeeId));
+    if (!emp) return 'Chọn nhân viên...';
+    return `${emp.name} (${emp.department || 'Không PB'} - ${emp.position})`;
+  }
+
+  toggleAdminDropdown(event: Event) {
+    event.stopPropagation();
+    this.dropdownOpen = false;
+    this.adminDropdownOpen = !this.adminDropdownOpen;
+    if (this.adminDropdownOpen) {
+      setTimeout(() => {
+        const input = document.querySelector('.admin-card .dropdown-search-box input') as HTMLInputElement;
+        if (input) input.focus();
+      }, 50);
+    }
+  }
+
+  selectEmployeeRegister(emp: any, event: Event) {
+    event.stopPropagation();
+    this.selectedRegisterEmployeeId = emp.id;
+    this.adminDropdownOpen = false;
+  }
+
+  getSelectedEmployeeRegisterLabel(): string {
+    const emp = this.employees.find(e => e.id === Number(this.selectedRegisterEmployeeId));
+    if (!emp) return 'Chọn nhân viên...';
+    const status = emp.faceDescriptor ? '✅ Đã ĐK' : '❌ Chưa ĐK';
+    return `${emp.name} (${emp.position}) - ${status}`;
+  }
+
+  clearSearch(event: Event) {
+    event.stopPropagation();
+    this.searchTerm = '';
+    this.onFilterChange();
+  }
+
+  clearAdminSearch(event: Event) {
+    event.stopPropagation();
+    this.adminSearchTerm = '';
+    this.onAdminFilterChange();
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: Event) {
+    this.dropdownOpen = false;
+    this.adminDropdownOpen = false;
   }
 
   ngOnDestroy() {
@@ -117,7 +246,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     const descriptorArray = Array.from(descriptor);
     
     this.http.post('http://localhost:8080/api/face-attendance/register', {
-      employeeId: this.selectedEmployeeId,
+      employeeId: this.selectedRegisterEmployeeId,
       descriptor: descriptorArray
     }).subscribe({
       next: (res: any) => {

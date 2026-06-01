@@ -36,6 +36,9 @@ public class Salary {
     @Column(name = "ot_hours")
     private Double otHours;          // Giờ tăng ca
 
+    @Column(name = "holiday_hours")
+    private Double holidayHours;     // Giờ làm ngày lễ
+
     @Column(name = "work_days")
     private Double workDays;        // Số công làm việc (Double)
 
@@ -48,6 +51,9 @@ public class Salary {
 
     @Column(name = "ot_salary")
     private Double otSalary;         // Lương OT
+
+    @Column(name = "holiday_salary")
+    private Double holidaySalary;    // Lương/thưởng ngày lễ
 
     // ---- Thưởng ----
     @Column(name = "bonus_attendance")

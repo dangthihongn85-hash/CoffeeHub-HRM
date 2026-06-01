@@ -5,10 +5,12 @@ import com.bmad.hrm.entity.AttendanceStatus;
 import com.bmad.hrm.entity.Employee;
 import com.bmad.hrm.entity.Shift;
 import com.bmad.hrm.entity.ShiftAssignment;
+import com.bmad.hrm.entity.SalaryConfig;
 import com.bmad.hrm.repository.AttendanceRepository;
 import com.bmad.hrm.repository.EmployeeRepository;
 import com.bmad.hrm.repository.ShiftRepository;
 import com.bmad.hrm.repository.ShiftAssignmentRepository;
+import com.bmad.hrm.repository.SalaryConfigRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -26,10 +28,16 @@ public class TimekeepingService {
     private final EmployeeRepository   employeeRepository;
     private final ShiftAssignmentRepository shiftAssignmentRepository;
     private final ShiftRepository           shiftRepository;
+    private final SalaryConfigRepository   salaryConfigRepository;
 
     @org.springframework.beans.factory.annotation.Autowired
     @org.springframework.context.annotation.Lazy
     private SalaryService salaryService;
+
+    private SalaryConfig getSystemConfig() {
+        return salaryConfigRepository.findAll().stream().findFirst()
+                .orElse(SalaryConfig.builder().build());
+    }
 
     /** Ca bắt đầu: 08:00 | Ngưỡng trễ: 08:40 (trễ > 10 phút) */
     private static final LocalTime SHIFT_START  = LocalTime.of(8, 0);
@@ -71,11 +79,12 @@ public class TimekeepingService {
         }
 
         LocalTime now = LocalTime.now();
-        // Check late: check-in after shift start time + 10 mins
+        SalaryConfig config = getSystemConfig();
+        // Check late: check-in after shift start time + grace minutes
         long lateMinutes = now.isAfter(shift.getStartTime()) 
                 ? java.time.Duration.between(shift.getStartTime(), now).toMinutes() : 0;
         
-        AttendanceStatus status = lateMinutes > 10 
+        AttendanceStatus status = lateMinutes > config.getLateGraceMinutes() 
                 ? AttendanceStatus.LATE 
                 : AttendanceStatus.ON_TIME;
 
@@ -119,22 +128,23 @@ public class TimekeepingService {
             LocalTime checkIn = att.getCheckInTime();
             double workedHours = java.time.Duration.between(checkIn, now).toMinutes() / 60.0;
             
+            SalaryConfig config = getSystemConfig();
             long lateMinutes = checkIn.isAfter(shift.getStartTime())
                     ? java.time.Duration.between(shift.getStartTime(), checkIn).toMinutes() : 0;
             long earlyMinutes = now.isBefore(shift.getEndTime())
                     ? java.time.Duration.between(now, shift.getEndTime()).toMinutes() : 0;
 
             // Recalculate workPoints & status based on the new rules
-            if (lateMinutes >= 240) { // 4 hours
+            if (lateMinutes >= config.getAbsentThresholdMinutes()) { 
                 att.setWorkPoints(0.0);
                 att.setStatus(AttendanceStatus.ABSENT_NO_PERMISSION);
             } else {
                 double points = workedHours / shift.getStandardHours();
                 att.setWorkPoints(Math.min(1.0, Math.max(0.0, points)));
                 
-                if (earlyMinutes > 0) {
+                if (earlyMinutes > config.getEarlyGraceMinutes()) {
                     att.setStatus(AttendanceStatus.EARLY);
-                } else if (lateMinutes > 10) {
+                } else if (lateMinutes > config.getLateGraceMinutes()) {
                     att.setStatus(AttendanceStatus.LATE);
                 } else {
                     att.setStatus(AttendanceStatus.ON_TIME);
@@ -231,10 +241,11 @@ public class TimekeepingService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên: " + employeeId));
 
         Shift shift = null;
-        if (shiftId != null) {
+        boolean isExplicitOff = (shiftId != null && shiftId <= 0);
+        if (shiftId != null && shiftId > 0) {
             shift = shiftRepository.findById(shiftId).orElse(null);
         }
-        if (shift == null) {
+        if (shift == null && !isExplicitOff) {
             // Find daily assignment or fallback
             Optional<ShiftAssignment> assignmentOpt = shiftAssignmentRepository.findByEmployeeIdAndDate(employeeId, date);
             if (assignmentOpt.isPresent()) {
@@ -248,10 +259,16 @@ public class TimekeepingService {
         Double workPoints = 0.0;
 
         // Validations & recalculation
-        if (status == AttendanceStatus.ABSENT || status == AttendanceStatus.ABSENT_NO_PERMISSION || status == AttendanceStatus.SPECIAL_LEAVE) {
+        // Validations & recalculation
+        if (status == AttendanceStatus.ABSENT || status == AttendanceStatus.ABSENT_NO_PERMISSION || status == AttendanceStatus.SPECIAL_LEAVE || isExplicitOff) {
             checkInTime = null;
             checkOutTime = null;
-            workPoints = 0.0;
+            if (isExplicitOff && status == AttendanceStatus.ON_TIME) {
+                status = null;
+                workPoints = null; // explicitly OFF has no work points at all (displays as --)
+            } else {
+                workPoints = 0.0;
+            }
         } else {
             if (checkInTime == null) {
                 throw new RuntimeException("Các ngày đi làm bình thường phải có giờ vào check-in!");
@@ -261,10 +278,11 @@ public class TimekeepingService {
             }
 
             if (shift != null) {
+                SalaryConfig config = getSystemConfig();
                 long lateMinutes = checkInTime.isAfter(shift.getStartTime())
                         ? java.time.Duration.between(shift.getStartTime(), checkInTime).toMinutes() : 0;
                 
-                if (lateMinutes >= 240) {
+                if (lateMinutes >= config.getAbsentThresholdMinutes()) {
                     workPoints = 0.0;
                     status = AttendanceStatus.ABSENT_NO_PERMISSION; // Muộn nửa ngày -> không tính công
                 } else if (checkOutTime != null) {

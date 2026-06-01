@@ -172,7 +172,10 @@
               <div class="avatar-sm">
                 <img [src]="'https://ui-avatars.com/api/?name=' + (newEmployee.name || 'N') + '&background=e5ebfe&color=4B49AC&bold=true'" alt="Avatar">
               </div>
-              <input class="inline-input" type="text" placeholder="Nhập họ tên" [(ngModel)]="newEmployee.name" style="flex: 1; min-width: 0;">
+              <div style="display: flex; flex-direction: column; flex: 1;">
+                <input class="inline-input" type="text" placeholder="Nhập họ tên" [(ngModel)]="newEmployee.name" style="width: 100%;">
+                <div class="field-error-msg" *ngIf="validationErrors.newEmployeeName">{{ validationErrors.newEmployeeName }}</div>
+              </div>
             </div>
           </td>
           <td>
@@ -188,7 +191,7 @@
             </select>
           </td>
           <td>
-            <select class="inline-input" [(ngModel)]="newEmployee.employeeType">
+            <select class="inline-input" [(ngModel)]="newEmployee.employeeType" (change)="onEmployeeTypeChange(newEmployee)">
               <option value="FULL_TIME">Full-time</option>
               <option value="PART_TIME">Part-time</option>
               <option value="MANAGER">Manager</option>
@@ -197,7 +200,10 @@
           <td>
             <input class="inline-input" type="number" placeholder="Lương CB" [(ngModel)]="newEmployee.salaryBase">
           </td>
-          <td><input class="inline-input" type="email" placeholder="Email" [(ngModel)]="newEmployee.email"></td>
+          <td>
+            <input class="inline-input" type="email" placeholder="Email" [(ngModel)]="newEmployee.email">
+            <div class="field-error-msg" *ngIf="validationErrors.newEmployeeEmail">{{ validationErrors.newEmployeeEmail }}</div>
+          </td>
           <td><!-- Empty for Face ID in add row --></td>
           <td>
             <select class="inline-input" [(ngModel)]="newEmployee.status">
@@ -268,7 +274,10 @@
                 <div class="avatar-sm">
                   <img [src]="'https://ui-avatars.com/api/?name=' + editModel.name + '&background=e5ebfe&color=4B49AC&bold=true'" alt="Avatar">
                 </div>
-                <input class="inline-input" type="text" [(ngModel)]="editModel.name" style="flex: 1; min-width: 0;">
+                <div style="display: flex; flex-direction: column; flex: 1;">
+                  <input class="inline-input" type="text" [(ngModel)]="editModel.name" style="width: 100%;">
+                  <div class="field-error-msg" *ngIf="validationErrors.editEmployeeName">{{ validationErrors.editEmployeeName }}</div>
+                </div>
               </div>
             </td>
             <td>
@@ -282,7 +291,7 @@
               </select>
             </td>
             <td>
-              <select class="inline-input" [(ngModel)]="editModel.employeeType">
+              <select class="inline-input" [(ngModel)]="editModel.employeeType" (change)="onEmployeeTypeChange(editModel)">
                 <option value="FULL_TIME">Full-time</option>
                 <option value="PART_TIME">Part-time</option>
                 <option value="MANAGER">Manager</option>
@@ -291,7 +300,10 @@
             <td>
               <input class="inline-input" type="number" [(ngModel)]="editModel.salaryBase">
             </td>
-            <td><input class="inline-input" type="email" [(ngModel)]="editModel.email"></td>
+            <td>
+              <input class="inline-input" type="email" [(ngModel)]="editModel.email">
+              <div class="field-error-msg" *ngIf="validationErrors.editEmployeeEmail">{{ validationErrors.editEmployeeEmail }}</div>
+            </td>
             <td><!-- Empty for Face ID in edit row --></td>
             <td>
               <span class="status-badge" [ngClass]="editModel.status === 'ACTIVE' ? 'active' : 'leave'">{{ editModel.status === 'ACTIVE' ? 'Active' : 'Inactive' }}</span>
@@ -470,16 +482,17 @@
               <td>
                 <ng-container *ngIf="!day.editing">
                   <span class="chip-inline" 
-                        [style.background]="day.record?.shift ? 'rgba(99, 102, 241, 0.15)' : (isPastDay(day.dateStr) ? 'rgba(100, 116, 139, 0.15)' : 'rgba(14, 165, 233, 0.15)')"
-                        [style.color]="day.record?.shift ? '#818cf8' : (isPastDay(day.dateStr) ? '#64748b' : '#0284c7')"
+                        [style.background]="day.record?.shift ? 'rgba(99, 102, 241, 0.15)' : ((isPastDay(day.dateStr) || (day.record && !day.record.shift)) ? 'rgba(100, 116, 139, 0.15)' : 'rgba(14, 165, 233, 0.15)')"
+                        [style.color]="day.record?.shift ? '#818cf8' : ((isPastDay(day.dateStr) || (day.record && !day.record.shift)) ? '#64748b' : '#0284c7')"
                         style="font-weight: 600; padding: 4px 8px; border-radius: 6px;">
-                    {{ day.record?.shift?.name || (isPastDay(day.dateStr) ? 'OFF' : 'Chưa phân ca') }}
+                    {{ day.record?.shift?.name || ((isPastDay(day.dateStr) || (day.record && !day.record.shift)) ? 'OFF' : 'Chưa phân ca') }}
                   </span>
                 </ng-container>
                 <ng-container *ngIf="day.editing">
-                  <select class="modal-select" [(ngModel)]="day.editShiftId" 
+                  <select class="modal-select" [(ngModel)]="day.editShiftId" (ngModelChange)="onShiftChange(day)"
                           [disabled]="day.editStatus === 'ABSENT' || day.editStatus === 'ABSENT_NO_PERMISSION' || day.editStatus === 'SPECIAL_LEAVE'"
                           style="width: 100%; padding: 6px; border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff; border: 1px solid rgba(255,255,255,0.2);">
+                    <option [value]="-1">Nghỉ (OFF)</option>
                     <option *ngFor="let s of availableShifts" [value]="s.id">{{ s.name }}</option>
                   </select>
                 </ng-container>
@@ -492,7 +505,7 @@
                 </ng-container>
                 <ng-container *ngIf="day.editing">
                   <input type="time" class="modal-time-input" [(ngModel)]="day.editCheckIn" 
-                         [disabled]="day.editStatus === 'ABSENT' || day.editStatus === 'ABSENT_NO_PERMISSION' || day.editStatus === 'SPECIAL_LEAVE'">
+                         [disabled]="day.editShiftId == -1 || day.editStatus === 'ABSENT' || day.editStatus === 'ABSENT_NO_PERMISSION' || day.editStatus === 'SPECIAL_LEAVE'">
                 </ng-container>
               </td>
 
@@ -503,26 +516,31 @@
                 </ng-container>
                 <ng-container *ngIf="day.editing">
                   <input type="time" class="modal-time-input" [(ngModel)]="day.editCheckOut"
-                         [disabled]="day.editStatus === 'ABSENT' || day.editStatus === 'ABSENT_NO_PERMISSION' || day.editStatus === 'SPECIAL_LEAVE'">
+                         [disabled]="day.editShiftId == -1 || day.editStatus === 'ABSENT' || day.editStatus === 'ABSENT_NO_PERMISSION' || day.editStatus === 'SPECIAL_LEAVE'">
                 </ng-container>
               </td>
 
               <!-- Work Points (Công) -->
               <td style="font-weight: 700; color: #818cf8; text-align: center;">
-                <span *ngIf="day.record?.workPoints !== null">{{ day.record?.workPoints | number:'1.1-2' }}</span>
-                <span *ngIf="day.record?.workPoints === null">--</span>
+                <ng-container *ngIf="day.editing && day.editShiftId == -1">
+                  <span>--</span>
+                </ng-container>
+                <ng-container *ngIf="!(day.editing && day.editShiftId == -1)">
+                  <span *ngIf="day.record?.workPoints !== null">{{ day.record?.workPoints | number:'1.1-2' }}</span>
+                  <span *ngIf="day.record?.workPoints === null">--</span>
+                </ng-container>
               </td>
 
               <!-- Status Badge / Select -->
               <td>
                 <ng-container *ngIf="!day.editing">
                   <!-- Nếu chưa có dữ liệu chấm công hoặc là ngày nghỉ/vắng mặt -->
-                  <span class="chip-status" [ngClass]="day.record ? getStatusBadgeClass(day.record.status) : 'chip-gray'" *ngIf="!day.record || day.record.status === 'ABSENT' || day.record.status === 'ABSENT_NO_PERMISSION' || day.record.status === 'SPECIAL_LEAVE'">
-                    {{ getStatusText(day.record ? day.record.status : '', day.dateStr) }}
+                  <span class="chip-status" [ngClass]="day.record ? getStatusBadgeClass(day.record.status) : 'chip-gray'" *ngIf="!day.record || !day.record.status || day.record.status === 'ABSENT' || day.record.status === 'ABSENT_NO_PERMISSION' || day.record.status === 'SPECIAL_LEAVE'">
+                    {{ (day.record && !day.record.shift && !day.record.status) ? 'Nghỉ' : getStatusText(day.record ? day.record.status : '', day.dateStr) }}
                   </span>
 
                   <!-- Nếu đi làm bình thường -->
-                  <ng-container *ngIf="day.record && day.record.status !== 'ABSENT' && day.record.status !== 'ABSENT_NO_PERMISSION' && day.record.status !== 'SPECIAL_LEAVE'">
+                  <ng-container *ngIf="day.record && day.record.status && day.record.status !== 'ABSENT' && day.record.status !== 'ABSENT_NO_PERMISSION' && day.record.status !== 'SPECIAL_LEAVE'">
                     <!-- Đúng giờ -->
                     <span class="chip-status chip-green" *ngIf="!isRowLate(day.record) && !isRowEarly(day.record)">Đúng giờ</span>
                     
@@ -532,7 +550,10 @@
                   </ng-container>
                 </ng-container>
                 <ng-container *ngIf="day.editing">
-                  <select class="modal-select" [(ngModel)]="day.editStatus"
+                  <ng-container *ngIf="day.editShiftId == -1">
+                    <span class="chip-status chip-gray" style="width: 100%; display: inline-block;">Nghỉ</span>
+                  </ng-container>
+                  <select *ngIf="day.editShiftId != -1" class="modal-select" [(ngModel)]="day.editStatus"
                           style="width: 100%; padding: 6px; border-radius: 6px; background: rgba(0,0,0,0.3); color: #fff; border: 1px solid rgba(255,255,255,0.2);">
                     <option value="ON_TIME">Đúng giờ</option>
                     <option value="LATE">Đi trễ</option>

@@ -24,7 +24,7 @@ public class EmployeeService {
 
     public List<EmployeeDto> getAllEmployees() {
         return employeeRepository.findAll().stream()
-                .filter(e -> e.getRole() != com.bmad.hrm.entity.Role.ADMIN)
+                .filter(e -> e.getRole() != com.bmad.hrm.entity.Role.ADMIN && !"DELETED".equals(e.getStatus()))
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
     }
@@ -62,10 +62,10 @@ public class EmployeeService {
     
     @Transactional
     public void deleteEmployee(Long id) {
-        salaryRepository.deleteByEmployeeId(id);
-        attendanceRepository.deleteByEmployeeId(id);
-        shiftAssignmentRepository.deleteByEmployeeId(id);
-        employeeRepository.deleteById(id);
+        employeeRepository.findById(id).ifPresent(e -> {
+            e.setStatus("DELETED");
+            employeeRepository.save(e);
+        });
     }
 
     private EmployeeDto mapToDto(Employee employee) {

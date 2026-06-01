@@ -54,6 +54,13 @@ public class SalaryService {
     private final AttendanceRepository       attendanceRepository;
     private final MonthlyRevenueRepository   revenueRepository;
     private final EmailService               emailService;
+    private final SalaryConfigRepository     salaryConfigRepository;
+    private final HolidayRepository          holidayRepository;
+
+    private SalaryConfig getSystemConfig() {
+        return salaryConfigRepository.findAll().stream().findFirst()
+                .orElse(SalaryConfig.builder().build());
+    }
 
     // =========================================================================
     // PUBLIC API
@@ -69,7 +76,8 @@ public class SalaryService {
         mr.setYear(year);
         mr.setMonthlyRevenue(revenue);
         
-        double rate = bonusRate != null ? bonusRate : 1.0;
+        double defaultRate = getSystemConfig().getRevenuePoolRate();
+        double rate = bonusRate != null ? bonusRate : defaultRate;
         mr.setBonusRate(rate);
         mr.setBonusPool(revenue * (rate / 100.0));
         
@@ -95,10 +103,10 @@ public class SalaryService {
 
         List<Employee> employees = allEmployees.stream()
                 .filter(e -> {
-                    if (!"LEAVE".equals(e.getStatus())) {
+                    if (!"LEAVE".equals(e.getStatus()) && !"DELETED".equals(e.getStatus())) {
                         return true;
                     }
-                    // For inactive (LEAVE) employees, check if they have any attendance records in this month
+                    // For inactive (LEAVE/DELETED) employees, check if they have any attendance records in this month
                     return !attendanceRepository.findByEmployeeIdAndDateBetween(e.getId(), monthStart, monthEnd).isEmpty();
                 })
                 .collect(Collectors.toList());
@@ -109,15 +117,19 @@ public class SalaryService {
                 .orElse(0.0);
 
         // ── Bước 2: đếm weight để chia POOL ────────────────────────────────
+        SalaryConfig config = getSystemConfig();
+        double ftWeight = config.getFullTimeShareWeight();
+        double mgWeight = config.getManagerShareWeight();
+
         long fullTimeCount = employees.stream()
                 .filter(e -> e.getEmployeeType() == null || e.getEmployeeType() == EmployeeType.FULL_TIME).count();
         long managerCount = employees.stream()
                 .filter(e -> e.getEmployeeType() == EmployeeType.MANAGER).count();
-        double totalWeight = (fullTimeCount * 1.0) + (managerCount * 2.0);
+        double totalWeight = (fullTimeCount * ftWeight) + (managerCount * mgWeight);
 
         double pointValue      = totalWeight > 0 ? bonusPool / totalWeight : 0.0;
-        double fullTimeBonusRev = pointValue * 1.0;
-        double managerBonusRev  = pointValue * 2.0;
+        double fullTimeBonusRev = pointValue * ftWeight;
+        double managerBonusRev  = pointValue * mgWeight;
 
         // ── Bước 3: tính lương từng người ───────────────────────────────────
         List<SalaryPayrollDto> results = new ArrayList<>();
@@ -159,6 +171,7 @@ public class SalaryService {
     // =========================================================================
 
     private SalaryPayrollDto calculateOneSalary(Employee emp, Integer month, Integer year, double revBonus) {
+        SalaryConfig config = getSystemConfig();
         EmployeeType type = emp.getEmployeeType() != null ? emp.getEmployeeType() : EmployeeType.FULL_TIME;
 
         LocalDate start = LocalDate.of(year, month, 1);
@@ -179,9 +192,22 @@ public class SalaryService {
         // ── Luồng: Tính giờ công ─────────────────────────────────────────────
         double regularHours = 0.0;
         double otHours      = 0.0;
+        double holidayHours = 0.0;
+        double holidaySalary = 0.0;
         long   lateDays     = 0;
         long   noCheckout   = 0;
         long   absentNoPerm = 0;
+
+        List<Holiday> allHolidays = holidayRepository.findAll();
+        List<Holiday> holidays = allHolidays.stream()
+                .filter(h -> {
+                    if (h.getRepeatYearly() != null && h.getRepeatYearly()) {
+                        return h.getDate().getMonthValue() == month;
+                    } else {
+                        return !h.getDate().isBefore(start) && !h.getDate().isAfter(end);
+                    }
+                })
+                .collect(Collectors.toList());
 
         // Count total working days as sum of actual work points.
         double workDays = records.stream()
@@ -194,29 +220,83 @@ public class SalaryService {
                 absentNoPerm++;
             }
 
+            // Check if this date is a holiday
+            Optional<Holiday> holidayOpt = holidays.stream()
+                    .filter(h -> h.getDate().equals(a.getDate()))
+                    .findFirst();
+
             // Phạt đi trễ nghiêm khắc dựa trên giờ check-in thực tế, không phụ thuộc trạng thái hiển thị của ngày hôm đó
             if (a.getCheckInTime() != null) {
                 LocalTime shiftStart = a.getShift() != null ? a.getShift().getStartTime() : SHIFT_START;
                 long lateMinutes = a.getCheckInTime().isAfter(shiftStart)
                         ? java.time.Duration.between(shiftStart, a.getCheckInTime()).toMinutes() : 0;
-                if (lateMinutes > 10) {
+                if (lateMinutes > config.getLateGraceMinutes()) {
                     lateDays++;
                 }
             }
 
             // Check missing checkout
-            if (a.getCheckInTime() != null && a.getCheckOutTime() == null && 
-                a.getStatus() != AttendanceStatus.ABSENT && a.getStatus() != AttendanceStatus.ABSENT_NO_PERMISSION && a.getStatus() != AttendanceStatus.SPECIAL_LEAVE) {
+            boolean isMissingCheckout = a.getCheckInTime() != null && a.getCheckOutTime() == null && 
+                a.getStatus() != AttendanceStatus.ABSENT && a.getStatus() != AttendanceStatus.ABSENT_NO_PERMISSION && a.getStatus() != AttendanceStatus.SPECIAL_LEAVE;
+            
+            if (isMissingCheckout) {
                 noCheckout++;
-                continue;
             }
 
-            if (a.getCheckInTime() != null && a.getCheckOutTime() != null) {
+            boolean isHoliday = holidayOpt.isPresent();
+            // Nhân viên thực sự đi làm ngày Lễ: có check-in thực tế VÀ không phải là các trạng thái nghỉ/vắng
+            boolean didWorkOnHoliday = isHoliday && a.getCheckInTime() != null 
+                    && a.getStatus() != AttendanceStatus.ABSENT 
+                    && a.getStatus() != AttendanceStatus.ABSENT_NO_PERMISSION 
+                    && a.getStatus() != AttendanceStatus.SPECIAL_LEAVE;
+
+            if (didWorkOnHoliday) {
+                Holiday hol = holidayOpt.get();
+                if (type == EmployeeType.PART_TIME) {
+                    if (a.getCheckOutTime() != null) {
+                        double hoursWorked = computeHours(a.getCheckInTime(), a.getCheckOutTime());
+                        holidayHours += hoursWorked;
+                        double hourlyRate = (emp.getSalaryBase() != null && emp.getSalaryBase() > 0) ? emp.getSalaryBase() : config.getPartTimeHourlyRate();
+                        double coeff = hol.getCoefficient() != null ? hol.getCoefficient() : 3.0;
+                        holidaySalary += roundAmount(hoursWorked * hourlyRate * coeff);
+                    }
+                } else {
+                    // Full-time hoặc Manager đi làm ngày Lễ
+                    double hoursWorked = 0.0;
+                    if (a.getCheckOutTime() != null) {
+                        hoursWorked = computeHours(a.getCheckInTime(), a.getCheckOutTime());
+                    } else {
+                        // Fallback về số giờ tiêu chuẩn của ca/hệ thống nếu quên checkout để tính giờ công
+                        hoursWorked = a.getShift() != null ? a.getShift().getStandardHours() : config.getStandardWorkingHours();
+                    }
+                    
+                    holidayHours += hoursWorked;
+                    
+                    double stdHours = a.getShift() != null ? a.getShift().getStandardHours() : config.getStandardWorkingHours();
+                    if (hoursWorked <= stdHours) {
+                        regularHours += hoursWorked;
+                    } else {
+                        regularHours += stdHours;
+                        otHours      += (hoursWorked - stdHours);
+                    }
+                    
+                    double bonusAmount = 0.0;
+                    if (type == EmployeeType.MANAGER) {
+                        bonusAmount = hol.getManagerBonus() != null ? hol.getManagerBonus() : 0.0;
+                    } else {
+                        bonusAmount = hol.getFullTimeBonus() != null ? hol.getFullTimeBonus() : 0.0;
+                    }
+                    
+                    double pts = a.getWorkPoints() != null ? a.getWorkPoints() : 0.0;
+                    holidaySalary += roundAmount(bonusAmount * pts);
+                }
+            } else if (!isMissingCheckout && a.getCheckInTime() != null && a.getCheckOutTime() != null) {
+                // Ngày thường đi làm bình thường (hoặc ngày lễ nhưng không được tính đi làm lễ)
                 double hoursWorked = computeHours(a.getCheckInTime(), a.getCheckOutTime());
                 if (type == EmployeeType.PART_TIME) {
-                    regularHours += hoursWorked; // Part-time tính toàn bộ giờ làm là giờ thường
+                    regularHours += hoursWorked;
                 } else {
-                    double stdHours = a.getShift() != null ? a.getShift().getStandardHours() : DAILY_NORMAL_HOURS;
+                    double stdHours = a.getShift() != null ? a.getShift().getStandardHours() : config.getStandardWorkingHours();
                     if (hoursWorked <= stdHours) {
                         regularHours += hoursWorked;
                     } else {
@@ -229,6 +309,7 @@ public class SalaryService {
 
         regularHours = roundHours(regularHours);
         otHours      = roundHours(otHours);
+        holidayHours = roundHours(holidayHours);
 
         // ── Luồng: Tính lương cơ bản ─────────────────────────────────────────
         double baseSalary;
@@ -236,7 +317,7 @@ public class SalaryService {
         double otSalary;
 
         if (type == EmployeeType.PART_TIME) {
-            double hourlyRate = (emp.getSalaryBase() != null && emp.getSalaryBase() > 0) ? emp.getSalaryBase() : PART_TIME_HOURLY;
+            double hourlyRate = (emp.getSalaryBase() != null && emp.getSalaryBase() > 0) ? emp.getSalaryBase() : config.getPartTimeHourlyRate();
             baseSalary = hourlyRate; // Lương cơ bản là mức lương theo giờ
             actualBaseSalary = roundAmount(regularHours * hourlyRate);
             otSalary = 0.0; // Part-time không có OT
@@ -244,32 +325,35 @@ public class SalaryService {
             baseSalary = roundAmount(emp.getSalaryBase()); // Lương cơ bản gốc
             
             // Lương thực tế tính tỷ lệ theo số ngày làm thực tế (gồm cả nghỉ đặc biệt được hưởng nguyên lương)
-            // Tối đa 100% lương cơ bản gốc khi đạt đủ hoặc vượt 26 công chuẩn
+            // Tối đa 100% lương cơ bản gốc khi đạt đủ hoặc vượt số ngày công yêu cầu
             double totalEffectiveDays = workDays + specialLeaveDays;
-            double paidDays = Math.min(26.0, totalEffectiveDays);
-            actualBaseSalary = roundAmount((emp.getSalaryBase() * paidDays) / 26.0);
+            double paidDays = Math.min((double) config.getRequiredPerfectDays(), totalEffectiveDays);
+            actualBaseSalary = roundAmount((emp.getSalaryBase() * paidDays) / config.getRequiredPerfectDays());
             
-            otSalary   = roundAmount(otHours * (emp.getSalaryBase() / 208.0) * OT_MULTIPLIER); // 26 days * 8 hours = 208
+            otSalary   = roundAmount(otHours * (emp.getSalaryBase() / (config.getRequiredPerfectDays() * config.getStandardWorkingHours())) * config.getOtMultiplier());
         } else {
             switch (type) {
                 case MANAGER:
-                    baseSalary = MANAGER_BASE + MANAGER_ALLOWANCE;
+                    baseSalary = config.getManagerBaseSalary() + config.getManagerAllowance();
                     otSalary   = 0.0; // Manager không OT
+                    actualBaseSalary = baseSalary;
                     break;
                 default: // FULL_TIME
-                    baseSalary = regularHours * FULL_TIME_HOURLY;
-                    otSalary   = otHours * FULL_TIME_HOURLY * OT_MULTIPLIER;
+                    baseSalary = config.getFullTimeBaseSalary();
+                    double totalEffectiveDays = workDays + specialLeaveDays;
+                    double paidDays = Math.min((double) config.getRequiredPerfectDays(), totalEffectiveDays);
+                    actualBaseSalary = roundAmount((baseSalary * paidDays) / config.getRequiredPerfectDays());
+                    otSalary = roundAmount(otHours * (baseSalary / (config.getRequiredPerfectDays() * config.getStandardWorkingHours())) * config.getOtMultiplier());
                     break;
             }
-            actualBaseSalary = baseSalary;
         }
 
         // ── Luồng: Thưởng/Phạt ──────────────────────────────────────────────
         // Phạt (áp dụng cho tất cả loại NORMAL)
-        double penaltyLateAmt     = roundAmount(lateDays     * PENALTY_LATE);
-        double penaltyNoCheckAmt  = roundAmount(noCheckout   * PENALTY_NO_CHECKOUT);
+        double penaltyLateAmt     = roundAmount(lateDays     * config.getLatePenalty());
+        double penaltyNoCheckAmt  = roundAmount(noCheckout   * config.getMissingCheckoutPenalty());
         // Chỉ phạt vắng đối với số ngày nghỉ không phép thực tế
-        double penaltyAbsentAmt   = roundAmount(absentNoPerm * PENALTY_ABSENT_NO_PERM);
+        double penaltyAbsentAmt   = roundAmount(absentNoPerm * config.getAbsentPenalty());
         double totalPenalty       = roundAmount(penaltyLateAmt + penaltyNoCheckAmt + penaltyAbsentAmt);
 
         // Thưởng chuyên cần (chỉ Full-time và Manager)
@@ -277,11 +361,11 @@ public class SalaryService {
         double bonusNoLate   = 0.0;
         double totalEffectiveDaysForBonus = workDays + specialLeaveDays;
         if (type == EmployeeType.FULL_TIME || type == EmployeeType.MANAGER) {
-            if (totalEffectiveDaysForBonus >= REQUIRED_WORK_DAYS) {
-                bonusFullDays = BONUS_FULL_DAYS;
+            if (totalEffectiveDaysForBonus >= config.getRequiredPerfectDays()) {
+                bonusFullDays = config.getPerfectAttendanceBonus();
             }
             if (lateDays == 0) {
-                bonusNoLate = BONUS_NO_LATE;
+                bonusNoLate = config.getBonusNoLate();
             }
         }
         double bonusAttendance = roundAmount(bonusFullDays + bonusNoLate);
@@ -292,14 +376,16 @@ public class SalaryService {
         double totalBonus = roundAmount(bonusAttendance + bonusRevenue);
 
         // ── Luồng: Tính lương cuối ───────────────────────────────────────────
-        double totalSalary = roundAmount(actualBaseSalary + otSalary + totalBonus - totalPenalty);
+        double totalSalary = roundAmount(actualBaseSalary + otSalary + holidaySalary + totalBonus - totalPenalty);
         if (totalSalary < 0) totalSalary = 0;
 
         // Nếu không đi làm ngày nào (0 ngày và 0 công), thực lĩnh và tất cả khoản lương, thưởng, phạt tự động bằng 0
-        if (workDays == 0.0 && regularHours == 0.0) {
+        if (workDays == 0.0 && regularHours == 0.0 && holidayHours == 0.0) {
             baseSalary = 0.0;
             actualBaseSalary = 0.0;
             otSalary = 0.0;
+            holidayHours = 0.0;
+            holidaySalary = 0.0;
             bonusAttendance = 0.0;
             bonusRevenue = 0.0;
             penaltyLateAmt = 0.0;
@@ -319,10 +405,12 @@ public class SalaryService {
         salary.setEmployeeType(type);
         salary.setRegularHours(regularHours);
         salary.setOtHours(otHours);
+        salary.setHolidayHours(holidayHours);
         salary.setWorkDays(workDays);
         salary.setBaseSalary(baseSalary);
         salary.setActualBaseSalary(actualBaseSalary);
         salary.setOtSalary(otSalary);
+        salary.setHolidaySalary(holidaySalary);
         salary.setBonusAttendance(bonusAttendance);
         salary.setBonusRevenue(bonusRevenue);
         salary.setPenaltyLate(penaltyLateAmt);
@@ -348,10 +436,12 @@ public class SalaryService {
                 .month(month).year(year)
                 .regularHours(regularHours)
                 .otHours(otHours)
+                .holidayHours(holidayHours)
                 .workDays(workDays)
                 .baseSalary(baseSalary)
                 .actualBaseSalary(actualBaseSalary)
                 .otSalary(otSalary)
+                .holidaySalary(holidaySalary)
                 .bonusAttendance(bonusAttendance)
                 .bonusRevenue(bonusRevenue)
                 .totalBonus(totalBonus)
@@ -375,9 +465,11 @@ public class SalaryService {
         salary.setWorkDays(dto.getWorkDays());
         salary.setRegularHours(roundHours(dto.getRegularHours()));
         salary.setOtHours(roundHours(dto.getOtHours()));
+        salary.setHolidayHours(dto.getHolidayHours() != null ? roundHours(dto.getHolidayHours()) : 0.0);
         salary.setBaseSalary(roundAmount(dto.getBaseSalary()));
         salary.setActualBaseSalary(roundAmount(dto.getActualBaseSalary() != null ? dto.getActualBaseSalary() : dto.getBaseSalary()));
         salary.setOtSalary(roundAmount(dto.getOtSalary()));
+        salary.setHolidaySalary(dto.getHolidaySalary() != null ? roundAmount(dto.getHolidaySalary()) : 0.0);
         salary.setBonusAttendance(roundAmount(dto.getBonusAttendance()));
         salary.setBonusRevenue(roundAmount(dto.getBonusRevenue()));
         salary.setTotalPenalty(roundAmount(dto.getTotalPenalty()));
@@ -385,6 +477,7 @@ public class SalaryService {
         // Recalculate total
         double totalSalary = (salary.getActualBaseSalary() != null ? salary.getActualBaseSalary() : 0)
                            + (salary.getOtSalary() != null ? salary.getOtSalary() : 0)
+                           + (salary.getHolidaySalary() != null ? salary.getHolidaySalary() : 0)
                            + (salary.getBonusAttendance() != null ? salary.getBonusAttendance() : 0)
                            + (salary.getBonusRevenue() != null ? salary.getBonusRevenue() : 0)
                            - (salary.getTotalPenalty() != null ? salary.getTotalPenalty() : 0);
@@ -490,14 +583,20 @@ public class SalaryService {
                 .map(r -> r.getBonusPool() != null ? r.getBonusPool() : 0.0)
                 .orElse(0.0);
 
-        List<Employee> all = employeeRepository.findAll();
+        SalaryConfig config = getSystemConfig();
+        double ftWeight = config.getFullTimeShareWeight();
+        double mgWeight = config.getManagerShareWeight();
+
+        List<Employee> all = employeeRepository.findAll().stream()
+                .filter(e -> e.getRole() != com.bmad.hrm.entity.Role.ADMIN && !"DELETED".equals(e.getStatus()) && !"LEAVE".equals(e.getStatus()))
+                .collect(Collectors.toList());
         long ft = all.stream().filter(e -> e.getEmployeeType() == null || e.getEmployeeType() == EmployeeType.FULL_TIME).count();
         long mg = all.stream().filter(e -> e.getEmployeeType() == EmployeeType.MANAGER).count();
-        double totalWeight = (ft * 1.0) + (mg * 2.0);
+        double totalWeight = (ft * ftWeight) + (mg * mgWeight);
         if (totalWeight == 0) return 0.0;
 
         double pointValue = bonusPool / totalWeight;
-        double rawBonus = emp.getEmployeeType() == EmployeeType.MANAGER ? pointValue * 2.0 : pointValue;
+        double rawBonus = emp.getEmployeeType() == EmployeeType.MANAGER ? pointValue * mgWeight : pointValue * ftWeight;
         return (double) Math.round(rawBonus);
     }
 
@@ -516,10 +615,12 @@ public class SalaryService {
                 .month(s.getMonth()).year(s.getYear())
                 .regularHours(s.getRegularHours())
                 .otHours(s.getOtHours())
+                .holidayHours(s.getHolidayHours())
                 .workDays(s.getWorkDays())
                 .baseSalary(s.getBaseSalary())
                 .actualBaseSalary(s.getActualBaseSalary())
                 .otSalary(s.getOtSalary())
+                .holidaySalary(s.getHolidaySalary())
                 .bonusAttendance(s.getBonusAttendance())
                 .bonusRevenue(s.getBonusRevenue())
                 .totalBonus(s.getTotalBonus())

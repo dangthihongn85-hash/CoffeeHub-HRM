@@ -100,9 +100,11 @@ export class SalaryManagementComponent implements OnInit {
         this.salaries = d.map(s => {
           s.regularHours = s.regularHours != null ? Math.round(s.regularHours * 10) / 10 : 0;
           s.otHours = s.otHours != null ? Math.round(s.otHours * 10) / 10 : 0;
+          s.holidayHours = s.holidayHours != null ? Math.round(s.holidayHours * 10) / 10 : 0;
           s.baseSalary = s.baseSalary != null ? Math.round(s.baseSalary) : 0;
           s.actualBaseSalary = s.actualBaseSalary != null ? Math.round(s.actualBaseSalary) : s.baseSalary;
           s.otSalary = s.otSalary != null ? Math.round(s.otSalary) : 0;
+          s.holidaySalary = s.holidaySalary != null ? Math.round(s.holidaySalary) : 0;
           s.bonusAttendance = s.bonusAttendance != null ? Math.round(s.bonusAttendance) : 0;
           s.bonusRevenue = s.bonusRevenue != null ? Math.round(s.bonusRevenue) : 0;
           s.totalBonus = s.totalBonus != null ? Math.round(s.totalBonus) : 0;
@@ -167,9 +169,11 @@ export class SalaryManagementComponent implements OnInit {
         this.salaries = d.map(s => {
           s.regularHours = s.regularHours != null ? Math.round(s.regularHours * 10) / 10 : 0;
           s.otHours = s.otHours != null ? Math.round(s.otHours * 10) / 10 : 0;
+          s.holidayHours = s.holidayHours != null ? Math.round(s.holidayHours * 10) / 10 : 0;
           s.baseSalary = s.baseSalary != null ? Math.round(s.baseSalary) : 0;
           s.actualBaseSalary = s.actualBaseSalary != null ? Math.round(s.actualBaseSalary) : s.baseSalary;
           s.otSalary = s.otSalary != null ? Math.round(s.otSalary) : 0;
+          s.holidaySalary = s.holidaySalary != null ? Math.round(s.holidaySalary) : 0;
           s.bonusAttendance = s.bonusAttendance != null ? Math.round(s.bonusAttendance) : 0;
           s.bonusRevenue = s.bonusRevenue != null ? Math.round(s.bonusRevenue) : 0;
           s.totalBonus = s.totalBonus != null ? Math.round(s.totalBonus) : 0;
@@ -273,6 +277,7 @@ export class SalaryManagementComponent implements OnInit {
     this.editSalaryModel = JSON.parse(JSON.stringify(sal));
     this.editSalaryModel.baseSalaryStr = this.formatCurrencyInput(this.editSalaryModel.baseSalary);
     this.editSalaryModel.actualBaseSalaryStr = this.formatCurrencyInput(this.editSalaryModel.actualBaseSalary != null ? this.editSalaryModel.actualBaseSalary : this.editSalaryModel.baseSalary);
+    this.editSalaryModel.holidaySalaryStr = this.formatCurrencyInput(this.editSalaryModel.holidaySalary);
     this.editSalaryModel.bonusAttendanceStr = this.formatCurrencyInput(this.editSalaryModel.bonusAttendance);
     this.editSalaryModel.bonusRevenueStr = this.formatCurrencyInput(this.editSalaryModel.bonusRevenue);
     this.editSalaryModel.totalPenaltyStr = this.formatCurrencyInput(this.editSalaryModel.totalPenalty);
@@ -295,6 +300,7 @@ export class SalaryManagementComponent implements OnInit {
     // Round input hours first to exactly 1 decimal place (e.g. 5.8333333333 = 5.8, 5.877778 = 5.9)
     sal.regularHours = sal.regularHours != null ? Math.round(sal.regularHours * 10) / 10 : 0;
     sal.otHours = sal.otHours != null ? Math.round(sal.otHours * 10) / 10 : 0;
+    sal.holidayHours = sal.holidayHours != null ? Math.round(sal.holidayHours * 10) / 10 : 0;
 
     // IF Part-time: Lương CB = giờ làm * hourly_rate, không có OT, không có Thưởng
     if (sal.employeeType === 'PART_TIME') {
@@ -344,9 +350,9 @@ export class SalaryManagementComponent implements OnInit {
       sal.otSalary = Math.round((sal.otHours || 0) * rate * OT_MULTIPLIER);
     }
 
-    // Gross = actualBaseSalary + OT + Thưởng (VNĐ)
+    // Gross = actualBaseSalary + OT + Thưởng ngày Lễ + Thưởng khác (VNĐ)
     const totalBonus = Math.round((sal.bonusAttendance || 0) + (sal.bonusRevenue || 0));
-    const gross = Math.round((sal.actualBaseSalary || 0) + (sal.otSalary || 0) + totalBonus);
+    const gross = Math.round((sal.actualBaseSalary || 0) + (sal.otSalary || 0) + (sal.holidaySalary || 0) + totalBonus);
 
     // Net = Gross - Phạt (VNĐ)
     sal.totalSalary = Math.round(gross - (sal.totalPenalty || 0));
@@ -358,6 +364,7 @@ export class SalaryManagementComponent implements OnInit {
     // Sync the string properties for UI inputs
     sal.baseSalaryStr = this.formatCurrencyInput(sal.baseSalary);
     sal.actualBaseSalaryStr = this.formatCurrencyInput(sal.actualBaseSalary);
+    sal.holidaySalaryStr = this.formatCurrencyInput(sal.holidaySalary);
     sal.bonusAttendanceStr = this.formatCurrencyInput(sal.bonusAttendance);
     sal.bonusRevenueStr = this.formatCurrencyInput(sal.bonusRevenue);
     sal.totalPenaltyStr = this.formatCurrencyInput(sal.totalPenalty);
@@ -465,9 +472,11 @@ export class SalaryManagementComponent implements OnInit {
         this.salaries = updatedList.map(s => {
           s.regularHours = s.regularHours != null ? Math.round(s.regularHours * 10) / 10 : 0;
           s.otHours = s.otHours != null ? Math.round(s.otHours * 10) / 10 : 0;
+          s.holidayHours = s.holidayHours != null ? Math.round(s.holidayHours * 10) / 10 : 0;
           s.baseSalary = s.baseSalary != null ? Math.round(s.baseSalary) : 0;
           s.actualBaseSalary = s.actualBaseSalary != null ? Math.round(s.actualBaseSalary) : s.baseSalary;
           s.otSalary = s.otSalary != null ? Math.round(s.otSalary) : 0;
+          s.holidaySalary = s.holidaySalary != null ? Math.round(s.holidaySalary) : 0;
           s.bonusAttendance = s.bonusAttendance != null ? Math.round(s.bonusAttendance) : 0;
           s.bonusRevenue = s.bonusRevenue != null ? Math.round(s.bonusRevenue) : 0;
           s.totalBonus = s.totalBonus != null ? Math.round(s.totalBonus) : 0;
@@ -514,9 +523,11 @@ export class SalaryManagementComponent implements OnInit {
         this.salaries = updatedList.map(s => {
           s.regularHours = s.regularHours != null ? Math.round(s.regularHours * 10) / 10 : 0;
           s.otHours = s.otHours != null ? Math.round(s.otHours * 10) / 10 : 0;
+          s.holidayHours = s.holidayHours != null ? Math.round(s.holidayHours * 10) / 10 : 0;
           s.baseSalary = s.baseSalary != null ? Math.round(s.baseSalary) : 0;
           s.actualBaseSalary = s.actualBaseSalary != null ? Math.round(s.actualBaseSalary) : s.baseSalary;
           s.otSalary = s.otSalary != null ? Math.round(s.otSalary) : 0;
+          s.holidaySalary = s.holidaySalary != null ? Math.round(s.holidaySalary) : 0;
           s.bonusAttendance = s.bonusAttendance != null ? Math.round(s.bonusAttendance) : 0;
           s.bonusRevenue = s.bonusRevenue != null ? Math.round(s.bonusRevenue) : 0;
           s.totalBonus = s.totalBonus != null ? Math.round(s.totalBonus) : 0;
@@ -563,9 +574,11 @@ export class SalaryManagementComponent implements OnInit {
         this.salaries = updatedList.map(s => {
           s.regularHours = s.regularHours != null ? Math.round(s.regularHours * 10) / 10 : 0;
           s.otHours = s.otHours != null ? Math.round(s.otHours * 10) / 10 : 0;
+          s.holidayHours = s.holidayHours != null ? Math.round(s.holidayHours * 10) / 10 : 0;
           s.baseSalary = s.baseSalary != null ? Math.round(s.baseSalary) : 0;
           s.actualBaseSalary = s.actualBaseSalary != null ? Math.round(s.actualBaseSalary) : s.baseSalary;
           s.otSalary = s.otSalary != null ? Math.round(s.otSalary) : 0;
+          s.holidaySalary = s.holidaySalary != null ? Math.round(s.holidaySalary) : 0;
           s.bonusAttendance = s.bonusAttendance != null ? Math.round(s.bonusAttendance) : 0;
           s.bonusRevenue = s.bonusRevenue != null ? Math.round(s.bonusRevenue) : 0;
           s.totalBonus = s.totalBonus != null ? Math.round(s.totalBonus) : 0;
@@ -893,6 +906,12 @@ export class SalaryManagementComponent implements OnInit {
               <tr>
                 <td>Lương tăng ca (OT ${(sal.otHours || 0).toFixed(1)}h × 1.5)</td>
                 <td class="amount">${this.fmt(sal.otSalary)}</td>
+              </tr>
+              ` : ''}
+              ${(sal.holidayHours || 0) > 0 || (sal.holidaySalary || 0) > 0 ? `
+              <tr>
+                <td>Lương/Thưởng làm ngày Lễ (${(sal.holidayHours || 0).toFixed(1)}h làm ngày lễ)</td>
+                <td class="amount green">+${this.fmt(sal.holidaySalary)}</td>
               </tr>
               ` : ''}
               ${(sal.bonusAttendance || 0) > 0 ? `

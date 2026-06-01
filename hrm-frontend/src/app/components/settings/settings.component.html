@@ -1,0 +1,470 @@
+<div class="settings-container">
+  <div class="header-section">
+    <div class="breadcrumb">Dashboard / Cấu Hình Hệ Thống</div>
+    <h2>Cấu Hình Tham Số Hệ Thống</h2>
+    <p>Thiết lập thời gian ca làm, mức phạt trễ, thưởng chuyên cần, lương sàn mặc định và tỷ lệ hoa hồng doanh thu.</p>
+  </div>
+
+  <div class="settings-layout">
+    <!-- Tabs Sidebar Navigation -->
+    <div class="tabs-nav-card">
+      <button class="tab-nav-btn" [class.active]="activeTab === 'time'" (click)="activeTab = 'time'">
+        <mat-icon>schedule</mat-icon>
+        <div class="btn-text">
+          <span>⏰ Thời Gian & Ca Làm</span>
+          <small>Đi muộn, về sớm, công chuẩn</small>
+        </div>
+      </button>
+
+      <button class="tab-nav-btn" [class.active]="activeTab === 'penalty'" (click)="activeTab = 'penalty'">
+        <mat-icon>gavel</mat-icon>
+        <div class="btn-text">
+          <span>💸 Các Khoản Phạt</span>
+          <small>Trễ ca, quên checkout, tự ý nghỉ</small>
+        </div>
+      </button>
+
+      <button class="tab-nav-btn" [class.active]="activeTab === 'bonus'" (click)="activeTab = 'bonus'">
+        <mat-icon>emoji_events</mat-icon>
+        <div class="btn-text">
+          <span>🎁 Thưởng Chuyên Cần</span>
+          <small>Tròn công, không đi muộn</small>
+        </div>
+      </button>
+
+      <button class="tab-nav-btn" [class.active]="activeTab === 'salary'" (click)="activeTab = 'salary'">
+        <mat-icon>payments</mat-icon>
+        <div class="btn-text">
+          <span>💰 Lương & Doanh Thu</span>
+          <small>Lương chuẩn sàn, % hoa hồng</small>
+        </div>
+      </button>
+
+      <button class="tab-nav-btn" [class.active]="activeTab === 'holiday'" (click)="activeTab = 'holiday'; loadHolidays()">
+        <mat-icon>event</mat-icon>
+        <div class="btn-text">
+          <span>📅 Quản Lý Ngày Lễ</span>
+          <small>Hệ số lương, tiền thưởng lễ</small>
+        </div>
+      </button>
+    </div>
+
+    <!-- Active Config Card -->
+    <mat-card class="config-content-card">
+      <div *ngIf="loading" class="spinner-container">
+        <mat-spinner diameter="40"></mat-spinner>
+        <p>Đang tải cấu hình hệ thống...</p>
+      </div>
+
+      <div *ngIf="!loading">
+        <!-- ⏰ TAB 1: THỜI GIAN & CA LÀM -->
+        <div *ngIf="activeTab === 'time'" class="tab-pane-content">
+          <h3>⏰ Cấu hình Ca làm & Quy tắc Thời gian</h3>
+          <p class="pane-description">Quyết định cách thức tính công và xác định trạng thái chấm công của nhân viên quán.</p>
+          
+          <div class="form-grid">
+            <div class="form-item">
+              <label>Thời gian đi muộn cho phép (Phút)</label>
+              <div class="input-wrapper">
+                <input type="number" [(ngModel)]="config.lateGraceMinutes" min="0" />
+                <span class="input-suffix">phút</span>
+              </div>
+              <div class="field-error-msg" *ngIf="validationErrors.lateGraceMinutes">{{ validationErrors.lateGraceMinutes }}</div>
+              <small class="helper-text">Đi muộn trong khoảng này không bị phạt. (Hiện tại: {{config.lateGraceMinutes}} phút)</small>
+            </div>
+
+            <div class="form-item">
+              <label>Thời gian về sớm cho phép (Phút)</label>
+              <div class="input-wrapper">
+                <input type="number" [(ngModel)]="config.earlyGraceMinutes" min="0" />
+                <span class="input-suffix">phút</span>
+              </div>
+              <div class="field-error-msg" *ngIf="validationErrors.earlyGraceMinutes">{{ validationErrors.earlyGraceMinutes }}</div>
+              <small class="helper-text">Về sớm tối đa số phút này không bị tính vi phạm.</small>
+            </div>
+
+            <div class="form-item">
+              <label>Số giờ công chuẩn 1 ngày</label>
+              <div class="input-wrapper">
+                <input type="number" [(ngModel)]="config.standardWorkingHours" step="0.5" min="1" max="24" />
+                <span class="input-suffix">giờ/ngày</span>
+              </div>
+              <div class="field-error-msg" *ngIf="validationErrors.standardWorkingHours">{{ validationErrors.standardWorkingHours }}</div>
+              <small class="helper-text">Giờ công bình thường của 1 ngày công. (Thường là 8 giờ)</small>
+            </div>
+
+            <div class="form-item">
+              <label>Ngưỡng tự động nghỉ không phép (Phút)</label>
+              <div class="input-wrapper">
+                <input type="number" [(ngModel)]="config.absentThresholdMinutes" min="0" />
+                <span class="input-suffix">phút</span>
+              </div>
+              <div class="field-error-msg" *ngIf="validationErrors.absentThresholdMinutes">{{ validationErrors.absentThresholdMinutes }}</div>
+              <small class="helper-text">Đi muộn quá số phút này sẽ tự động tính vắng mặt không phép (240 phút = 4 tiếng).</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- 💸 TAB 2: CÁC KHOẢN PHẠT -->
+        <div *ngIf="activeTab === 'penalty'" class="tab-pane-content">
+          <h3>💸 Mức Phạt Vi Phạm Nội Quy</h3>
+          <p class="pane-description">Đặt mức tiền phạt tự động trừ vào bảng lương khi nhân viên đi muộn, thiếu checkout hoặc vắng mặt.</p>
+
+          <div class="form-grid">
+            <div class="form-item">
+              <label>Mức phạt đi muộn (VND / Lần)</label>
+              <div class="input-wrapper">
+                <input type="number" [(ngModel)]="config.latePenalty" min="0" step="5000" />
+                <span class="input-suffix">đ/lần</span>
+              </div>
+              <small class="helper-text">Phạt khi đi muộn quá thời gian cho phép. (Ví dụ: {{formatCurrency(config.latePenalty)}})</small>
+            </div>
+
+            <div class="form-item">
+              <label>Mức phạt thiếu Check-out (VND / Lần)</label>
+              <div class="input-wrapper">
+                <input type="number" [(ngModel)]="config.missingCheckoutPenalty" min="0" step="5000" />
+                <span class="input-suffix">đ/lần</span>
+              </div>
+              <small class="helper-text">Trừ lương khi quên check-out cuối ca làm việc.</small>
+            </div>
+
+            <div class="form-item">
+              <label>Mức phạt nghỉ không phép (VND / Lần)</label>
+              <div class="input-wrapper">
+                <input type="number" [(ngModel)]="config.absentPenalty" min="0" step="10000" />
+                <span class="input-suffix">đ/lần</span>
+              </div>
+              <small class="helper-text">Trừ lương thêm khi tự ý nghỉ không xin phép hoặc muộn quá ngưỡng.</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- 🎁 TAB 3: THƯỞNG CHUYÊN CẦN -->
+        <div *ngIf="activeTab === 'bonus'" class="tab-pane-content">
+          <h3>🎁 Cấu hình Quỹ Thưởng Chuyên Cần</h3>
+          <p class="pane-description">Khuyến khích nhân viên Full-time và Quản lý đi làm đầy đủ công và đúng giờ.</p>
+
+          <div class="form-grid">
+            <div class="form-item">
+              <label>Số ngày công tối thiểu yêu cầu (Công)</label>
+              <div class="input-wrapper">
+                <input type="number" [(ngModel)]="config.requiredPerfectDays" min="0" max="31" />
+                <span class="input-suffix">ngày công</span>
+              </div>
+              <small class="helper-text">Tổng công đạt được trong tháng để được nhận thưởng. (Thường là 26 công)</small>
+            </div>
+
+            <div class="form-item">
+              <label>Mức thưởng chuyên cần tròn công (VND)</label>
+              <div class="input-wrapper">
+                <input type="number" [(ngModel)]="config.perfectAttendanceBonus" min="0" step="10000" />
+                <span class="input-suffix">VND</span>
+              </div>
+              <small class="helper-text">Tiền thưởng khi nhân viên đạt đủ ngày công tối thiểu.</small>
+            </div>
+
+            <div class="form-item">
+              <label>Mức thưởng không đi muộn ngày nào (VND)</label>
+              <div class="input-wrapper">
+                <input type="number" [(ngModel)]="config.bonusNoLate" min="0" step="10000" />
+                <span class="input-suffix">VND</span>
+              </div>
+              <small class="helper-text">Tiền thưởng khích lệ thêm nếu đi làm đúng giờ tuyệt đối cả tháng.</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- 💰 TAB 4: LƯƠNG & HOA HỒNG DOANH THU -->
+        <div *ngIf="activeTab === 'salary'" class="tab-pane-content">
+          <h3>💰 Lương Mặc Định & Quỹ Hoa Hồng Doanh Thu</h3>
+          <p class="pane-description">Đặt lương chuẩn sàn mặc định cho nhân viên mới và tỷ lệ chia sẻ % doanh thu của quán cafe.</p>
+
+          <div class="form-grid">
+            <div class="form-item">
+              <label>Lương giờ Part-time mặc định (VND/Giờ)</label>
+              <div class="input-wrapper">
+                <input type="number" [(ngModel)]="config.partTimeHourlyRate" min="0" step="1000" />
+                <span class="input-suffix">đ/giờ</span>
+              </div>
+              <small class="helper-text">Dùng làm giá trị dự phòng nếu Part-time không cấu hình lương riêng.</small>
+            </div>
+
+            <div class="form-item">
+              <label>Lương tháng mặc định Full-time (VND)</label>
+              <div class="input-wrapper">
+                <input type="number" [(ngModel)]="config.fullTimeBaseSalary" min="0" step="50000" />
+                <span class="input-suffix">VND</span>
+              </div>
+              <small class="helper-text">Lương tháng cứng mặc định của nhân viên Full-time.</small>
+            </div>
+
+            <div class="form-item">
+              <label>Lương tháng mặc định của Quản lý (VND)</label>
+              <div class="input-wrapper">
+                <input type="number" [(ngModel)]="config.managerBaseSalary" min="0" step="50000" />
+                <span class="input-suffix">VND</span>
+              </div>
+              <small class="helper-text">Lương cứng tháng của Cửa hàng trưởng.</small>
+            </div>
+
+            <div class="form-item">
+              <label>Phụ cấp mặc định của Quản lý (VND)</label>
+              <div class="input-wrapper">
+                <input type="number" [(ngModel)]="config.managerAllowance" min="0" step="10000" />
+                <span class="input-suffix">VND</span>
+              </div>
+              <small class="helper-text">Phụ cấp trách nhiệm mặc định của Quản lý.</small>
+            </div>
+
+            <div class="form-item">
+              <label>Hệ số lương tăng ca (OT)</label>
+              <div class="input-wrapper">
+                <input type="number" [(ngModel)]="config.otMultiplier" step="0.1" min="1.0" />
+                <span class="input-suffix">hệ số</span>
+              </div>
+              <small class="helper-text">Ví dụ: làm thêm giờ được nhân 1.5 lần mức lương bình thường.</small>
+            </div>
+
+            <div class="form-item">
+              <label>Tỷ lệ trích quỹ hoa hồng doanh thu (%)</label>
+              <div class="input-wrapper">
+                <input type="number" [(ngModel)]="config.revenuePoolRate" step="0.1" min="0.0" />
+                <span class="input-suffix">% doanh thu</span>
+              </div>
+              <small class="helper-text">Mặc định trích % doanh thu tháng của quán để chia thưởng. (Ví dụ: 1.0%)</small>
+            </div>
+
+            <div class="form-item">
+              <label>Trọng số chia thưởng của Full-time</label>
+              <div class="input-wrapper">
+                <input type="number" [(ngModel)]="config.fullTimeShareWeight" step="0.1" min="0.0" />
+                <span class="input-suffix">hệ số</span>
+              </div>
+              <small class="helper-text">Trọng số chia quỹ thưởng doanh thu của Full-time. (Mặc định: 1.0)</small>
+            </div>
+
+            <div class="form-item">
+              <label>Trọng số chia thưởng của Quản lý</label>
+              <div class="input-wrapper">
+                <input type="number" [(ngModel)]="config.managerShareWeight" step="0.1" min="0.0" />
+                <span class="input-suffix">hệ số</span>
+              </div>
+              <small class="helper-text">Trọng số chia quỹ thưởng doanh thu của Quản lý. (Mặc định: 2.0)</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- 📅 TAB 5: QUẢN LÝ NGÀY LỄ -->
+        <div *ngIf="activeTab === 'holiday'" class="tab-pane-content">
+          <h3>📅 Quản Lý Ngày Nghỉ Lễ & Thưởng Đi Làm</h3>
+          <p class="pane-description">Cấu hình các ngày Lễ trong năm cùng hệ số nhân lương cho Part-time và mức tiền thưởng cho Full-time/Quản lý.</p>
+
+          <!-- Add New Holiday Form -->
+          <div class="add-holiday-card">
+            <h4>✨ Thêm Ngày Lễ Mới</h4>
+            <div class="form-grid holiday-form-grid">
+              <div class="form-item holiday-name-item">
+                <label>Tên ngày lễ</label>
+                <input type="text" [(ngModel)]="newHoliday.name" placeholder="Ví dụ: Tết Nguyên Đán (Mùng 1)" />
+                <div class="field-error-msg" *ngIf="validationErrors.newHolidayName">{{ validationErrors.newHolidayName }}</div>
+              </div>
+
+              <div class="form-item">
+                <label>Ngày dương lịch</label>
+                <input type="date" [(ngModel)]="newHoliday.date" />
+                <div class="field-error-msg" *ngIf="validationErrors.newHolidayDate">{{ validationErrors.newHolidayDate }}</div>
+              </div>
+
+              <div class="form-item">
+                <label>Hệ số Part-time</label>
+                <div class="input-wrapper">
+                  <input type="number" [(ngModel)]="newHoliday.coefficient" step="0.5" min="1.0" />
+                  <span class="input-suffix">hệ số</span>
+                </div>
+                <div class="field-error-msg" *ngIf="validationErrors.newHolidayCoefficient">{{ validationErrors.newHolidayCoefficient }}</div>
+              </div>
+
+              <div class="form-item">
+                <label>Thưởng Full-time</label>
+                <div class="input-wrapper">
+                  <input type="number" [(ngModel)]="newHoliday.fullTimeBonus" step="50000" min="0" />
+                  <span class="input-suffix">đ</span>
+                </div>
+                <div class="field-error-msg" *ngIf="validationErrors.newHolidayFullTimeBonus">{{ validationErrors.newHolidayFullTimeBonus }}</div>
+              </div>
+
+              <div class="form-item">
+                <label>Thưởng Manager</label>
+                <div class="input-wrapper">
+                  <input type="number" [(ngModel)]="newHoliday.managerBonus" step="50000" min="0" />
+                  <span class="input-suffix">đ</span>
+                </div>
+                <div class="field-error-msg" *ngIf="validationErrors.newHolidayManagerBonus">{{ validationErrors.newHolidayManagerBonus }}</div>
+              </div>
+
+              <div class="form-item">
+                <label>Lặp lại hàng năm</label>
+                <div class="toggle-switch-wrapper">
+                  <label class="switch-container">
+                    <input type="checkbox" [(ngModel)]="newHoliday.repeatYearly" />
+                    <span class="slider round"></span>
+                  </label>
+                  <span class="toggle-label">{{ newHoliday.repeatYearly ? '🔄 Lặp lại' : '📅 Chỉ 1 năm' }}</span>
+                </div>
+              </div>
+              <div class="form-item form-item-btn">
+                <button mat-raised-button class="add-holiday-btn" (click)="addHoliday()">
+                  <mat-icon>add_circle</mat-icon> Thêm Ngày Lễ
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Holidays Table -->
+          <div class="holidays-table-container">
+            <h4>📋 Danh Sách Ngày Lễ Đang Cấu Hình</h4>
+            <div *ngIf="holidays.length === 0" class="no-holidays-msg">
+              <mat-icon>event_busy</mat-icon>
+              <p>Chưa có ngày lễ nào được cấu hình trong hệ thống.</p>
+            </div>
+
+            <table class="premium-table" *ngIf="holidays.length > 0">
+              <thead>
+                <tr>
+                  <th>Tên ngày lễ</th>
+                  <th>Ngày dương lịch</th>
+                  <th>Loại ngày nghỉ</th>
+                  <th>Hệ số Part-time</th>
+                  <th>Thưởng Full-time</th>
+                  <th>Thưởng Manager</th>
+                  <th>Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let h of holidays">
+                  <!-- View Mode -->
+                  <ng-container *ngIf="editingHolidayId !== h.id">
+                    <td><strong>{{ h.name }}</strong></td>
+                    <td>{{ formatDate(h.date) }}</td>
+                    <td>
+                      <span class="badge repeat-badge" *ngIf="h.repeatYearly">🔄 Lặp hàng năm</span>
+                      <span class="badge once-badge" *ngIf="!h.repeatYearly">📅 Chỉ năm {{ h.date | slice:0:4 }}</span>
+                    </td>
+                    <td><span class="badge coefficient-badge">x{{ h.coefficient }}</span></td>
+                    <td><span class="badge bonus-badge">{{ formatCurrency(h.fullTimeBonus) }}</span></td>
+                    <td><span class="badge bonus-badge">{{ formatCurrency(h.managerBonus) }}</span></td>
+                    <td>
+                      <div class="holiday-actions">
+                        <button class="edit-holiday-btn" (click)="startEdit(h)" title="Chỉnh sửa ngày lễ">
+                          <mat-icon>edit</mat-icon>
+                        </button>
+                        <button class="delete-holiday-btn" (click)="deleteHoliday(h)" title="Xóa ngày lễ">
+                          <mat-icon>delete</mat-icon>
+                        </button>
+                      </div>
+                    </td>
+                  </ng-container>
+
+                  <!-- Edit Mode -->
+                  <ng-container *ngIf="editingHolidayId === h.id">
+                    <td>
+                      <input type="text" class="inline-edit-input" [(ngModel)]="editingHoliday.name" placeholder="Ví dụ: Tết Nguyên Đán (Mùng 1)" />
+                      <div class="field-error-msg" *ngIf="validationErrors.editHolidayName">{{ validationErrors.editHolidayName }}</div>
+                    </td>
+                    <td>
+                      <input type="date" class="inline-edit-input" [(ngModel)]="editingHoliday.date" />
+                      <div class="field-error-msg" *ngIf="validationErrors.editHolidayDate">{{ validationErrors.editHolidayDate }}</div>
+                    </td>
+                    <td>
+                      <div class="toggle-switch-wrapper inline-toggle">
+                        <label class="switch-container">
+                          <input type="checkbox" [(ngModel)]="editingHoliday.repeatYearly" />
+                          <span class="slider round"></span>
+                        </label>
+                        <span class="toggle-label mini-label">{{ editingHoliday.repeatYearly ? '🔄 Lặp' : '📅 1 năm' }}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="inline-input-wrapper">
+                        <input type="number" class="inline-edit-input coeff-input" [(ngModel)]="editingHoliday.coefficient" step="0.5" min="1.0" />
+                        <span class="inline-input-suffix">x</span>
+                      </div>
+                      <div class="field-error-msg" *ngIf="validationErrors.editHolidayCoefficient">{{ validationErrors.editHolidayCoefficient }}</div>
+                    </td>
+                    <td>
+                      <div class="inline-input-wrapper">
+                        <input type="number" class="inline-edit-input bonus-input" [(ngModel)]="editingHoliday.fullTimeBonus" step="50000" min="0" />
+                        <span class="inline-input-suffix">đ</span>
+                      </div>
+                      <div class="field-error-msg" *ngIf="validationErrors.editHolidayFullTimeBonus">{{ validationErrors.editHolidayFullTimeBonus }}</div>
+                    </td>
+                    <td>
+                      <div class="inline-input-wrapper">
+                        <input type="number" class="inline-edit-input bonus-input" [(ngModel)]="editingHoliday.managerBonus" step="50000" min="0" />
+                        <span class="inline-input-suffix">đ</span>
+                      </div>
+                      <div class="field-error-msg" *ngIf="validationErrors.editHolidayManagerBonus">{{ validationErrors.editHolidayManagerBonus }}</div>
+                    </td>
+                    <td>
+                      <div class="holiday-actions">
+                        <button class="save-inline-btn" (click)="saveInlineEdit()" title="Lưu thay đổi">
+                          <mat-icon>check</mat-icon>
+                        </button>
+                        <button class="cancel-inline-btn" (click)="cancelInlineEdit()" title="Hủy bỏ">
+                          <mat-icon>close</mat-icon>
+                        </button>
+                      </div>
+                    </td>
+                  </ng-container>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Footer Control Buttons -->
+        <div class="settings-actions-footer" *ngIf="activeTab !== 'holiday'">
+          <button mat-stroked-button class="reset-btn" (click)="resetToDefault()" [disabled]="saving">
+            <mat-icon>settings_backup_restore</mat-icon> Khôi Phục Mặc Định
+          </button>
+          
+          <button mat-raised-button class="save-settings-btn" (click)="saveConfig()" [disabled]="saving">
+            <mat-spinner diameter="20" *ngIf="saving" class="btn-spinner"></mat-spinner>
+            <mat-icon *ngIf="!saving">check_circle</mat-icon> {{ saving ? 'Đang lưu...' : 'Lưu Cấu Hình' }}
+          </button>
+        </div>
+      </div>
+    </mat-card>
+  </div>
+
+  <!-- PREMIUM CUSTOM CONFIRMATION POPUP MODAL -->
+  <div class="glass-overlay-confirm" *ngIf="showResetConfirm" (click)="showResetConfirm = false">
+    <div class="confirm-modal-card" (click)="$event.stopPropagation()">
+      <div class="confirm-icon-box">
+        <mat-icon>warning</mat-icon>
+      </div>
+      <h3>Khôi Phục Mặc Định?</h3>
+      <p>Bạn có chắc chắn muốn khôi phục toàn bộ tham số cấu hình về giá trị mặc định ban đầu của quán không? Hành động này không thể hoàn tác.</p>
+      <div class="confirm-actions">
+        <button class="confirm-btn-cancel" (click)="showResetConfirm = false">Hủy Bỏ</button>
+        <button class="confirm-btn-yes" (click)="confirmReset()">Khôi Phục</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 📅 PREMIUM CUSTOM CONFIRMATION POPUP FOR HOLIDAY DELETION -->
+  <div class="glass-overlay-confirm" *ngIf="showDeleteConfirm" (click)="showDeleteConfirm = false">
+    <div class="confirm-modal-card" (click)="$event.stopPropagation()">
+      <div class="confirm-icon-box">
+        <mat-icon>warning</mat-icon>
+      </div>
+      <h3>Xóa Ngày Lễ?</h3>
+      <p>Bạn có chắc chắn muốn xóa ngày lễ <strong>"{{ holidayToDelete?.name }}"</strong> (diễn ra ngày {{ formatDate(holidayToDelete?.date) }}) không? Bảng chấm công của ngày này sẽ không còn tính theo chế độ ngày Lễ nữa.</p>
+      <div class="confirm-actions">
+        <button class="confirm-btn-cancel" (click)="showDeleteConfirm = false">Hủy Bỏ</button>
+        <button class="confirm-btn-yes" (click)="confirmDeleteHoliday()">Xóa Ngày Lễ</button>
+      </div>
+    </div>
+  </div>
+</div>
