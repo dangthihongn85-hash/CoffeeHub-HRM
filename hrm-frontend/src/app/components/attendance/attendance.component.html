@@ -46,7 +46,7 @@
       </mat-card>
       
       <!-- Admin: Register Face -->
-      <mat-card class="action-card admin-card">
+      <mat-card class="action-card admin-card" *ngIf="!isEmployee()">
         <h3>Admin: Đăng Ký Khuôn Mặt</h3>
         <p>Chọn nhân viên và nhấn "Đăng Ký" để lưu khuôn mặt hiện tại vào hệ thống.</p>
         
@@ -119,14 +119,14 @@
       <!-- Department Filter -->
       <div class="filter-item">
         <label>Phòng ban</label>
-        <select [(ngModel)]="selectedDepartment" class="dept-select" (change)="onFilterChange()">
+        <select [(ngModel)]="selectedDepartment" class="dept-select" (change)="onFilterChange()" [disabled]="isEmployee()">
           <option value="">Tất cả phòng ban</option>
           <option *ngFor="let dept of getDepartments()" [value]="dept">{{ dept }}</option>
         </select>
       </div>
 
       <!-- Premium Searchable Select for Employee -->
-      <div class="filter-item employee-search-select-wrapper">
+      <div class="filter-item employee-search-select-wrapper" *ngIf="!isEmployee()">
         <label>Chọn Nhân viên</label>
         <div class="custom-select-container">
           <!-- Select Trigger Box -->
@@ -167,6 +167,14 @@
               </div>
             </div>
           </div>
+        </div>
+      </div>
+      
+      <!-- Static Employee Display for Regular Employees -->
+      <div class="filter-item" *ngIf="isEmployee()">
+        <label>Nhân viên</label>
+        <div style="background: #f8fafc; border: 1.5px solid var(--border-light); border-radius: 10px; padding: 12px 16px; font-weight: 700; color: var(--text-main); font-size: 14px; min-width: 200px;">
+          {{ getSelectedEmployeeLabel() }}
         </div>
       </div>
 

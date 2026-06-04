@@ -59,9 +59,6 @@
     <mat-icon>trending_up</mat-icon> Doanh Thu
     <span class="tab-badge" *ngIf="bonusPool > 0">✓</span>
   </button>
-  <button class="tab-btn" [class.active]="activeTab==='employees'" (click)="activeTab='employees'">
-    <mat-icon>manage_accounts</mat-icon> Loại Nhân Viên
-  </button>
 </div>
 
 <!-- ══════════════════════════ TAB: DOANH THU ════════════════════════════════ -->
@@ -145,7 +142,7 @@
       <div class="rule-block">
         <div class="rule-title"><span class="badge badge-parttime">Part-time</span></div>
         <ul>
-          <li>20,000₫/giờ · ❌ Không tính tăng ca (OT)</li>
+          <li>{{ fmt(salaryConfig?.partTimeHourlyRate || 20000) }}/giờ · ❌ Không tính tăng ca (OT)</li>
           <li>❌ Không thưởng doanh thu</li>
           <li>❌ Không thưởng chuyên cần</li>
           <li>❌ Không có chế độ phép / đặc biệt</li>
@@ -155,29 +152,29 @@
         <div class="rule-title"><span class="badge badge-fulltime">Full-time</span></div>
         <ul>
           <li>Lương CB hợp đồng cố định (tự cấu hình riêng)</li>
-          <li>Lương thực tế = (Lương CB gốc × ngày làm) / 26</li>
-          <li>Lương tăng ca OT = (Lương CB gốc / 208) × giờ OT × 1.5</li>
-          <li>✅ Thưởng chuyên cần: +200,000₫ (Công ≥ 26 ngày)</li>
-          <li>✅ Không đi trễ trong tháng: +100,000₫</li>
-          <li>✅ Thưởng quỹ doanh thu POOL (hệ số ×1)</li>
+          <li>Lương thực tế = (Lương CB gốc × ngày làm) / {{ salaryConfig?.requiredPerfectDays || 26 }}</li>
+          <li>Lương tăng ca OT = (Lương CB gốc / {{ (salaryConfig?.requiredPerfectDays || 26) * (salaryConfig?.standardWorkingHours || 8) }}) × giờ OT × {{ salaryConfig?.otMultiplier || 1.5 }}</li>
+          <li>✅ Thưởng chuyên cần: +{{ fmt(salaryConfig?.perfectAttendanceBonus || 200000) }} (Công ≥ {{ salaryConfig?.requiredPerfectDays || 26 }} ngày)</li>
+          <li>✅ Không đi trễ trong tháng: +{{ fmt(salaryConfig?.bonusNoLate || 100000) }}</li>
+          <li>✅ Thưởng quỹ doanh thu POOL (hệ số ×{{ salaryConfig?.fullTimeShareWeight || 1 }})</li>
         </ul>
       </div>
       <div class="rule-block">
         <div class="rule-title"><span class="badge badge-manager">Manager</span></div>
         <ul>
-          <li>8,000,000₫ + 500,000₫ phụ cấp/tháng</li>
+          <li>{{ fmt(salaryConfig?.managerBaseSalary || 8000000) }} + {{ fmt(salaryConfig?.managerAllowance || 500000) }} phụ cấp/tháng</li>
           <li>❌ Không tính lương OT</li>
-          <li>✅ Thưởng chuyên cần: +200,000₫ (Công + Nghỉ đặc biệt ≥ 26 ngày)</li>
-          <li>✅ Không đi trễ trong tháng: +100,000₫</li>
-          <li>✅ Thưởng quỹ doanh thu POOL (hệ số ×2)</li>
+          <li>✅ Thưởng chuyên cần: +{{ fmt(salaryConfig?.perfectAttendanceBonus || 200000) }} (Công + Nghỉ đặc biệt ≥ {{ salaryConfig?.requiredPerfectDays || 26 }} ngày)</li>
+          <li>✅ Không đi trễ trong tháng: +{{ fmt(salaryConfig?.bonusNoLate || 100000) }}</li>
+          <li>✅ Thưởng quỹ doanh thu POOL (hệ số ×{{ salaryConfig?.managerShareWeight || 2 }})</li>
         </ul>
       </div>
       <div class="rule-block penalty-block">
         <div class="rule-title">⚠️ Phạt & Nghỉ</div>
         <ul>
-          <li>Đi trễ &gt;10 phút: -50,000₫ + mất thưởng trễ</li>
-          <li>Thiếu check-out: -50,000₫/lần</li>
-          <li>Nghỉ không phép: -100,000₫/ngày + trừ công ngày nghỉ</li>
+          <li>Đi trễ &gt;{{ salaryConfig?.lateGraceMinutes || 10 }} phút: -{{ fmt(salaryConfig?.latePenalty || 50000) }} + mất thưởng trễ</li>
+          <li>Thiếu check-out: -{{ fmt(salaryConfig?.missingCheckoutPenalty || 50000) }}/lần</li>
+          <li>Nghỉ không phép: -{{ fmt(salaryConfig?.absentPenalty || 100000) }}/ngày + trừ công ngày nghỉ</li>
           <li>Nghỉ có phép: ✅ Không phạt kỷ luật (trừ công ngày nghỉ)</li>
           <li>Nghỉ đặc biệt: ✅ Không phạt + Hưởng nguyên lương ngày nghỉ</li>
         </ul>
@@ -186,70 +183,7 @@
   </mat-card>
 </div>
 
-<!-- ══════════════════════════ TAB: LOẠI NV ══════════════════════════════════ -->
-<div *ngIf="activeTab === 'employees'" class="tab-content">
-  <mat-card class="data-card">
-    <div class="toolbar-table">
-      <div>
-        <h3>Phân Loại Nhân Viên</h3>
-        <p class="sub-text">Chọn loại nhân viên để áp dụng đúng mức lương và thưởng khi tính bảng lương</p>
-      </div>
-    </div>
-    <div class="table-wrapper">
-      <table class="custom-table">
-        <thead>
-          <tr>
-            <th>Nhân Viên</th>
-            <th>Phòng Ban</th>
-            <th>Chức Vụ</th>
-            <th>Loại NV</th>
-            <th>Lương Cơ Bản</th>
-            <th>Thao tác</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let emp of employees">
-            <td>
-              <div class="employee-cell">
-                <img class="avatar-sm" [src]="'https://ui-avatars.com/api/?name='+emp.name+'&background=e5ebfe&color=4B49AC&bold=true'">
-                <span>{{ emp.name }}</span>
-              </div>
-            </td>
-            <td>{{ emp.department || 'N/A' }}</td>
-            <td>{{ emp.position  || 'N/A' }}</td>
-            <td>
-              <span *ngIf="editingEmpId !== emp.id" class="badge" [ngClass]="typeBadge(emp.employeeType)">
-                {{ typeLabel(emp.employeeType) }}
-              </span>
-              <select *ngIf="editingEmpId === emp.id" class="type-select" [(ngModel)]="emp.employeeType">
-                <option value="PART_TIME">Part-time</option>
-                <option value="FULL_TIME">Full-time</option>
-                <option value="MANAGER">Manager</option>
-              </select>
-            </td>
-            <td>
-              <span *ngIf="editingEmpId !== emp.id" style="font-weight: 600;">{{ fmt(emp.salaryBase, emp.employeeType === 'PART_TIME') }}</span>
-              <input *ngIf="editingEmpId === emp.id" type="number" class="revenue-input" [(ngModel)]="emp.salaryBase" style="width: 130px; padding: 6px; font-size: 14px; border-radius: 6px;" />
-            </td>
-            <td style="display: flex; gap: 5px;">
-              <button *ngIf="editingEmpId !== emp.id" mat-icon-button color="primary" (click)="editEmployeeType(emp)" title="Sửa">
-                <mat-icon>edit_calendar</mat-icon>
-              </button>
-              <ng-container *ngIf="editingEmpId === emp.id">
-                <button mat-icon-button color="accent" (click)="saveEmployeeType(emp)" title="Lưu">
-                  <mat-icon>check_circle</mat-icon>
-                </button>
-                <button mat-icon-button color="warn" (click)="cancelEditType()" title="Hủy">
-                  <mat-icon>cancel</mat-icon>
-                </button>
-              </ng-container>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </mat-card>
-</div>
+
 
 <!-- ══════════════════════════ TAB: BẢNG LƯƠNG ═══════════════════════════════ -->
 <div *ngIf="activeTab === 'payroll'" class="tab-content">
@@ -652,47 +586,47 @@
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
         
         <!-- Work Days input -->
-        <div class="form-group">
+        <div class="form-group" [style.opacity]="isZeroKpi(editSalaryModel) ? 0.5 : 1">
           <label style="font-weight: 700; font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Số ngày công</label>
-          <input type="number" class="modal-input-styled" [(ngModel)]="editSalaryModel.workDays" (ngModelChange)="onSalaryFieldChange(editSalaryModel)">
+          <input type="number" class="modal-input-styled" [(ngModel)]="editSalaryModel.workDays" (ngModelChange)="onSalaryFieldChange(editSalaryModel)" [disabled]="isZeroKpi(editSalaryModel)">
         </div>
 
         <!-- Regular Hours input -->
-        <div class="form-group">
+        <div class="form-group" [style.opacity]="isZeroKpi(editSalaryModel) ? 0.5 : 1">
           <label style="font-weight: 700; font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Số giờ thường (h)</label>
-          <input type="number" class="modal-input-styled" [(ngModel)]="editSalaryModel.regularHours" (ngModelChange)="onSalaryFieldChange(editSalaryModel)">
+          <input type="number" class="modal-input-styled" [(ngModel)]="editSalaryModel.regularHours" (ngModelChange)="onSalaryFieldChange(editSalaryModel)" [disabled]="isZeroKpi(editSalaryModel)">
         </div>
 
         <!-- Holiday Hours input -->
-        <div class="form-group">
+        <div class="form-group" [style.opacity]="isZeroKpi(editSalaryModel) ? 0.5 : 1">
           <label style="font-weight: 700; font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Số giờ làm Lễ (h)</label>
-          <input type="number" class="modal-input-styled" [(ngModel)]="editSalaryModel.holidayHours" (ngModelChange)="onSalaryFieldChange(editSalaryModel)">
+          <input type="number" class="modal-input-styled" [(ngModel)]="editSalaryModel.holidayHours" (ngModelChange)="onSalaryFieldChange(editSalaryModel)" [disabled]="isZeroKpi(editSalaryModel)">
         </div>
 
         <!-- Base Salary input -->
-        <div class="form-group">
+        <div class="form-group" [style.opacity]="isZeroKpi(editSalaryModel) ? 0.5 : 1">
           <label style="font-weight: 700; font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">
             {{ editSalaryModel.employeeType === 'PART_TIME' ? 'Mức lương theo giờ (VNĐ)' : 'Lương cơ bản gốc (VNĐ)' }}
           </label>
-          <input type="text" class="modal-input-styled" [ngModel]="editSalaryModel.baseSalaryStr" (input)="onCurrencyInput('baseSalary', $event)" style="font-weight: 700; color: var(--text-muted);">
+          <input type="text" class="modal-input-styled" [ngModel]="editSalaryModel.baseSalaryStr" (input)="onCurrencyInput('baseSalary', $event)" style="font-weight: 700; color: var(--text-muted);" [disabled]="isZeroKpi(editSalaryModel)">
         </div>
 
         <!-- Actual Base Salary input -->
-        <div class="form-group">
+        <div class="form-group" [style.opacity]="isZeroKpi(editSalaryModel) ? 0.5 : 1">
           <label style="font-weight: 700; font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">
             {{ editSalaryModel.employeeType === 'PART_TIME' ? 'Lương tính theo giờ (VNĐ)' : 'Lương theo công (VNĐ)' }}
           </label>
-          <input type="text" class="modal-input-styled" [ngModel]="editSalaryModel.actualBaseSalaryStr" (input)="onCurrencyInput('actualBaseSalary', $event)" style="font-weight: 700; color: #4f46e5;">
+          <input type="text" class="modal-input-styled" [ngModel]="editSalaryModel.actualBaseSalaryStr" (input)="onCurrencyInput('actualBaseSalary', $event)" style="font-weight: 700; color: #4f46e5;" [disabled]="isZeroKpi(editSalaryModel)">
         </div>
 
         <!-- OT Hours input -->
-        <div class="form-group" [style.opacity]="editSalaryModel.employeeType === 'PART_TIME' ? 0.5 : 1">
+        <div class="form-group" [style.opacity]="isZeroKpi(editSalaryModel) || editSalaryModel.employeeType === 'PART_TIME' ? 0.5 : 1">
           <label style="font-weight: 700; font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Số giờ OT (h)</label>
-          <input type="number" class="modal-input-styled" [(ngModel)]="editSalaryModel.otHours" (ngModelChange)="onSalaryFieldChange(editSalaryModel)" [disabled]="editSalaryModel.employeeType === 'PART_TIME'">
+          <input type="number" class="modal-input-styled" [(ngModel)]="editSalaryModel.otHours" (ngModelChange)="onSalaryFieldChange(editSalaryModel)" [disabled]="isZeroKpi(editSalaryModel) || editSalaryModel.employeeType === 'PART_TIME'">
         </div>
 
         <!-- Calculated OT Salary display -->
-        <div class="form-group" [style.opacity]="editSalaryModel.employeeType === 'PART_TIME' ? 0.5 : 1">
+        <div class="form-group" [style.opacity]="isZeroKpi(editSalaryModel) || editSalaryModel.employeeType === 'PART_TIME' ? 0.5 : 1">
           <label style="font-weight: 700; font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Lương OT tính toán</label>
           <div style="background: rgba(99,102,241,0.05); padding: 10px 14px; border-radius: 12px; font-weight: 700; color: var(--text-main); font-size: 14px; height: 44px; display: flex; align-items: center; border: 1px solid rgba(99,102,241,0.1);">
             {{ editSalaryModel.employeeType === 'PART_TIME' ? '—' : fmt(editSalaryModel.otSalary) }}
@@ -700,27 +634,27 @@
         </div>
 
         <!-- Holiday Salary input -->
-        <div class="form-group">
+        <div class="form-group" [style.opacity]="isZeroKpi(editSalaryModel) ? 0.5 : 1">
           <label style="font-weight: 700; font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Lương/Thưởng ngày Lễ (VNĐ)</label>
-          <input type="text" class="modal-input-styled" [ngModel]="editSalaryModel.holidaySalaryStr" (input)="onCurrencyInput('holidaySalary', $event)" style="color: #10b981; font-weight: 700;">
+          <input type="text" class="modal-input-styled" [ngModel]="editSalaryModel.holidaySalaryStr" (input)="onCurrencyInput('holidaySalary', $event)" style="color: #10b981; font-weight: 700;" [disabled]="isZeroKpi(editSalaryModel)">
         </div>
 
         <!-- Attendance Bonus input -->
-        <div class="form-group" [style.opacity]="editSalaryModel.employeeType === 'PART_TIME' ? 0.5 : 1">
+        <div class="form-group" [style.opacity]="isZeroKpi(editSalaryModel) || editSalaryModel.employeeType === 'PART_TIME' ? 0.5 : 1">
           <label style="font-weight: 700; font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Thưởng chuyên cần (VNĐ)</label>
-          <input type="text" class="modal-input-styled" [ngModel]="editSalaryModel.bonusAttendanceStr" (input)="onCurrencyInput('bonusAttendance', $event)" style="color: #22c55e; font-weight: 700;" [disabled]="editSalaryModel.employeeType === 'PART_TIME'">
+          <input type="text" class="modal-input-styled" [ngModel]="editSalaryModel.bonusAttendanceStr" (input)="onCurrencyInput('bonusAttendance', $event)" style="color: #22c55e; font-weight: 700;" [disabled]="isZeroKpi(editSalaryModel) || editSalaryModel.employeeType === 'PART_TIME'">
         </div>
 
         <!-- Revenue/KPI Bonus input -->
-        <div class="form-group" [style.opacity]="editSalaryModel.employeeType === 'PART_TIME' ? 0.5 : 1">
+        <div class="form-group" [style.opacity]="isZeroKpi(editSalaryModel) || editSalaryModel.employeeType === 'PART_TIME' ? 0.5 : 1">
           <label style="font-weight: 700; font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Thưởng KPI/Doanh thu (VNĐ)</label>
-          <input type="text" class="modal-input-styled" [ngModel]="editSalaryModel.bonusRevenueStr" (input)="onCurrencyInput('bonusRevenue', $event)" style="color: #eab308; font-weight: 700;" [disabled]="editSalaryModel.employeeType === 'PART_TIME'">
+          <input type="text" class="modal-input-styled" [ngModel]="editSalaryModel.bonusRevenueStr" (input)="onCurrencyInput('bonusRevenue', $event)" style="color: #eab308; font-weight: 700;" [disabled]="isZeroKpi(editSalaryModel) || editSalaryModel.employeeType === 'PART_TIME'">
         </div>
 
         <!-- Penalty input -->
-        <div class="form-group" style="grid-column: span 2;">
+        <div class="form-group" [style.opacity]="isZeroKpi(editSalaryModel) ? 0.5 : 1" style="grid-column: span 2;">
           <label style="font-weight: 700; font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Tổng phạt khấu trừ (VNĐ)</label>
-          <input type="text" class="modal-input-styled" [ngModel]="editSalaryModel.totalPenaltyStr" (input)="onCurrencyInput('totalPenalty', $event)" style="color: #ef4444; font-weight: 700;">
+          <input type="text" class="modal-input-styled" [ngModel]="editSalaryModel.totalPenaltyStr" (input)="onCurrencyInput('totalPenalty', $event)" style="color: #ef4444; font-weight: 700;" [disabled]="isZeroKpi(editSalaryModel)">
         </div>
 
       </div>

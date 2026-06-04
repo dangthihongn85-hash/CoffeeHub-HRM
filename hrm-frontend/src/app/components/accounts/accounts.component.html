@@ -1,0 +1,283 @@
+<div class="page-header">
+  <div>
+    <h2 class="page-title">Quản Lý Tài Khoản</h2>
+    <p class="page-subtitle">Quản lý tài khoản đăng nhập hệ thống, vai trò và bảo mật mật khẩu</p>
+  </div>
+</div>
+
+<div class="stats-cards">
+  <mat-card class="stat-card">
+    <div class="stat-icon bg-indigo"><mat-icon>manage_accounts</mat-icon></div>
+    <div class="stat-info">
+      <p>Tổng Tài Khoản</p>
+      <h3>{{ totalAccounts }}</h3>
+    </div>
+  </mat-card>
+  <mat-card class="stat-card">
+    <div class="stat-icon bg-emerald"><mat-icon>admin_panel_settings</mat-icon></div>
+    <div class="stat-info">
+      <p>Quản Trị Viên (ADMIN)</p>
+      <h3>{{ adminCount }}</h3>
+    </div>
+  </mat-card>
+  <mat-card class="stat-card">
+    <div class="stat-icon bg-teal"><mat-icon>badge</mat-icon></div>
+    <div class="stat-info">
+      <p>Nhân Sự (HR)</p>
+      <h3>{{ hrCount }}</h3>
+    </div>
+  </mat-card>
+  <mat-card class="stat-card">
+    <div class="stat-icon bg-slate"><mat-icon>people_outline</mat-icon></div>
+    <div class="stat-info">
+      <p>Nhân Viên (EMPLOYEE)</p>
+      <h3>{{ employeeCount }}</h3>
+    </div>
+  </mat-card>
+</div>
+
+<mat-card class="data-card">
+  <!-- FILTER PANEL HEADER -->
+  <div class="filter-panel-header">
+    <div class="filter-panel-title">
+      <div class="filter-panel-icon">
+        <mat-icon>shield</mat-icon>
+      </div>
+      <div>
+        <h3>Danh sách tài khoản</h3>
+        <p>Tìm kiếm tài khoản, chỉnh sửa quyền hạn đăng nhập và đặt lại mật khẩu</p>
+      </div>
+    </div>
+    <div class="filter-panel-actions">
+      <button mat-raised-button color="primary" class="add-btn" (click)="toggleAdd()">
+        <mat-icon>{{ isAdding ? 'close' : 'add' }}</mat-icon>
+        {{ isAdding ? 'Hủy Bỏ' : 'Thêm Tài Khoản' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- FILTER PANEL BODY -->
+  <div class="filter-panel-body">
+    <div class="filter-grid">
+      <!-- Tìm kiếm -->
+      <div class="filter-group">
+        <label class="filter-label">Tìm kiếm tài khoản</label>
+        <div class="filter-search-box">
+          <mat-icon>search</mat-icon>
+          <input type="text" placeholder="Tìm theo tên hoặc email..." [(ngModel)]="searchQuery" (keyup)="onSearch()" autocomplete="off" name="searchQuery" />
+        </div>
+      </div>
+
+      <!-- Lọc vai trò -->
+      <div class="filter-group">
+        <label class="filter-label">Vai trò</label>
+        <div class="filter-select-wrapper">
+          <mat-icon class="filter-select-icon">security</mat-icon>
+          <mat-select [(value)]="filterRole" (selectionChange)="onSearch()" disableOptionCentering class="filter-mat-select">
+            <mat-option value="">Tất cả vai trò</mat-option>
+            <mat-option value="ADMIN">ADMIN</mat-option>
+            <mat-option value="HR">HR</mat-option>
+            <mat-option value="EMPLOYEE">EMPLOYEE</mat-option>
+          </mat-select>
+        </div>
+      </div>
+
+      <!-- Lọc trạng thái -->
+      <div class="filter-group">
+        <label class="filter-label">Trạng thái</label>
+        <div class="filter-select-wrapper">
+          <mat-icon class="filter-select-icon">toggle_on</mat-icon>
+          <mat-select [(value)]="filterStatus" (selectionChange)="onSearch()" disableOptionCentering class="filter-mat-select">
+            <mat-option value="">Tất cả trạng thái</mat-option>
+            <mat-option value="ACTIVE">Hoạt động (Active)</mat-option>
+            <mat-option value="LEAVE">Tạm khóa (Inactive)</mat-option>
+          </mat-select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="loading" style="text-align:center; padding: 40px;">
+    <mat-spinner diameter="40" style="margin: 0 auto;"></mat-spinner>
+    <p style="margin-top: 15px; color: #888;">Đang kết nối dữ liệu tài khoản...</p>
+  </div>
+
+  <!-- TABLE -->
+  <div class="table-wrapper" *ngIf="!loading || filteredAccounts.length > 0">
+    <table class="custom-table">
+      <thead>
+        <tr>
+          <th style="width: 20%;">Họ và Tên</th>
+          <th style="width: 15%;">Chức vụ</th>
+          <th style="width: 20%;">Tài Khoản (Email)</th>
+          <th style="width: 15%;">Quyền Hệ Thống</th>
+          <th style="width: 15%;">Trạng Thái</th>
+          <th style="width: 15%;">Thao tác</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- ADD FORM ROW -->
+        <tr *ngIf="isAdding" class="add-row-form">
+          <td>
+            <div style="display: flex; flex-direction: column;">
+              <input class="inline-input" type="text" placeholder="Nhập họ tên nhân sự" [(ngModel)]="newAccount.name">
+              <div class="field-error-msg" *ngIf="validationErrors.name">{{ validationErrors.name }}</div>
+            </div>
+          </td>
+          <td>
+            <input class="inline-input" type="text" placeholder="Nhập chức vụ" [(ngModel)]="newAccount.position">
+          </td>
+          <td>
+            <div style="display: flex; flex-direction: column;">
+              <input class="inline-input" type="email" placeholder="Email đăng nhập" [(ngModel)]="newAccount.email">
+              <div class="field-error-msg" *ngIf="validationErrors.email">{{ validationErrors.email }}</div>
+            </div>
+          </td>
+          <td>
+            <select class="inline-input" [(ngModel)]="newAccount.role">
+              <option value="EMPLOYEE">EMPLOYEE</option>
+              <option value="HR">HR</option>
+              <option value="ADMIN">ADMIN</option>
+            </select>
+          </td>
+          <td>
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <input class="inline-input" type="password" placeholder="Mật khẩu (>= 6 kí tự)" [(ngModel)]="newAccount.password" autocomplete="new-password">
+              <div class="field-error-msg" *ngIf="validationErrors.password">{{ validationErrors.password }}</div>
+            </div>
+          </td>
+          <td>
+            <button mat-flat-button color="accent" (click)="saveAccount()"><mat-icon>save</mat-icon> Lưu</button>
+          </td>
+        </tr>
+
+        <!-- ACCOUNT LIST -->
+        <tr *ngFor="let a of pagedAccounts" [class.editing-row]="editingId === a.id">
+          <!-- Normal row view -->
+          <ng-container *ngIf="editingId !== a.id">
+            <td>
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <div class="avatar-sm">
+                  <img [src]="'https://ui-avatars.com/api/?name=' + a.name + '&background=e5ebfe&color=4B49AC&bold=true'" alt="Avatar">
+                </div>
+                <span style="font-weight: 700; color: #1e293b;">{{ a.name }}</span>
+              </div>
+            </td>
+            <td>
+              <span class="pos-badge" style="background: #eef2ff; color: #6366f1; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600;">{{ a.position || 'N/A' }}</span>
+            </td>
+            <td style="color: #4b49ac; font-weight: 500;">{{ a.email }}</td>
+            <td>
+              <span class="role-badge" [ngClass]="getRoleBadgeClass(a.role)">
+                {{ a.role }}
+              </span>
+            </td>
+            <td>
+              <span class="status-badge" [ngClass]="a.status === 'ACTIVE' ? 'active' : 'leave'">
+                {{ a.status === 'ACTIVE' ? 'Active' : 'Inactive' }}
+              </span>
+            </td>
+            <td>
+              <div style="display: flex; gap: 6px; align-items: center;">
+                <button mat-icon-button color="primary" (click)="startEdit(a)" title="Chỉnh sửa tài khoản">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button mat-icon-button color="accent" (click)="openResetModal(a)" title="Đặt lại mật khẩu" style="color: #6366f1;">
+                  <mat-icon>vpn_key</mat-icon>
+                </button>
+                <button mat-icon-button color="warn" (click)="deleteAccount(a.id)" title="Xóa tài khoản">
+                  <mat-icon>delete_outline</mat-icon>
+                </button>
+              </div>
+            </td>
+          </ng-container>
+
+          <!-- Edit row view -->
+          <ng-container *ngIf="editingId === a.id">
+            <td>
+              <input class="inline-input" type="text" [(ngModel)]="editModel.name">
+              <div class="field-error-msg" *ngIf="validationErrors.editName">{{ validationErrors.editName }}</div>
+            </td>
+            <td>
+              <input class="inline-input" type="text" [(ngModel)]="editModel.position" placeholder="Chức vụ">
+            </td>
+            <td>
+              <input class="inline-input" type="email" [(ngModel)]="editModel.email">
+              <div class="field-error-msg" *ngIf="validationErrors.editEmail">{{ validationErrors.editEmail }}</div>
+            </td>
+            <td>
+              <select class="inline-input" [(ngModel)]="editModel.role">
+                <option value="EMPLOYEE">EMPLOYEE</option>
+                <option value="HR">HR</option>
+                <option value="ADMIN">ADMIN</option>
+              </select>
+            </td>
+            <td>
+              <select class="inline-input" [(ngModel)]="editModel.status">
+                <option value="ACTIVE">Active</option>
+                <option value="LEAVE">Inactive</option>
+              </select>
+            </td>
+            <td>
+              <div style="display: flex; gap: 4px;">
+                <button mat-icon-button color="accent" (click)="saveEdit()" title="Lưu chỉnh sửa"><mat-icon>check_circle</mat-icon></button>
+                <button mat-icon-button color="warn" (click)="cancelEdit()" title="Hủy bỏ"><mat-icon>cancel</mat-icon></button>
+              </div>
+            </td>
+          </ng-container>
+        </tr>
+
+        <tr *ngIf="filteredAccounts.length === 0 && !isAdding && !loading">
+          <td colspan="5" style="text-align: center; padding: 40px; color: #888;">
+            Không tìm thấy tài khoản phù hợp!
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- PAGINATION FOOTER -->
+  <mat-paginator *ngIf="!loading && filteredAccounts.length > 0"
+                 [length]="filteredAccounts.length"
+                 [pageSize]="pageSize"
+                 [pageSizeOptions]="pageSizeOptions"
+                 [pageIndex]="pageIndex"
+                 (page)="onPageChange($event)"
+                 aria-label="Chọn trang">
+  </mat-paginator>
+</mat-card>
+
+<!-- RESET PASSWORD MODAL (GLASSMORPHISM OVERLAY) -->
+<div class="glass-overlay" *ngIf="showResetModal" (click)="closeResetModal()">
+  <div class="glass-modal-card" (click)="$event.stopPropagation()">
+    <!-- Modal Header -->
+    <div class="modal-header">
+      <div class="modal-header-title">
+        <div class="header-icon">
+          <mat-icon>vpn_key</mat-icon>
+        </div>
+        <div>
+          <h2>Đặt Lại Mật Khẩu</h2>
+          <p>Tài khoản: <strong>{{ selectedAccountForReset?.name }}</strong> ({{ selectedAccountForReset?.email }})</p>
+        </div>
+      </div>
+      <button class="modal-close-btn" (click)="closeResetModal()">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+
+    <!-- Modal Body -->
+    <div class="modal-body" style="padding: 20px 30px;">
+      <div class="form-group" style="display: flex; flex-direction: column; gap: 8px;">
+        <label style="font-weight: 600; color: #1e293b; font-size: 14px;">Mật khẩu mới</label>
+        <input type="password" class="inline-input" placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)" [(ngModel)]="newPasswordValue" autocomplete="new-password" style="padding: 12px 16px; font-size: 15px; border-radius: 10px; border: 1px solid #cbd5e1; width: 100%; box-sizing: border-box;">
+      </div>
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="modal-footer" style="padding: 20px 30px; display: flex; justify-content: flex-end; gap: 12px; border-top: 1px solid #f1f5f9;">
+      <button class="filter-toggle-btn" (click)="closeResetModal()">Hủy Bỏ</button>
+      <button mat-raised-button color="primary" class="add-btn" (click)="submitResetPassword()" style="height: 40px;">Xác Nhận</button>
+    </div>
+  </div>
+</div>

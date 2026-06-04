@@ -152,14 +152,14 @@
     <table class="custom-table">
       <thead>
         <tr>
-          <th style="width: 22%; min-width: 220px;">Họ và Tên</th>
-          <th style="width: 12%; min-width: 130px;">Chức vụ</th>
-          <th style="width: 12%; min-width: 130px;">Phòng ban</th>
-          <th style="width: 10%; min-width: 110px;">Loại lương</th>
-          <th style="width: 10%; min-width: 110px;">Lương cơ bản</th>
-          <th style="width: 15%; min-width: 160px;">Email</th>
-          <th style="width: 8%; min-width: 90px;">Face ID</th>
-          <th style="width: 8%; min-width: 90px;">Trạng thái</th>
+          <th style="width: 18%; min-width: 180px;">Họ và Tên</th>
+          <th style="width: 10%; min-width: 110px;">Phòng ban</th>
+          <th style="width: 10%; min-width: 110px;">Chức vụ</th>
+          <th style="width: 8%; min-width: 90px;">Loại lương</th>
+          <th style="width: 10%; min-width: 120px; white-space: nowrap;">Lương cơ bản</th>
+          <th style="width: 12%; min-width: 140px;">Email</th>
+          <th style="width: 6%; min-width: 80px;">Face ID</th>
+          <th style="width: 6%; min-width: 80px;">Trạng thái</th>
           <th style="width: 8%; min-width: 80px;">Thao tác</th>
         </tr>
       </thead>
@@ -179,15 +179,15 @@
             </div>
           </td>
           <td>
-            <select class="inline-input" [(ngModel)]="newEmployee.position">
-              <option value="" disabled selected>Chọn chức vụ</option>
-              <option *ngFor="let p of filteredPositions" [value]="p.name">{{ p.name }}</option>
-            </select>
-          </td>
-          <td>
             <select class="inline-input" [(ngModel)]="newEmployee.department" (change)="onDeptChange(newEmployee.department)">
               <option value="" disabled selected>Chọn phòng ban</option>
               <option *ngFor="let d of availableDepartments" [value]="d.name">{{ d.name }}</option>
+            </select>
+          </td>
+          <td>
+            <select class="inline-input" [(ngModel)]="newEmployee.position">
+              <option value="" disabled selected>Chọn chức vụ</option>
+              <option *ngFor="let p of filteredPositions" [value]="p.name">{{ p.name }}</option>
             </select>
           </td>
           <td>
@@ -227,22 +227,18 @@
                 <span style="font-weight: 700; color: #1e293b;">{{ emp.name }}</span>
               </div>
             </td>
-            <td><span class="pos-badge">{{ emp.position || 'N/A' }}</span></td>
             <td>{{ emp.department || 'N/A' }}</td>
+            <td><span class="pos-badge">{{ emp.position || 'N/A' }}</span></td>
             <td>
               <span class="type-badge" [ngClass]="emp.employeeType">
                 {{ emp.employeeType === 'FULL_TIME' ? 'Full-time' : (emp.employeeType === 'PART_TIME' ? 'Part-time' : (emp.employeeType === 'MANAGER' ? 'Manager' : 'N/A')) }}
               </span>
             </td>
-            <td style="font-weight: 600;">{{ fmt(emp.salaryBase, emp.employeeType === 'PART_TIME') }}</td>
+            <td style="font-weight: 600; white-space: nowrap;">{{ fmt(emp.salaryBase, emp.employeeType === 'PART_TIME') }}</td>
             <td style="color: #64748b;">{{ emp.email }}</td>
-            <td>
-              <span *ngIf="emp.faceDescriptor" class="chip-inline green" style="background: #e6f4ea; color: #137333; display: inline-flex; align-items: center; gap: 4px;">
-                 <mat-icon style="font-size: 16px; width: 16px; height: 16px;">face</mat-icon> Đã ĐK
-              </span>
-              <span *ngIf="!emp.faceDescriptor" class="chip-inline" style="background: #f1f3f4; color: #5f6368; display: inline-flex; align-items: center;">
-                 Chưa ĐK
-              </span>
+            <td style="text-align: center;">
+              <mat-icon *ngIf="emp.faceDescriptor" style="color: #10b981;" title="Đã đăng ký Face ID">face</mat-icon>
+              <mat-icon *ngIf="!emp.faceDescriptor" style="color: #cbd5e1;" title="Chưa đăng ký Face ID">face</mat-icon>
             </td>
             <td>
               <span class="status-badge"
@@ -281,13 +277,14 @@
               </div>
             </td>
             <td>
-              <select class="inline-input" [(ngModel)]="editModel.position">
-                <option *ngFor="let p of allPositions" [value]="p.name" [hidden]="p.departmentName !== editModel.department">{{ p.name }}</option>
+              <select class="inline-input" [(ngModel)]="editModel.department" (change)="onDeptChange(editModel.department, true)">
+                <option *ngFor="let d of availableDepartments" [value]="d.name">{{ d.name }}</option>
               </select>
             </td>
             <td>
-              <select class="inline-input" [(ngModel)]="editModel.department" (change)="onDeptChange(editModel.department)">
-                <option *ngFor="let d of availableDepartments" [value]="d.name">{{ d.name }}</option>
+              <select class="inline-input" [(ngModel)]="editModel.position">
+                <option value="" disabled selected>Chọn chức vụ</option>
+                <option *ngFor="let p of filteredPositions" [value]="p.name">{{ p.name }}</option>
               </select>
             </td>
             <td>

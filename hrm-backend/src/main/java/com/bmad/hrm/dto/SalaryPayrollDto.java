@@ -55,6 +55,7 @@ public class SalaryPayrollDto {
     private Long specialLeaveDays;
     private Long absentNoPerm;
     private Long noCheckoutDays;
+    private Long earlyDays;
 
     private String status;
 }

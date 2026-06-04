@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy, ViewChild, ElementRef, HostListener } fro
 import { HttpClient } from '@angular/common/http';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import * as faceapi from 'face-api.js';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-attendance',
@@ -9,6 +10,7 @@ import * as faceapi from 'face-api.js';
   styleUrls: ['./attendance.component.css']
 })
 export class AttendanceComponent implements OnInit, OnDestroy {
+  currentUser: any = null;
   @ViewChild('videoElement', { static: false }) videoElement!: ElementRef<HTMLVideoElement>;
   
   scanning = false;
@@ -36,15 +38,27 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   summaryLoading = false;
   summaryStats = { onTime: 0, late: 0, early: 0 };
 
-  constructor(private http: HttpClient, private snackBar: MatSnackBar) {}
+  constructor(private http: HttpClient, private snackBar: MatSnackBar, private authService: AuthService) {}
 
   async ngOnInit() {
+    this.authService.currentUser$.subscribe(user => {
+      this.currentUser = user;
+    });
+
     this.http.get<any[]>('http://localhost:8080/api/employees').subscribe({
       next: data => {
         this.employees = data;
         this.filteredEmployees = data;
         this.adminFilteredEmployees = data;
-        if (data && data.length > 0) {
+        
+        if (this.isEmployee()) {
+          // Force select current user only
+          const matchingEmp = data.find(e => e.email === this.currentUser?.email);
+          if (matchingEmp) {
+            this.selectedEmployeeId = matchingEmp.id;
+          }
+          this.loadSummary();
+        } else if (data && data.length > 0) {
           this.selectedEmployeeId = data[0].id;
           this.selectedRegisterEmployeeId = data[0].id;
           this.loadSummary();
@@ -53,6 +67,10 @@ export class AttendanceComponent implements OnInit, OnDestroy {
       error: () => {}
     });
     await this.loadModels();
+  }
+
+  isEmployee(): boolean {
+    return this.currentUser?.role === 'EMPLOYEE';
   }
 
   getSelectedEmployeeDepartment(): string {

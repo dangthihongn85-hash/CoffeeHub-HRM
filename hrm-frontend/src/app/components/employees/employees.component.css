@@ -1122,4 +1122,15 @@ button mat-icon { font-family: 'Material Icons' !important; }
   to { opacity: 1; transform: translateY(0); }
 }
 
+.role-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.role-badge.ADMIN { background: #fee2e2; color: #b91c1c; }
+.role-badge.HR { background: #eef2ff; color: #4338ca; }
+.role-badge.EMPLOYEE { background: #f1f5f9; color: #475569; }
+
 

@@ -14,14 +14,13 @@ export class SalaryManagementComponent implements OnInit {
   // ── State ──────────────────────────────────────────────────────────────────
   employees:  any[] = [];
   salaries:   any[] = [];
-  editingEmpId: number | null = null;
   loading = false;
   loadingRevenue = false;
 
   selectedMonth = new Date().getMonth() + 1;
   selectedYear  = new Date().getFullYear();
-  months = [1,2,3,4,5,6,7,8,9,10,11,12];
-  years  = [2024, 2025, 2026, 2027];
+  months = Array.from({ length: 12 }, (_, i) => i + 1);
+  years  = Array.from({ length: 10 }, (_, i) => this.selectedYear - 2 + i);
 
   filterType: string = 'ALL';
   filterDept: string = 'ALL';
@@ -59,14 +58,29 @@ export class SalaryManagementComponent implements OnInit {
   approveEvent: Event | null = null;
 
   // ── Tab ───────────────────────────────────────────────────────────────────
-  activeTab: 'payroll' | 'revenue' | 'employees' = 'payroll';
+  activeTab: 'payroll' | 'revenue' = 'payroll';
+
+  // ── Config ──────────────────────────────────────────────────────────────────
+  salaryConfig: any = null;
 
   constructor(private http: HttpClient, private snackBar: MatSnackBar) {}
 
   ngOnInit() {
+    this.loadConfig();
     this.loadEmployees();
     this.loadRevenue();
     this.loadSalaries();
+  }
+
+  loadConfig() {
+    this.http.get<any>(`${API}/salaries/config`).subscribe({
+      next: c => {
+        this.salaryConfig = c;
+        if (!this.monthlyRevenue && c.revenuePoolRate != null) {
+          this.bonusRate = c.revenuePoolRate;
+        }
+      }
+    });
   }
 
   // ── Data loaders ──────────────────────────────────────────────────────────
@@ -85,7 +99,7 @@ export class SalaryManagementComponent implements OnInit {
       next: d => {
         this.monthlyRevenue = d.monthlyRevenue || 0;
         this.bonusPool      = d.bonusPool      || 0;
-        this.bonusRate      = d.bonusRate      || 1.0;
+        this.bonusRate      = d.bonusRate      || (this.salaryConfig ? this.salaryConfig.revenuePoolRate : 1.0);
         this.revenueNotes   = d.notes          || '';
         this.revenueLoaded  = true;
       },
@@ -121,6 +135,9 @@ export class SalaryManagementComponent implements OnInit {
     this.salaries  = [];
     this.selectedSalary = null;
     this.selectedSalaryIds.clear();
+    if (this.salaryConfig && this.salaryConfig.revenuePoolRate != null) {
+      this.bonusRate = this.salaryConfig.revenuePoolRate;
+    }
     this.loadRevenue();
     this.loadSalaries();
   }
@@ -293,9 +310,19 @@ export class SalaryManagementComponent implements OnInit {
 
   onSalaryFieldChange(sal: any) {
     const emp = this.employees.find(e => e.id === sal.employeeId);
-    const HOURLY_RATE_FT = 25000;
-    const HOURLY_RATE_PT = (emp && emp.salaryBase > 0) ? emp.salaryBase : 20000;
-    const OT_MULTIPLIER = 1.5;
+    
+    // --- USE CONFIG ---
+    const HOURLY_RATE_FT = 25000; // Not used except fallback
+    const HOURLY_RATE_PT = (emp && emp.salaryBase > 0) ? emp.salaryBase : (this.salaryConfig?.partTimeHourlyRate || 20000);
+    const OT_MULTIPLIER = this.salaryConfig?.otMultiplier || 1.5;
+    const REQUIRED_DAYS = this.salaryConfig?.requiredPerfectDays || 26.0;
+    const STANDARD_HOURS = this.salaryConfig?.standardWorkingHours || 8.0;
+    const TOTAL_HOURS_MONTH = REQUIRED_DAYS * STANDARD_HOURS;
+    const LATE_PENALTY = this.salaryConfig?.latePenalty || 50000;
+    const NO_CHECKOUT_PENALTY = this.salaryConfig?.missingCheckoutPenalty || 50000;
+    const ABSENT_PENALTY = this.salaryConfig?.absentPenalty || 100000;
+    const MGR_BASE = this.salaryConfig?.managerBaseSalary || 8000000;
+    const MGR_ALLOWANCE = this.salaryConfig?.managerAllowance || 500000;
 
     // Round input hours first to exactly 1 decimal place (e.g. 5.8333333333 = 5.8, 5.877778 = 5.9)
     sal.regularHours = sal.regularHours != null ? Math.round(sal.regularHours * 10) / 10 : 0;
@@ -320,13 +347,13 @@ export class SalaryManagementComponent implements OnInit {
 
         // Tính tỷ lệ lương thực tế theo số ngày làm việc thực tế
         const totalEffectiveDays = (sal.workDays || 0) + (sal.specialLeaveDays || 0);
-        const paidDays = Math.min(26.0, totalEffectiveDays);
-        sal.actualBaseSalary = Math.round((originalBase * paidDays) / 26.0);
+        const paidDays = Math.min(REQUIRED_DAYS, totalEffectiveDays);
+        sal.actualBaseSalary = Math.round((originalBase * paidDays) / REQUIRED_DAYS);
 
         // Cập nhật lại các khoản phạt cụ thể (chỉ phạt đi muộn, thiếu check-out, nghỉ không phép)
-        const penaltyLate = (sal.lateDays || 0) * 50000;
-        const penaltyNoCheckout = (sal.noCheckoutDays || 0) * 50000;
-        const penaltyAbsentNoPerm = (sal.absentNoPerm || 0) * 100000;
+        const penaltyLate = (sal.lateDays || 0) * LATE_PENALTY;
+        const penaltyNoCheckout = (sal.noCheckoutDays || 0) * NO_CHECKOUT_PENALTY;
+        const penaltyAbsentNoPerm = (sal.absentNoPerm || 0) * ABSENT_PENALTY;
 
         sal.penaltyLate = penaltyLate;
         sal.penaltyNoCheckout = penaltyNoCheckout;
@@ -335,7 +362,7 @@ export class SalaryManagementComponent implements OnInit {
         // Tổng phạt = các phạt vi phạm
         sal.totalPenalty = Math.round(penaltyLate + penaltyNoCheckout + sal.penaltyAbsent);
       } else {
-        sal.baseSalary = sal.employeeType === 'MANAGER' ? 8500000 : Math.round((sal.regularHours || 0) * HOURLY_RATE_FT);
+        sal.baseSalary = sal.employeeType === 'MANAGER' ? (MGR_BASE + MGR_ALLOWANCE) : Math.round((sal.regularHours || 0) * HOURLY_RATE_FT);
         sal.actualBaseSalary = sal.baseSalary;
       }
     }
@@ -346,7 +373,7 @@ export class SalaryManagementComponent implements OnInit {
       rate = HOURLY_RATE_PT;
       sal.otSalary = 0; // Part-time không có OT
     } else {
-      rate = (emp && emp.salaryBase > 0) ? (emp.salaryBase / 208.0) : HOURLY_RATE_FT;
+      rate = (emp && emp.salaryBase > 0) ? (emp.salaryBase / TOTAL_HOURS_MONTH) : HOURLY_RATE_FT;
       sal.otSalary = Math.round((sal.otHours || 0) * rate * OT_MULTIPLIER);
     }
 
@@ -605,26 +632,7 @@ export class SalaryManagementComponent implements OnInit {
     });
   }
 
-  // ── Employee type ─────────────────────────────────────────────────────────
 
-  editEmployeeType(emp: any) {
-    this.editingEmpId = emp.id;
-  }
-
-  cancelEditType() {
-    this.editingEmpId = null;
-    this.loadEmployees(); // Reload to reset any unsaved changes
-  }
-
-  saveEmployeeType(emp: any) {
-    this.http.put<any>(`${API}/employees/${emp.id}`, emp).subscribe({
-      next: () => {
-        this.editingEmpId = null;
-        this.snackBar.open(`✅ Đã cập nhật loại NV: ${emp.name}`, 'Đóng', { duration: 3000 });
-      },
-      error: () => this.snackBar.open('❌ Cập nhật thất bại', 'Đóng', { duration: 3000 })
-    });
-  }
 
   // ── Detail panel ──────────────────────────────────────────────────────────
 
@@ -1093,6 +1101,13 @@ export class SalaryManagementComponent implements OnInit {
     }, 0);
 
     this.onSalaryFieldChange(this.editSalaryModel);
+  }
+
+  isZeroKpi(sal: any): boolean {
+    if (!sal) return false;
+    const workDays = sal.workDays || 0;
+    const specialLeave = sal.specialLeaveDays || 0;
+    return (workDays + specialLeave) === 0;
   }
 
   removeAccents(str: string): string {

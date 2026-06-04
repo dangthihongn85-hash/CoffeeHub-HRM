@@ -30,7 +30,7 @@ export class EmployeesComponent implements OnInit {
   pagedEmployees: any[] = [];
 
   isAdding = false;
-  newEmployee: any = { name: '', department: '', email: '', position: '', status: 'ACTIVE', password: 'password123', salaryBase: 6000000, role: 'EMPLOYEE', employeeType: 'FULL_TIME' };
+  newEmployee: any = { name: '', department: '', email: '', position: '', status: 'ACTIVE', password: '123456', salaryBase: 6000000, role: 'EMPLOYEE', employeeType: 'FULL_TIME' };
   systemConfig: any = {};
 
   editingId: number | null = null;
@@ -120,8 +120,19 @@ export class EmployeesComponent implements OnInit {
     });
   }
 
-  onDeptChange(deptName: string) {
+  onDeptChange(deptName: string, isEdit: boolean = false) {
     this.filteredPositions = this.allPositions.filter(p => p.departmentName === deptName);
+    if (isEdit) {
+      if (this.editModel) {
+        const isValid = this.filteredPositions.some(p => p.name === this.editModel.position);
+        if (!isValid) this.editModel.position = '';
+      }
+    } else {
+      if (this.newEmployee) {
+        const isValid = this.filteredPositions.some(p => p.name === this.newEmployee.position);
+        if (!isValid) this.newEmployee.position = '';
+      }
+    }
   }
 
   onFilterDeptChange() {
@@ -235,7 +246,7 @@ export class EmployeesComponent implements OnInit {
 
   toggleAdd() {
     this.isAdding = !this.isAdding;
-    this.newEmployee = { name: '', department: '', email: '', position: '', status: 'ACTIVE', password: 'password123', salaryBase: (this.systemConfig.fullTimeBaseSalary || 6000000), role: 'EMPLOYEE', employeeType: 'FULL_TIME' };
+    this.newEmployee = { name: '', department: '', email: '', position: '', status: 'ACTIVE', password: '123456', salaryBase: (this.systemConfig.fullTimeBaseSalary || 6000000), role: 'EMPLOYEE', employeeType: 'FULL_TIME' };
   }
 
   saveEmployee() {
@@ -274,7 +285,7 @@ export class EmployeesComponent implements OnInit {
     this.editModel = { ...emp };
     // Pre-filter positions for the department of the employee being edited
     if (emp.department) {
-      this.onDeptChange(emp.department);
+      this.onDeptChange(emp.department, true);
     }
   }
 

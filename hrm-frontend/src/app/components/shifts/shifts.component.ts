@@ -1,6 +1,7 @@
 import { Component, OnInit, HostListener } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-shifts',
@@ -8,6 +9,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
   styleUrls: ['./shifts.component.css']
 })
 export class ShiftsComponent implements OnInit {
+  currentUser: any = null;
   // Tabs: 'schedule' or 'config'
   activeTab: 'schedule' | 'config' = 'schedule';
 
@@ -83,12 +85,19 @@ export class ShiftsComponent implements OnInit {
   confirmMessage = '';
   confirmAction: (() => void) | null = null;
 
-  constructor(private http: HttpClient, private snackBar: MatSnackBar) {}
+  constructor(private http: HttpClient, private snackBar: MatSnackBar, private authService: AuthService) {}
 
   ngOnInit() {
+    this.authService.currentUser$.subscribe(user => {
+      this.currentUser = user;
+    });
     this.fetchShifts();
     this.fetchEmployees();
     this.generateWeek();
+  }
+
+  isEmployee(): boolean {
+    return this.currentUser?.role === 'EMPLOYEE';
   }
 
   // ── Shifts CRUD ───────────────────────────────────────────────────────────
@@ -774,6 +783,9 @@ export class ShiftsComponent implements OnInit {
 
   toggleCellDropdown(empId: number, dateStr: string, event: Event) {
     event.stopPropagation();
+    if (this.isEmployee()) {
+      return;
+    }
     if (this.isPastDate(dateStr)) {
       this.snackBar.open('⚠️ Không thể chỉnh sửa ca làm việc trong quá khứ!', 'Đóng', { duration: 3000 });
       return;

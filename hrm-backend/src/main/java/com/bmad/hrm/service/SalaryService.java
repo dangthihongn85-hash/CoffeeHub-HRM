@@ -197,6 +197,7 @@ public class SalaryService {
         long   lateDays     = 0;
         long   noCheckout   = 0;
         long   absentNoPerm = 0;
+        long   earlyDays    = 0;
 
         List<Holiday> allHolidays = holidayRepository.findAll();
         List<Holiday> holidays = allHolidays.stream()
@@ -241,6 +242,20 @@ public class SalaryService {
             
             if (isMissingCheckout) {
                 noCheckout++;
+            }
+
+            // Check leaving early
+            boolean isEarly = a.getStatus() == AttendanceStatus.EARLY;
+            if (!isEarly && a.getCheckOutTime() != null) {
+                LocalTime shiftEnd = a.getShift() != null ? a.getShift().getEndTime() : SHIFT_END;
+                long earlyMinutes = a.getCheckOutTime().isBefore(shiftEnd)
+                        ? java.time.Duration.between(a.getCheckOutTime(), shiftEnd).toMinutes() : 0;
+                if (earlyMinutes > config.getEarlyGraceMinutes()) {
+                    isEarly = true;
+                }
+            }
+            if (isEarly) {
+                earlyDays++;
             }
 
             boolean isHoliday = holidayOpt.isPresent();
@@ -454,6 +469,7 @@ public class SalaryService {
                 .specialLeaveDays(specialLeaveDays)
                 .absentNoPerm(absentNoPerm)
                 .noCheckoutDays(noCheckout)
+                .earlyDays(earlyDays)
                 .status(salary.getStatus())
                 .build();
     }
@@ -605,6 +621,56 @@ public class SalaryService {
      */
     private SalaryPayrollDto toDto(Salary s) {
         Employee emp = s.getEmployee();
+        long lateDays = 0;
+        long specialLeaveDays = 0;
+        long absentNoPerm = 0;
+        long noCheckout = 0;
+        long earlyDays = 0;
+
+        if (emp != null) {
+            LocalDate start = LocalDate.of(s.getYear(), s.getMonth(), 1);
+            LocalDate end   = start.withDayOfMonth(start.lengthOfMonth());
+            List<Attendance> records = attendanceRepository.findByEmployeeIdAndDateBetween(emp.getId(), start, end);
+            SalaryConfig config = getSystemConfig();
+
+            specialLeaveDays = records.stream()
+                    .filter(a -> a.getStatus() == AttendanceStatus.SPECIAL_LEAVE).count();
+
+            for (Attendance a : records) {
+                if (a.getStatus() == AttendanceStatus.ABSENT_NO_PERMISSION) {
+                    absentNoPerm++;
+                }
+
+                if (a.getCheckInTime() != null) {
+                    LocalTime shiftStart = a.getShift() != null ? a.getShift().getStartTime() : SHIFT_START;
+                    long lateMinutes = a.getCheckInTime().isAfter(shiftStart)
+                            ? java.time.Duration.between(shiftStart, a.getCheckInTime()).toMinutes() : 0;
+                    if (lateMinutes > config.getLateGraceMinutes()) {
+                        lateDays++;
+                    }
+                }
+
+                boolean isMissingCheckout = a.getCheckInTime() != null && a.getCheckOutTime() == null &&
+                        a.getStatus() != AttendanceStatus.ABSENT && a.getStatus() != AttendanceStatus.ABSENT_NO_PERMISSION && a.getStatus() != AttendanceStatus.SPECIAL_LEAVE;
+                if (isMissingCheckout) {
+                    noCheckout++;
+                }
+
+                boolean isEarly = a.getStatus() == AttendanceStatus.EARLY;
+                if (!isEarly && a.getCheckOutTime() != null) {
+                    LocalTime shiftEnd = a.getShift() != null ? a.getShift().getEndTime() : SHIFT_START.plusHours(9); // fallback shift end
+                    long earlyMinutes = a.getCheckOutTime().isBefore(shiftEnd)
+                            ? java.time.Duration.between(a.getCheckOutTime(), shiftEnd).toMinutes() : 0;
+                    if (earlyMinutes > config.getEarlyGraceMinutes()) {
+                        isEarly = true;
+                    }
+                }
+                if (isEarly) {
+                    earlyDays++;
+                }
+            }
+        }
+
         return SalaryPayrollDto.builder()
                 .salaryId(s.getId())
                 .employeeId(emp != null ? emp.getId() : null)
@@ -629,6 +695,11 @@ public class SalaryService {
                 .penaltyAbsent(s.getPenaltyAbsent())
                 .totalPenalty(s.getTotalPenalty())
                 .totalSalary(s.getTotalSalary())
+                .lateDays(lateDays)
+                .specialLeaveDays(specialLeaveDays)
+                .absentNoPerm(absentNoPerm)
+                .noCheckoutDays(noCheckout)
+                .earlyDays(earlyDays)
                 .status(s.getStatus())
                 .build();
     }

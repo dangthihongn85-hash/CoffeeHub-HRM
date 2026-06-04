@@ -21,6 +21,7 @@ public class EmployeeService {
     private final SalaryRepository salaryRepository;
     private final AttendanceRepository attendanceRepository;
     private final ShiftAssignmentRepository shiftAssignmentRepository;
+    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
     public List<EmployeeDto> getAllEmployees() {
         return employeeRepository.findAll().stream()
@@ -34,8 +35,11 @@ public class EmployeeService {
             throw new RuntimeException("Email đã tồn tại trong hệ thống!");
         }
         Employee employee = mapToEntity(employeeDto);
-        // Normally password should be encrypted here (e.g. passwordEncoder.encode)
-        // Since we haven't set up Security yet, we'll just save it directly for now.
+        if (employee.getPassword() == null || employee.getPassword().isEmpty()) {
+            employee.setPassword(passwordEncoder.encode("123456"));
+        } else {
+            employee.setPassword(passwordEncoder.encode(employee.getPassword()));
+        }
         Employee saved = employeeRepository.save(employee);
         return mapToDto(saved);
     }
@@ -56,6 +60,10 @@ public class EmployeeService {
         if (updated.getStatus() != null) existing.setStatus(updated.getStatus());
         if (updated.getSalaryBase() != null) existing.setSalaryBase(updated.getSalaryBase());
         if (updated.getEmployeeType() != null) existing.setEmployeeType(updated.getEmployeeType());
+        if (updated.getRole() != null) existing.setRole(updated.getRole());
+        if (updated.getPassword() != null && !updated.getPassword().isEmpty()) {
+            existing.setPassword(passwordEncoder.encode(updated.getPassword()));
+        }
         
         return mapToDto(employeeRepository.save(existing));
     }

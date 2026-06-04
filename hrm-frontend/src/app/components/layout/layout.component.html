@@ -10,13 +10,13 @@
     <div class="nav-section-title">MAIN MENU</div>
     
     <mat-nav-list class="custom-nav-list">
-      <a mat-list-item routerLink="/employees" routerLinkActive="active-link">
+      <a mat-list-item routerLink="/employees" routerLinkActive="active-link" *ngIf="hasAccess(['ADMIN', 'HR'])">
         <div class="nav-item-content">
           <mat-icon>people_outline</mat-icon>
           <span>Nhân Sự</span>
         </div>
       </a>
-      <a mat-list-item routerLink="/attendance" routerLinkActive="active-link">
+      <a mat-list-item routerLink="/attendance" routerLinkActive="active-link" *ngIf="hasAccess(['ADMIN', 'HR', 'EMPLOYEE'])">
         <div class="nav-item-content">
           <mat-icon>fingerprint</mat-icon>
           <span>Chấm Công</span>
@@ -28,25 +28,31 @@
           <span>Lịch Phân Ca</span>
         </div>
       </a>
-      <a mat-list-item routerLink="/departments" routerLinkActive="active-link">
+      <a mat-list-item routerLink="/departments" routerLinkActive="active-link" *ngIf="hasAccess(['ADMIN'])">
         <div class="nav-item-content">
           <mat-icon>account_tree</mat-icon>
           <span>Phòng Ban & Chức Vụ</span>
         </div>
       </a>
-      <a mat-list-item routerLink="/salary-management" routerLinkActive="active-link">
+      <a mat-list-item routerLink="/salary-management" routerLinkActive="active-link" *ngIf="hasAccess(['ADMIN'])">
         <div class="nav-item-content">
           <mat-icon>account_balance_wallet</mat-icon>
           <span>Quản Lý Lương</span>
         </div>
       </a>
-      <a mat-list-item routerLink="/salaries" routerLinkActive="active-link">
+      <a mat-list-item routerLink="/salaries" routerLinkActive="active-link" *ngIf="hasAccess(['ADMIN'])">
         <div class="nav-item-content">
           <mat-icon>auto_awesome</mat-icon>
           <span>AI Review & Báo Cáo</span>
         </div>
       </a>
-      <a mat-list-item routerLink="/settings" routerLinkActive="active-link">
+      <a mat-list-item routerLink="/accounts" routerLinkActive="active-link" *ngIf="hasAccess(['ADMIN'])">
+        <div class="nav-item-content">
+          <mat-icon>manage_accounts</mat-icon>
+          <span>Quản Lý Tài Khoản</span>
+        </div>
+      </a>
+      <a mat-list-item routerLink="/settings" routerLinkActive="active-link" *ngIf="hasAccess(['ADMIN'])">
         <div class="nav-item-content">
           <mat-icon>settings</mat-icon>
           <span>Cấu Hình Hệ Thống</span>
@@ -55,13 +61,13 @@
     </mat-nav-list>
 
     <div class="nav-footer">
-      <div class="sidebar-user-card">
+      <div class="sidebar-user-card" *ngIf="currentUser">
         <div class="sidebar-avatar">
-          <img src="https://ui-avatars.com/api/?name=Amira&background=4B49AC&color=fff&bold=true" alt="Avatar">
+          <img [src]="'https://ui-avatars.com/api/?name=' + currentUser.name + '&background=4B49AC&color=fff&bold=true'" alt="Avatar">
         </div>
         <div class="user-info-sidebar">
-          <h6>Amira Manager</h6>
-          <p>Admin</p>
+          <h6>{{ currentUser.name }}</h6>
+          <p>{{ currentUser.role }}</p>
         </div>
       </div>
     </div>
@@ -78,14 +84,14 @@
           <mat-icon>notifications_none</mat-icon>
           <span class="badge"></span>
         </button>
-
-        <div class="header-profile">
+ 
+        <div class="header-profile" *ngIf="currentUser">
           <div class="header-avatar">
-            <img src="https://ui-avatars.com/api/?name=Amira&background=4B49AC&color=fff&bold=true" alt="Avatar">
+            <img [src]="'https://ui-avatars.com/api/?name=' + currentUser.name + '&background=4B49AC&color=fff&bold=true'" alt="Avatar">
           </div>
           <div class="header-user-info">
-            <h6>Amira Manager</h6>
-            <p>Admin</p>
+            <h6>{{ currentUser.name }}</h6>
+            <p>{{ currentUser.role }}</p>
           </div>
         </div>
 

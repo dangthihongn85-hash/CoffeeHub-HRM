@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.bmad.hrm.repository.SalaryConfigRepository;
 import java.util.List;
 import java.util.Map;
 
@@ -17,6 +18,7 @@ import java.util.Map;
 public class SalaryController {
 
     private final SalaryService salaryService;
+    private final SalaryConfigRepository configRepository;
 
     // ── Luồng 0: Nhập doanh thu ─────────────────────────────────────────────
     @PostMapping("/revenue")
@@ -33,7 +35,11 @@ public class SalaryController {
     public ResponseEntity<?> getRevenue(@RequestParam Integer month, @RequestParam Integer year) {
         return salaryService.getMonthlyRevenue(month, year)
                 .<ResponseEntity<?>>map(ResponseEntity::ok)
-                .orElse(ResponseEntity.ok(Map.of("monthlyRevenue", 0, "bonusPool", 0, "bonusRate", 1.0)));
+                .orElseGet(() -> {
+                    com.bmad.hrm.entity.SalaryConfig config = configRepository.findAll().stream().findFirst()
+                            .orElse(com.bmad.hrm.entity.SalaryConfig.builder().build());
+                    return ResponseEntity.ok(Map.of("monthlyRevenue", 0, "bonusPool", 0, "bonusRate", config.getRevenuePoolRate()));
+                });
     }
 
     // ── Luồng tính lương toàn bộ (bulk) ─────────────────────────────────────

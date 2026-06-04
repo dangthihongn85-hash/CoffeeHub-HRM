@@ -17,6 +17,7 @@ import { SalaryManagementComponent } from './components/salary-management/salary
 import { DepartmentsComponent } from './components/departments/departments.component';
 import { ShiftsComponent } from './components/shifts/shifts.component';
 import { SettingsComponent } from './components/settings/settings.component';
+import { AccountsComponent } from './components/accounts/accounts.component';
 
 import { MatButtonModule } from '@angular/material/button';
 import { MatInputModule } from '@angular/material/input';
@@ -42,7 +43,8 @@ import { MatSelectModule } from '@angular/material/select';
     SalaryComponent,
     SalaryManagementComponent,
     DepartmentsComponent,
-    SettingsComponent
+    SettingsComponent,
+    AccountsComponent
   ],
   imports: [
     BrowserModule,

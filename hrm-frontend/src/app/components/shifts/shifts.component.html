@@ -12,7 +12,7 @@
       <button class="tab-btn" [class.active]="activeTab === 'schedule'" (click)="activeTab = 'schedule'">
         <mat-icon>calendar_view_week</mat-icon> Lịch Phân Ca
       </button>
-      <button class="tab-btn" [class.active]="activeTab === 'config'" (click)="activeTab = 'config'">
+      <button class="tab-btn" [class.active]="activeTab === 'config'" (click)="activeTab = 'config'" *ngIf="!isEmployee()">
         <mat-icon>settings</mat-icon> Cấu Hình Ca Làm
       </button>
     </div>
@@ -21,10 +21,10 @@
   <!-- Cột 3: Các nút hành động động (Căn lề phải) -->
   <div class="header-actions-container">
     <div class="header-actions-row" *ngIf="activeTab === 'schedule'">
-      <button mat-raised-button color="primary" class="bulk-btn animate-btn" (click)="openBulkModal()">
+      <button mat-raised-button color="primary" class="bulk-btn animate-btn" (click)="openBulkModal()" *ngIf="!isEmployee()">
         <mat-icon>group_add</mat-icon> Phân Ca Nhanh
       </button>
-      <button mat-raised-button color="warn" class="clear-week-btn animate-btn" (click)="clearWeekSchedule()" 
+      <button mat-raised-button color="warn" class="clear-week-btn animate-btn" (click)="clearWeekSchedule()" *ngIf="!isEmployee()"
               [style.background]="isWeekPast() ? 'linear-gradient(135deg, #94a3b8, #64748b)' : 'linear-gradient(135deg, #ef4444, #dc2626)'"
               [style.cursor]="isWeekPast() ? 'not-allowed' : 'pointer'"
               [style.opacity]="isWeekPast() ? '0.6' : '1'"
@@ -174,7 +174,7 @@
               <div class="day-name">{{ day.name }}</div>
               <div class="day-date">{{ day.dateStr | date:'dd/MM' }}</div>
             </th>
-            <th class="day-header" style="min-width: 90px; width: 90px; vertical-align: middle;">
+            <th class="day-header" style="min-width: 90px; width: 90px; vertical-align: middle;" *ngIf="!isEmployee()">
               <div class="day-name" style="color: var(--text-muted); font-size: 12px; font-weight: 700; text-transform: uppercase;">Làm Mới</div>
               <div class="day-date" style="font-size: 13px; font-weight: 800; color: var(--text-main); margin-top: 2px;">Lịch Tuần</div>
             </th>
@@ -204,10 +204,10 @@
                    [ngClass]="getShiftColorClassById(getAssignmentShiftId(emp.id, day.dateStr))"
                    [class.active-trigger]="activeCellDropdown?.empId === emp.id && activeCellDropdown?.dateStr === day.dateStr"
                    [class.filtered-out]="filterShiftId !== 'ALL' && getAssignmentShiftId(emp.id, day.dateStr).toString() !== filterShiftId.toString()"
-                   [class.past-locked]="isPastDate(day.dateStr)">
+                   [class.past-locked]="isPastDate(day.dateStr) || isEmployee()">
                 <span class="trigger-name">{{ getShiftNameById(getAssignmentShiftId(emp.id, day.dateStr)) }}</span>
-                <mat-icon class="trigger-chevron" *ngIf="!isPastDate(day.dateStr)">expand_more</mat-icon>
-                <mat-icon class="trigger-chevron lock-icon" *ngIf="isPastDate(day.dateStr)" style="font-size: 14px; width: 14px; height: 14px; opacity: 0.65;">lock</mat-icon>
+                <mat-icon class="trigger-chevron" *ngIf="!isPastDate(day.dateStr) && !isEmployee()">expand_more</mat-icon>
+                <mat-icon class="trigger-chevron lock-icon" *ngIf="isPastDate(day.dateStr) || isEmployee()" style="font-size: 14px; width: 14px; height: 14px; opacity: 0.65;">lock</mat-icon>
               </div>
 
               <!-- High-Fidelity Custom Selection Dropdown Popover -->
@@ -245,7 +245,7 @@
             </td>
 
             <!-- Actions Col at the end of row -->
-            <td class="schedule-cell" style="vertical-align: middle; text-align: center;">
+            <td class="schedule-cell" style="vertical-align: middle; text-align: center;" *ngIf="!isEmployee()">
               <button class="clear-emp-week-btn" 
                       (click)="clearEmployeeWeek(emp)" 
                       [title]="isWeekPast() ? 'Lịch tuần của quá khứ đã bị khóa chỉnh sửa!' : 'Xóa lịch tuần của nhân sự này'" 

@@ -28,7 +28,7 @@
         </mat-form-field>
 
         <div class="forgot-pass">
-          <a href="javascript:void(0)">Forgot password?</a>
+          <a href="javascript:void(0)" (click)="openChangePassword()">Đổi mật khẩu?</a>
         </div>
 
         <div class="error-msg" *ngIf="error">
@@ -45,6 +45,55 @@
 
     <div class="footer-text">
       Graduation Project &copy; 2026 BMAD Method
+    </div>
+  </div>
+</div>
+
+<!-- Modal Đổi mật khẩu với thiết kế Glassmorphism -->
+<div class="modal-overlay" *ngIf="showChangePasswordModal" (click)="closeChangePassword()">
+  <div class="glass-modal-card" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Đổi mật khẩu</h3>
+      <button class="close-btn" (click)="closeChangePassword()">&times;</button>
+    </div>
+    
+    <div class="modal-body">
+      <mat-form-field appearance="outline" class="custom-field">
+        <mat-label>Email tài khoản</mat-label>
+        <input matInput [(ngModel)]="cpEmail" placeholder="nv18@cafe.com">
+        <mat-icon matPrefix class="muted-icon">alternate_email</mat-icon>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="custom-field">
+        <mat-label>Mật khẩu cũ</mat-label>
+        <input matInput [(ngModel)]="cpOldPassword" type="password">
+        <mat-icon matPrefix class="muted-icon">lock_outline</mat-icon>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="custom-field">
+        <mat-label>Mật khẩu mới</mat-label>
+        <input matInput [(ngModel)]="cpNewPassword" type="password">
+        <mat-icon matPrefix class="muted-icon">vpn_key</mat-icon>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="custom-field">
+        <mat-label>Xác nhận mật khẩu mới</mat-label>
+        <input matInput [(ngModel)]="cpConfirmPassword" type="password" (keyup.enter)="changePassword()">
+        <mat-icon matPrefix class="muted-icon">done_all</mat-icon>
+      </mat-form-field>
+
+      <div class="error-msg" *ngIf="cpError">
+        <mat-icon>error_outline</mat-icon>
+        <span>{{ cpError }}</span>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button mat-button class="cancel-btn" (click)="closeChangePassword()" [disabled]="cpLoading">Hủy</button>
+      <button mat-raised-button color="primary" class="submit-btn" (click)="changePassword()" [disabled]="cpLoading">
+        <span *ngIf="!cpLoading">Xác nhận</span>
+        <mat-spinner diameter="20" *ngIf="cpLoading"></mat-spinner>
+      </button>
     </div>
   </div>
 </div>
