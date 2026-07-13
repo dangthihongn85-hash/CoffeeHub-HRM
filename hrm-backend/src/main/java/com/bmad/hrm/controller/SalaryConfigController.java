@@ -3,10 +3,8 @@ package com.bmad.hrm.controller;
 import com.bmad.hrm.entity.SalaryConfig;
 import com.bmad.hrm.repository.SalaryConfigRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/salaries/config")

@@ -1,3 +1,4 @@
+import { environment } from 'src/environments/environment';
 import { Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -67,7 +68,7 @@ export class AccountsComponent implements OnInit {
 
   fetchAccounts() {
     this.loading = true;
-    this.http.get<any[]>('http://localhost:8080/api/employees').subscribe({
+    this.http.get<any[]>(`${environment.apiUrl}/employees`).subscribe({
       next: (data) => {
         // Filter out DELETED accounts
         this.accounts = data.filter(e => e.status !== 'DELETED').sort((a, b) => b.id - a.id);
@@ -145,7 +146,7 @@ export class AccountsComponent implements OnInit {
     if (hasError) return;
 
     this.loading = true;
-    this.http.post<any>('http://localhost:8080/api/employees', this.newAccount).subscribe({
+    this.http.post<any>(`${environment.apiUrl}/employees`, this.newAccount).subscribe({
       next: (res) => {
         this.accounts.unshift(res);
         this.calculateStats();
@@ -186,7 +187,7 @@ export class AccountsComponent implements OnInit {
 
     if (hasError) return;
 
-    this.http.put<any>(`http://localhost:8080/api/employees/${this.editingId}`, this.editModel).subscribe({
+    this.http.put<any>(`${environment.apiUrl}/employees/${this.editingId}`, this.editModel).subscribe({
       next: (res) => {
         const idx = this.accounts.findIndex(a => a.id === this.editingId);
         if (idx !== -1) {
@@ -205,7 +206,7 @@ export class AccountsComponent implements OnInit {
 
   deleteAccount(id: number) {
     if (confirm('Bạn có chắc chắn muốn xóa tài khoản này không?')) {
-      this.http.delete(`http://localhost:8080/api/employees/${id}`).subscribe({
+      this.http.delete(`${environment.apiUrl}/employees/${id}`).subscribe({
         next: () => {
           this.accounts = this.accounts.filter(a => a.id !== id);
           this.calculateStats();
@@ -242,7 +243,7 @@ export class AccountsComponent implements OnInit {
       password: this.newPasswordValue
     };
 
-    this.http.put<any>(`http://localhost:8080/api/employees/${this.selectedAccountForReset.id}`, payload).subscribe({
+    this.http.put<any>(`${environment.apiUrl}/employees/${this.selectedAccountForReset.id}`, payload).subscribe({
       next: () => {
         this.snackBar.open('✅ Đã đặt lại mật khẩu thành công!', 'Đóng', { duration: 3000 });
         this.closeResetModal();

@@ -1,3 +1,4 @@
+import { environment } from 'src/environments/environment';
 import { Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -37,7 +38,7 @@ export class EmployeesComponent implements OnInit {
   editModel: any = {};
 
   fetchSystemConfig() {
-    this.http.get<any>('http://localhost:8080/api/salaries/config').subscribe({
+    this.http.get<any>(`${environment.apiUrl}/salaries/config`).subscribe({
       next: (data) => {
         this.systemConfig = data;
         // Default new employee's salary base
@@ -105,17 +106,17 @@ export class EmployeesComponent implements OnInit {
   }
 
   loadDropdowns() {
-    this.http.get<any[]>('http://localhost:8080/api/departments').subscribe(data => {
+    this.http.get<any[]>(`${environment.apiUrl}/departments`).subscribe(data => {
       this.availableDepartments = data;
     });
-    this.http.get<any[]>('http://localhost:8080/api/departments/positions').subscribe(data => {
+    this.http.get<any[]>(`${environment.apiUrl}/departments/positions`).subscribe(data => {
       this.allPositions = data;
       this.filteredPositionsForFilter = [...data];
     });
   }
 
   loadShifts() {
-    this.http.get<any[]>('http://localhost:8080/api/shifts').subscribe(data => {
+    this.http.get<any[]>(`${environment.apiUrl}/shifts`).subscribe(data => {
       this.availableShifts = data;
     });
   }
@@ -149,7 +150,7 @@ export class EmployeesComponent implements OnInit {
 
   fetchData() {
     this.loading = true;
-    this.http.get<any[]>('http://localhost:8080/api/employees').subscribe({
+    this.http.get<any[]>(`${environment.apiUrl}/employees`).subscribe({
       next: (data) => {
         this.employees = data.sort((a,b) => b.id - a.id); // sort latest first
         this.filteredEmployees = [...this.employees];
@@ -264,7 +265,7 @@ export class EmployeesComponent implements OnInit {
     if (hasError) return;
     
     this.loading = true;
-    this.http.post<any>('http://localhost:8080/api/employees', this.newEmployee).subscribe({
+    this.http.post<any>(`${environment.apiUrl}/employees`, this.newEmployee).subscribe({
       next: (res) => {
         this.employees.unshift(res);
         this.onSearch(true);
@@ -305,7 +306,7 @@ export class EmployeesComponent implements OnInit {
       hasError = true;
     }
     if (hasError) return;
-    this.http.put<any>(`http://localhost:8080/api/employees/${this.editingId}`, this.editModel).subscribe({
+    this.http.put<any>(`${environment.apiUrl}/employees/${this.editingId}`, this.editModel).subscribe({
       next: (res) => {
         const idx = this.employees.findIndex(e => e.id === this.editingId);
         if(idx !== -1) {
@@ -327,7 +328,7 @@ export class EmployeesComponent implements OnInit {
       'Xóa Nhân Viên',
       'Bạn có chắc chắn muốn xoá nhân viên này không? Dữ liệu không thể khôi phục.',
       () => {
-        this.http.delete(`http://localhost:8080/api/employees/${id}`).subscribe({
+        this.http.delete(`${environment.apiUrl}/employees/${id}`).subscribe({
           next: () => {
             this.employees = this.employees.filter(e => e.id !== id);
             this.onSearch(false);
@@ -351,7 +352,7 @@ export class EmployeesComponent implements OnInit {
       `Bạn có chắc chắn muốn chuyển trạng thái nhân viên "${emp.name}" sang ${actionText}?`,
       () => {
         emp.status = newStatus;
-        this.http.put<any>(`http://localhost:8080/api/employees/${emp.id}`, emp).subscribe({
+        this.http.put<any>(`${environment.apiUrl}/employees/${emp.id}`, emp).subscribe({
           next: () => {
             this.calculateStats();
             this.snackBar.open(`Đã cập nhật trạng thái thành ${newStatus === 'ACTIVE' ? 'Active' : 'Inactive'}`, 'Đóng', {duration: 2500});
@@ -394,7 +395,7 @@ export class EmployeesComponent implements OnInit {
   loadAttendanceData() {
     if (!this.selectedEmpForAttendance) return;
     this.loadingAttendance = true;
-    this.http.get<any[]>(`http://localhost:8080/api/attendance/${this.selectedEmpForAttendance.id}/monthly`, {
+    this.http.get<any[]>(`${environment.apiUrl}/attendance/${this.selectedEmpForAttendance.id}/monthly`, {
       params: {
         month: this.selectedMonth.toString(),
         year: this.selectedYear.toString()
@@ -511,7 +512,7 @@ export class EmployeesComponent implements OnInit {
       shiftId: shiftIdVal
     };
 
-    this.http.post<any>(`http://localhost:8080/api/attendance/${this.selectedEmpForAttendance.id}/manual`, body).subscribe({
+    this.http.post<any>(`${environment.apiUrl}/attendance/${this.selectedEmpForAttendance.id}/manual`, body).subscribe({
       next: () => {
         this.snackBar.open('✅ Đã lưu chấm công thành công!', 'Đóng', {duration: 2000});
         day.editing = false;
@@ -529,7 +530,7 @@ export class EmployeesComponent implements OnInit {
       'Xóa Chấm Công Ngày',
       `Bạn có chắc chắn muốn xoá chấm công ngày ${day.dateStr} không?`,
       () => {
-        this.http.delete(`http://localhost:8080/api/attendance/${this.selectedEmpForAttendance.id}/manual`, {
+        this.http.delete(`${environment.apiUrl}/attendance/${this.selectedEmpForAttendance.id}/manual`, {
           params: { date: day.dateStr }
         }).subscribe({
           next: () => {

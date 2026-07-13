@@ -1,8 +1,9 @@
+import { environment } from 'src/environments/environment';
 import { Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
-const API = 'http://localhost:8080/api';
+const API = `${environment.apiUrl}`;
 
 @Component({
   selector: 'app-salary-management',

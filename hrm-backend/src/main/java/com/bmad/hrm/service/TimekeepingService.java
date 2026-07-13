@@ -39,11 +39,6 @@ public class TimekeepingService {
                 .orElse(SalaryConfig.builder().build());
     }
 
-    /** Ca bắt đầu: 08:00 | Ngưỡng trễ: 08:40 (trễ > 10 phút) */
-    private static final LocalTime SHIFT_START  = LocalTime.of(8, 0);
-    private static final LocalTime LATE_CUTOFF  = LocalTime.of(8, 40);
-    /** Ca kết thúc: 17:00 */
-    private static final LocalTime SHIFT_END    = LocalTime.of(17, 0);
 
     // ── Check-in ──────────────────────────────────────────────────────────────
     public Attendance checkIn(Long employeeId) {

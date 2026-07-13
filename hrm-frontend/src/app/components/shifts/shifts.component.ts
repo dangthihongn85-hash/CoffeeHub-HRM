@@ -1,3 +1,4 @@
+import { environment } from 'src/environments/environment';
 import { Component, OnInit, HostListener } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -103,7 +104,7 @@ export class ShiftsComponent implements OnInit {
   // ── Shifts CRUD ───────────────────────────────────────────────────────────
   fetchShifts() {
     this.loadingShifts = true;
-    this.http.get<any[]>('http://localhost:8080/api/shifts').subscribe({
+    this.http.get<any[]>(`${environment.apiUrl}/shifts`).subscribe({
       next: (data) => {
         this.shifts = data;
         this.loadingShifts = false;
@@ -144,7 +145,7 @@ export class ShiftsComponent implements OnInit {
       endTime: end
     };
 
-    this.http.post<any>('http://localhost:8080/api/shifts', payload).subscribe({
+    this.http.post<any>(`${environment.apiUrl}/shifts`, payload).subscribe({
       next: () => {
         this.fetchShifts();
         this.isAddingShift = false;
@@ -186,7 +187,7 @@ export class ShiftsComponent implements OnInit {
       endTime: end
     };
 
-    this.http.put<any>(`http://localhost:8080/api/shifts/${this.editingShiftId}`, payload).subscribe({
+    this.http.put<any>(`${environment.apiUrl}/shifts/${this.editingShiftId}`, payload).subscribe({
       next: () => {
         this.fetchShifts();
         this.editingShiftId = null;
@@ -203,7 +204,7 @@ export class ShiftsComponent implements OnInit {
       'Xóa Ca Làm Việc',
       'Bạn có chắc chắn muốn xóa ca làm này không? Các lịch phân ca thuộc ca này có thể bị ảnh hưởng.',
       () => {
-        this.http.delete(`http://localhost:8080/api/shifts/${id}`).subscribe({
+        this.http.delete(`${environment.apiUrl}/shifts/${id}`).subscribe({
           next: () => {
             this.fetchShifts();
             this.snackBar.open('✅ Đã xóa ca làm việc thành công!', 'Đóng', { duration: 3000 });
@@ -217,7 +218,7 @@ export class ShiftsComponent implements OnInit {
   // ── Scheduling Grid ──────────────────────────────────────────────────────
   fetchEmployees() {
     this.loadingEmployees = true;
-    this.http.get<any[]>('http://localhost:8080/api/employees').subscribe({
+    this.http.get<any[]>(`${environment.apiUrl}/employees`).subscribe({
       next: (data) => {
         // Exclude admin role as they are not employees dotting shifts
         this.employees = data.filter(e => e.role !== 'ADMIN').sort((a, b) => a.id - b.id);
@@ -495,7 +496,7 @@ export class ShiftsComponent implements OnInit {
     const endStr = this.weekDays[6].dateStr;
     
     this.loadingAssignments = true;
-    this.http.get<any[]>(`http://localhost:8080/api/shifts/assignments?start=${startStr}&end=${endStr}`).subscribe({
+    this.http.get<any[]>(`${environment.apiUrl}/shifts/assignments?start=${startStr}&end=${endStr}`).subscribe({
       next: (data) => {
         this.assignments = data;
         this.mapAssignmentsToGrid();
@@ -513,7 +514,7 @@ export class ShiftsComponent implements OnInit {
     const startStr = this.weekDays[0].dateStr;
     const endStr = this.weekDays[6].dateStr;
     
-    this.http.get<any[]>(`http://localhost:8080/api/shifts/assignments?start=${startStr}&end=${endStr}`).subscribe({
+    this.http.get<any[]>(`${environment.apiUrl}/shifts/assignments?start=${startStr}&end=${endStr}`).subscribe({
       next: (data) => {
         this.assignments = data;
         this.mapAssignmentsToGrid();
@@ -571,7 +572,7 @@ export class ShiftsComponent implements OnInit {
       dates: [this.selectedCell.day.dateStr]
     };
 
-    this.http.post('http://localhost:8080/api/shifts/assignments/bulk', payload).subscribe({
+    this.http.post(`${environment.apiUrl}/shifts/assignments/bulk`, payload).subscribe({
       next: () => {
         this.snackBar.open('✅ Đã phân ca thành công!', 'Đóng', { duration: 2000 });
         this.fetchAssignments();
@@ -657,7 +658,7 @@ export class ShiftsComponent implements OnInit {
       dates: dateStrings
     };
 
-    this.http.post('http://localhost:8080/api/shifts/assignments/bulk', payload).subscribe({
+    this.http.post(`${environment.apiUrl}/shifts/assignments/bulk`, payload).subscribe({
       next: (res: any) => {
         let msg = `✅ Đã phân lịch thành công!`;
         if (skippedPastCount > 0) {
@@ -693,7 +694,7 @@ export class ShiftsComponent implements OnInit {
             shiftId: null,
             dates: activeDates
           };
-          return this.http.post('http://localhost:8080/api/shifts/assignments/bulk', payload).toPromise();
+          return this.http.post(`${environment.apiUrl}/shifts/assignments/bulk`, payload).toPromise();
         });
 
         Promise.all(promises)
@@ -727,7 +728,7 @@ export class ShiftsComponent implements OnInit {
           dates: activeDates
         };
 
-        this.http.post('http://localhost:8080/api/shifts/assignments/bulk', payload).subscribe({
+        this.http.post(`${environment.apiUrl}/shifts/assignments/bulk`, payload).subscribe({
           next: () => {
             this.snackBar.open(`✅ Đã xóa lịch phân ca các ngày khả dụng tuần này của ${employee.name}!`, 'Đóng', { duration: 2000 });
             this.fetchAssignments();
@@ -828,7 +829,7 @@ export class ShiftsComponent implements OnInit {
 
     this.activeCellDropdown = null;
 
-    this.http.post('http://localhost:8080/api/shifts/assignments/bulk', payload).subscribe({
+    this.http.post(`${environment.apiUrl}/shifts/assignments/bulk`, payload).subscribe({
       next: () => {
         this.fetchAssignmentsSilent();
       },
@@ -871,7 +872,7 @@ export class ShiftsComponent implements OnInit {
       }
     }
 
-    this.http.post('http://localhost:8080/api/shifts/assignments/bulk', payload).subscribe({
+    this.http.post(`${environment.apiUrl}/shifts/assignments/bulk`, payload).subscribe({
       next: () => {
         this.fetchAssignmentsSilent();
       },

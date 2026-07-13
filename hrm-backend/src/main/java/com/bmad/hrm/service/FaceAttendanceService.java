@@ -1,7 +1,6 @@
 package com.bmad.hrm.service;
 
 import com.bmad.hrm.entity.Attendance;
-import com.bmad.hrm.entity.AttendanceStatus;
 import com.bmad.hrm.entity.Employee;
 import com.bmad.hrm.repository.AttendanceRepository;
 import com.bmad.hrm.repository.EmployeeRepository;
@@ -11,9 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor

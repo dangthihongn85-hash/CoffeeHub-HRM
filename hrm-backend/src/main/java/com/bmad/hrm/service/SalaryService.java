@@ -10,44 +10,16 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
  * Luồng QUẢN LÝ LƯƠNG NHÂN VIÊN QUÁN CAFE – FINAL
- * ===================================================
- * Luồng: Doanh thu → Chấm công → Validate → Nghỉ đặc biệt
- *        → Tính giờ → Tính lương → Thưởng/Phạt → Chia doanh thu → Xuất lương
  */
 @Service
 @RequiredArgsConstructor
 public class SalaryService {
-
-    // ─── Cấu hình cứng theo RSD ───────────────────────────────────────────────
-    private static final double PART_TIME_HOURLY = 20_000.0;
-    private static final double FULL_TIME_HOURLY = 25_000.0;
-    private static final double MANAGER_BASE     = 8_000_000.0;
-    private static final double MANAGER_ALLOWANCE = 500_000.0;
-    private static final double OT_MULTIPLIER    = 1.5;
-
-    // Thưởng chuyên cần
-    private static final int    REQUIRED_WORK_DAYS   = 26;
-    private static final double BONUS_FULL_DAYS       = 200_000.0;
-    private static final double BONUS_NO_LATE         = 100_000.0;
-
-    // Phạt
-    private static final double PENALTY_LATE          = 50_000.0;   // đi trễ > 10 phút
-    private static final double PENALTY_NO_CHECKOUT   = 50_000.0;   // thiếu check-out
-    private static final double PENALTY_ABSENT_NO_PERM= 100_000.0;  // nghỉ không phép
-
-    // Quỹ doanh thu
-    private static final double REVENUE_POOL_RATE     = 0.01;       // 1%
-
-    // Giờ chuẩn 1 ngày, mốc OT
-    private static final LocalTime SHIFT_START  = LocalTime.of(8, 0);
-    private static final LocalTime SHIFT_END    = LocalTime.of(17, 0); // 9 giờ/ngày = 8 giờ net
-    private static final LocalTime LATE_CUTOFF  = LocalTime.of(8, 40); // trễ > 10 phút
-    private static final double    DAILY_NORMAL_HOURS = 8.0;
 
     private final SalaryRepository           salaryRepository;
     private final EmployeeRepository         employeeRepository;
@@ -57,18 +29,13 @@ public class SalaryService {
     private final SalaryConfigRepository     salaryConfigRepository;
     private final HolidayRepository          holidayRepository;
 
-    private SalaryConfig getSystemConfig() {
+    private static final LocalTime SHIFT_START  = LocalTime.of(8, 0);
+
+    public SalaryConfig getSystemConfig() {
         return salaryConfigRepository.findAll().stream().findFirst()
                 .orElse(SalaryConfig.builder().build());
     }
 
-    // =========================================================================
-    // PUBLIC API
-    // =========================================================================
-
-    /**
-     * Luồng 0: Quản lý nhập / cập nhật doanh thu tháng.
-     */
     public MonthlyRevenue saveMonthlyRevenue(Integer month, Integer year, Double revenue, Double bonusRate, String notes) {
         MonthlyRevenue mr = revenueRepository.findByMonthAndYear(month, year)
                 .orElse(new MonthlyRevenue());
@@ -89,10 +56,6 @@ public class SalaryService {
         return revenueRepository.findByMonthAndYear(month, year);
     }
 
-    /**
-     * Tính lương toàn bộ nhân viên trong tháng (bulk calculate).
-     * Trả về danh sách SalaryPayrollDto đã có thưởng doanh thu POOL.
-     */
     public List<SalaryPayrollDto> calculateAllSalaries(Integer month, Integer year) {
         List<Employee> allEmployees = employeeRepository.findAll().stream()
                 .filter(e -> e.getRole() != com.bmad.hrm.entity.Role.ADMIN)
@@ -101,22 +64,24 @@ public class SalaryService {
         LocalDate monthStart = LocalDate.of(year, month, 1);
         LocalDate monthEnd   = monthStart.withDayOfMonth(monthStart.lengthOfMonth());
 
+        List<Attendance> allAttendances = attendanceRepository.findByDateBetweenOrderByDateDescCheckInTimeDesc(monthStart, monthEnd);
+        Map<Long, List<Attendance>> attMap = allAttendances.stream()
+                .filter(a -> a.getEmployee() != null)
+                .collect(Collectors.groupingBy(a -> a.getEmployee().getId()));
+
         List<Employee> employees = allEmployees.stream()
                 .filter(e -> {
                     if (!"LEAVE".equals(e.getStatus()) && !"DELETED".equals(e.getStatus())) {
                         return true;
                     }
-                    // For inactive (LEAVE/DELETED) employees, check if they have any attendance records in this month
-                    return !attendanceRepository.findByEmployeeIdAndDateBetween(e.getId(), monthStart, monthEnd).isEmpty();
+                    return attMap.containsKey(e.getId()) && !attMap.get(e.getId()).isEmpty();
                 })
                 .collect(Collectors.toList());
 
-        // ── Bước 1: lấy doanh thu → tính quỹ POOL ──────────────────────────
         double bonusPool = revenueRepository.findByMonthAndYear(month, year)
                 .map(r -> r.getBonusPool() != null ? r.getBonusPool() : 0.0)
                 .orElse(0.0);
 
-        // ── Bước 2: đếm weight để chia POOL ────────────────────────────────
         SalaryConfig config = getSystemConfig();
         double ftWeight = config.getFullTimeShareWeight();
         double mgWeight = config.getManagerShareWeight();
@@ -131,57 +96,82 @@ public class SalaryService {
         double fullTimeBonusRev = pointValue * ftWeight;
         double managerBonusRev  = pointValue * mgWeight;
 
-        // ── Bước 3: tính lương từng người ───────────────────────────────────
+        List<Holiday> allHolidays = holidayRepository.findAll();
+        List<Salary> existingSalaries = salaryRepository.findByMonthAndYear(month, year);
+        Map<Long, Salary> salaryMap = existingSalaries.stream()
+                .filter(s -> s.getEmployee() != null)
+                .collect(Collectors.toMap(s -> s.getEmployee().getId(), s -> s));
+
+        List<Salary> salariesToSave = new ArrayList<>();
         List<SalaryPayrollDto> results = new ArrayList<>();
+
         for (Employee emp : employees) {
             double revBonus = 0.0;
             if (emp.getEmployeeType() == EmployeeType.FULL_TIME) revBonus = fullTimeBonusRev;
             else if (emp.getEmployeeType() == EmployeeType.MANAGER) revBonus = managerBonusRev;
 
-            SalaryPayrollDto dto = calculateOneSalary(emp, month, year, revBonus);
-            results.add(dto);
+            List<Attendance> records = attMap.getOrDefault(emp.getId(), new ArrayList<>());
+            Salary existing = salaryMap.get(emp.getId());
+            
+            Salary processedSalary = calculateOneSalaryCore(emp, month, year, revBonus, records, allHolidays, existing, config);
+            salariesToSave.add(processedSalary);
         }
+
+        List<Salary> savedSalaries = salaryRepository.saveAll(salariesToSave);
+
+        for (Salary s : savedSalaries) {
+            results.add(toDtoWithRecords(s, attMap.getOrDefault(s.getEmployee().getId(), new ArrayList<>()), config));
+        }
+
         return results;
     }
 
-    /**
-     * Tính lương 1 nhân viên (cũng persist vào DB).
-     */
     public SalaryPayrollDto calculateSalaryForOne(Long employeeId, Integer month, Integer year) {
         Employee emp = employeeRepository.findById(employeeId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên: " + employeeId));
 
-        // Tính revenue bonus riêng cho người này trong ngữ cảnh toàn công ty
         double revBonus = computeRevenueBonusForEmployee(emp, month, year);
-        return calculateOneSalary(emp, month, year, revBonus);
-    }
-
-    /**
-     * Lấy danh sách bảng lương đã tính trong tháng.
-     */
-    public List<SalaryPayrollDto> getSalariesByMonth(Integer month, Integer year) {
-        return salaryRepository.findByMonthAndYear(month, year)
-                .stream()
-                .map(this::toDto)
-                .collect(Collectors.toList());
-    }
-
-    // =========================================================================
-    // PRIVATE – CORE LOGIC
-    // =========================================================================
-
-    private SalaryPayrollDto calculateOneSalary(Employee emp, Integer month, Integer year, double revBonus) {
+        LocalDate start = LocalDate.of(year, month, 1);
+        LocalDate end   = start.withDayOfMonth(start.lengthOfMonth());
+        List<Attendance> records = attendanceRepository.findByEmployeeIdAndDateBetween(emp.getId(), start, end);
+        List<Holiday> holidays = holidayRepository.findAll();
+        Salary existing = salaryRepository.findByEmployeeIdAndMonthAndYear(emp.getId(), month, year).orElse(null);
         SalaryConfig config = getSystemConfig();
-        EmployeeType type = emp.getEmployeeType() != null ? emp.getEmployeeType() : EmployeeType.FULL_TIME;
+
+        Salary salary = calculateOneSalaryCore(emp, month, year, revBonus, records, holidays, existing, config);
+        salary = salaryRepository.save(salary);
+        
+        if (salary.getEmployee() != null) {
+            salary.getEmployee().setSalaryBase(salary.getBaseSalary());
+            employeeRepository.save(salary.getEmployee());
+        }
+
+        return toDtoWithRecords(salary, records, config);
+    }
+
+    public List<SalaryPayrollDto> getSalariesByMonth(Integer month, Integer year) {
+        List<Salary> salaries = salaryRepository.findByMonthAndYear(month, year);
+        if (salaries.isEmpty()) return new ArrayList<>();
 
         LocalDate start = LocalDate.of(year, month, 1);
         LocalDate end   = start.withDayOfMonth(start.lengthOfMonth());
+        List<Attendance> allRecords = attendanceRepository.findByDateBetweenOrderByDateDescCheckInTimeDesc(start, end);
+        Map<Long, List<Attendance>> attMap = allRecords.stream()
+                .filter(a -> a.getEmployee() != null)
+                .collect(Collectors.groupingBy(a -> a.getEmployee().getId()));
 
-        // ── Luồng: Chấm công → Validate ─────────────────────────────────────
-        List<Attendance> records = attendanceRepository.findByEmployeeIdAndDateBetween(
-                emp.getId(), start, end);
+        SalaryConfig config = getSystemConfig();
 
-        // ── Luồng: Nghỉ đặc biệt → tách ra, không tính công, không phạt ────
+        return salaries.stream()
+                .map(s -> toDtoWithRecords(s, attMap.getOrDefault(s.getEmployee().getId(), new ArrayList<>()), config))
+                .collect(Collectors.toList());
+    }
+
+    private Salary calculateOneSalaryCore(Employee emp, Integer month, Integer year, double revBonus, List<Attendance> records, List<Holiday> allHolidays, Salary existing, SalaryConfig config) {
+        EmployeeType type = emp.getEmployeeType() != null ? emp.getEmployeeType() : EmployeeType.FULL_TIME;
+        LocalDate start = LocalDate.of(year, month, 1);
+        LocalDate end   = start.withDayOfMonth(start.lengthOfMonth());
+
         long specialLeaveDays = records.stream()
                 .filter(a -> a.getStatus() == AttendanceStatus.SPECIAL_LEAVE).count();
 
@@ -189,7 +179,6 @@ public class SalaryService {
                 .filter(a -> a.getStatus() != AttendanceStatus.SPECIAL_LEAVE)
                 .collect(Collectors.toList());
 
-        // ── Luồng: Tính giờ công ─────────────────────────────────────────────
         double regularHours = 0.0;
         double otHours      = 0.0;
         double holidayHours = 0.0;
@@ -199,7 +188,6 @@ public class SalaryService {
         long   absentNoPerm = 0;
         long   earlyDays    = 0;
 
-        List<Holiday> allHolidays = holidayRepository.findAll();
         List<Holiday> holidays = allHolidays.stream()
                 .filter(h -> {
                     if (h.getRepeatYearly() != null && h.getRepeatYearly()) {
@@ -210,7 +198,6 @@ public class SalaryService {
                 })
                 .collect(Collectors.toList());
 
-        // Count total working days as sum of actual work points.
         double workDays = records.stream()
                 .mapToDouble(a -> a.getWorkPoints() != null ? a.getWorkPoints() : 0.0)
                 .sum();
@@ -221,12 +208,10 @@ public class SalaryService {
                 absentNoPerm++;
             }
 
-            // Check if this date is a holiday
             Optional<Holiday> holidayOpt = holidays.stream()
                     .filter(h -> h.getDate().equals(a.getDate()))
                     .findFirst();
 
-            // Phạt đi trễ nghiêm khắc dựa trên giờ check-in thực tế, không phụ thuộc trạng thái hiển thị của ngày hôm đó
             if (a.getCheckInTime() != null) {
                 LocalTime shiftStart = a.getShift() != null ? a.getShift().getStartTime() : SHIFT_START;
                 long lateMinutes = a.getCheckInTime().isAfter(shiftStart)
@@ -236,7 +221,6 @@ public class SalaryService {
                 }
             }
 
-            // Check missing checkout
             boolean isMissingCheckout = a.getCheckInTime() != null && a.getCheckOutTime() == null && 
                 a.getStatus() != AttendanceStatus.ABSENT && a.getStatus() != AttendanceStatus.ABSENT_NO_PERMISSION && a.getStatus() != AttendanceStatus.SPECIAL_LEAVE;
             
@@ -244,10 +228,9 @@ public class SalaryService {
                 noCheckout++;
             }
 
-            // Check leaving early
             boolean isEarly = a.getStatus() == AttendanceStatus.EARLY;
             if (!isEarly && a.getCheckOutTime() != null) {
-                LocalTime shiftEnd = a.getShift() != null ? a.getShift().getEndTime() : SHIFT_END;
+                LocalTime shiftEnd = a.getShift() != null ? a.getShift().getEndTime() : SHIFT_START.plusHours(9);
                 long earlyMinutes = a.getCheckOutTime().isBefore(shiftEnd)
                         ? java.time.Duration.between(a.getCheckOutTime(), shiftEnd).toMinutes() : 0;
                 if (earlyMinutes > config.getEarlyGraceMinutes()) {
@@ -259,7 +242,6 @@ public class SalaryService {
             }
 
             boolean isHoliday = holidayOpt.isPresent();
-            // Nhân viên thực sự đi làm ngày Lễ: có check-in thực tế VÀ không phải là các trạng thái nghỉ/vắng
             boolean didWorkOnHoliday = isHoliday && a.getCheckInTime() != null 
                     && a.getStatus() != AttendanceStatus.ABSENT 
                     && a.getStatus() != AttendanceStatus.ABSENT_NO_PERMISSION 
@@ -276,12 +258,10 @@ public class SalaryService {
                         holidaySalary += roundAmount(hoursWorked * hourlyRate * coeff);
                     }
                 } else {
-                    // Full-time hoặc Manager đi làm ngày Lễ
                     double hoursWorked = 0.0;
                     if (a.getCheckOutTime() != null) {
                         hoursWorked = computeHours(a.getCheckInTime(), a.getCheckOutTime());
                     } else {
-                        // Fallback về số giờ tiêu chuẩn của ca/hệ thống nếu quên checkout để tính giờ công
                         hoursWorked = a.getShift() != null ? a.getShift().getStandardHours() : config.getStandardWorkingHours();
                     }
                     
@@ -306,7 +286,6 @@ public class SalaryService {
                     holidaySalary += roundAmount(bonusAmount * pts);
                 }
             } else if (!isMissingCheckout && a.getCheckInTime() != null && a.getCheckOutTime() != null) {
-                // Ngày thường đi làm bình thường (hoặc ngày lễ nhưng không được tính đi làm lễ)
                 double hoursWorked = computeHours(a.getCheckInTime(), a.getCheckOutTime());
                 if (type == EmployeeType.PART_TIME) {
                     regularHours += hoursWorked;
@@ -326,34 +305,29 @@ public class SalaryService {
         otHours      = roundHours(otHours);
         holidayHours = roundHours(holidayHours);
 
-        // ── Luồng: Tính lương cơ bản ─────────────────────────────────────────
         double baseSalary;
         double actualBaseSalary;
         double otSalary;
 
         if (type == EmployeeType.PART_TIME) {
             double hourlyRate = (emp.getSalaryBase() != null && emp.getSalaryBase() > 0) ? emp.getSalaryBase() : config.getPartTimeHourlyRate();
-            baseSalary = hourlyRate; // Lương cơ bản là mức lương theo giờ
+            baseSalary = hourlyRate;
             actualBaseSalary = roundAmount(regularHours * hourlyRate);
-            otSalary = 0.0; // Part-time không có OT
+            otSalary = 0.0;
         } else if (emp.getSalaryBase() != null && emp.getSalaryBase() > 0) {
-            baseSalary = roundAmount(emp.getSalaryBase()); // Lương cơ bản gốc
-            
-            // Lương thực tế tính tỷ lệ theo số ngày làm thực tế (gồm cả nghỉ đặc biệt được hưởng nguyên lương)
-            // Tối đa 100% lương cơ bản gốc khi đạt đủ hoặc vượt số ngày công yêu cầu
+            baseSalary = roundAmount(emp.getSalaryBase());
             double totalEffectiveDays = workDays + specialLeaveDays;
             double paidDays = Math.min((double) config.getRequiredPerfectDays(), totalEffectiveDays);
             actualBaseSalary = roundAmount((emp.getSalaryBase() * paidDays) / config.getRequiredPerfectDays());
-            
             otSalary   = roundAmount(otHours * (emp.getSalaryBase() / (config.getRequiredPerfectDays() * config.getStandardWorkingHours())) * config.getOtMultiplier());
         } else {
             switch (type) {
                 case MANAGER:
                     baseSalary = config.getManagerBaseSalary() + config.getManagerAllowance();
-                    otSalary   = 0.0; // Manager không OT
+                    otSalary   = 0.0;
                     actualBaseSalary = baseSalary;
                     break;
-                default: // FULL_TIME
+                default:
                     baseSalary = config.getFullTimeBaseSalary();
                     double totalEffectiveDays = workDays + specialLeaveDays;
                     double paidDays = Math.min((double) config.getRequiredPerfectDays(), totalEffectiveDays);
@@ -363,15 +337,11 @@ public class SalaryService {
             }
         }
 
-        // ── Luồng: Thưởng/Phạt ──────────────────────────────────────────────
-        // Phạt (áp dụng cho tất cả loại NORMAL)
         double penaltyLateAmt     = roundAmount(lateDays     * config.getLatePenalty());
         double penaltyNoCheckAmt  = roundAmount(noCheckout   * config.getMissingCheckoutPenalty());
-        // Chỉ phạt vắng đối với số ngày nghỉ không phép thực tế
         double penaltyAbsentAmt   = roundAmount(absentNoPerm * config.getAbsentPenalty());
         double totalPenalty       = roundAmount(penaltyLateAmt + penaltyNoCheckAmt + penaltyAbsentAmt);
 
-        // Thưởng chuyên cần (chỉ Full-time và Manager)
         double bonusFullDays = 0.0;
         double bonusNoLate   = 0.0;
         double totalEffectiveDaysForBonus = workDays + specialLeaveDays;
@@ -384,17 +354,12 @@ public class SalaryService {
             }
         }
         double bonusAttendance = roundAmount(bonusFullDays + bonusNoLate);
-
-        // Thưởng doanh thu (Part-time = 0, đã tính bên ngoài và truyền vào)
         double bonusRevenue = (type == EmployeeType.PART_TIME) ? 0.0 : roundAmount(revBonus);
-
         double totalBonus = roundAmount(bonusAttendance + bonusRevenue);
 
-        // ── Luồng: Tính lương cuối ───────────────────────────────────────────
         double totalSalary = roundAmount(actualBaseSalary + otSalary + holidaySalary + totalBonus - totalPenalty);
         if (totalSalary < 0) totalSalary = 0;
 
-        // Nếu không đi làm ngày nào (0 ngày và 0 công), thực lĩnh và tất cả khoản lương, thưởng, phạt tự động bằng 0
         if (workDays == 0.0 && regularHours == 0.0 && holidayHours == 0.0) {
             baseSalary = 0.0;
             actualBaseSalary = 0.0;
@@ -411,9 +376,7 @@ public class SalaryService {
             totalSalary = 0.0;
         }
 
-        // ── Persist ──────────────────────────────────────────────────────────
-        Optional<Salary> existing = salaryRepository.findByEmployeeIdAndMonthAndYear(emp.getId(), month, year);
-        Salary salary = existing.orElse(new Salary());
+        Salary salary = existing != null ? existing : new Salary();
         salary.setEmployee(emp);
         salary.setMonth(month);
         salary.setYear(year);
@@ -434,44 +397,9 @@ public class SalaryService {
         salary.setTotalPenalty(totalPenalty);
         salary.setTotalBonus(totalBonus);
         salary.setTotalSalary(totalSalary);
-        salary.setStatus("PENDING");
-        salaryRepository.save(salary);
+        if (salary.getStatus() == null) salary.setStatus("PENDING");
 
-        // Lương đã được tính và lưu
-        // (Không gửi email thông báo lương tự động tại đây để tránh spam khi chấm công, chỉ gửi khi được duyệt)
-
-        // ── Build DTO ─────────────────────────────────────────────────────────
-        return SalaryPayrollDto.builder()
-                .salaryId(salary.getId())
-                .employeeId(emp.getId())
-                .employeeName(emp.getName())
-                .department(emp.getDepartment())
-                .position(emp.getPosition())
-                .employeeType(type)
-                .month(month).year(year)
-                .regularHours(regularHours)
-                .otHours(otHours)
-                .holidayHours(holidayHours)
-                .workDays(workDays)
-                .baseSalary(baseSalary)
-                .actualBaseSalary(actualBaseSalary)
-                .otSalary(otSalary)
-                .holidaySalary(holidaySalary)
-                .bonusAttendance(bonusAttendance)
-                .bonusRevenue(bonusRevenue)
-                .totalBonus(totalBonus)
-                .penaltyLate(penaltyLateAmt)
-                .penaltyNoCheckout(penaltyNoCheckAmt)
-                .penaltyAbsent(penaltyAbsentAmt)
-                .totalPenalty(totalPenalty)
-                .totalSalary(totalSalary)
-                .lateDays(lateDays)
-                .specialLeaveDays(specialLeaveDays)
-                .absentNoPerm(absentNoPerm)
-                .noCheckoutDays(noCheckout)
-                .earlyDays(earlyDays)
-                .status(salary.getStatus())
-                .build();
+        return salary;
     }
 
     public SalaryPayrollDto updateSalary(Long id, SalaryPayrollDto dto) {
@@ -490,7 +418,6 @@ public class SalaryService {
         salary.setBonusRevenue(roundAmount(dto.getBonusRevenue()));
         salary.setTotalPenalty(roundAmount(dto.getTotalPenalty()));
         
-        // Recalculate total
         double totalSalary = (salary.getActualBaseSalary() != null ? salary.getActualBaseSalary() : 0)
                            + (salary.getOtSalary() != null ? salary.getOtSalary() : 0)
                            + (salary.getHolidaySalary() != null ? salary.getHolidaySalary() : 0)
@@ -503,22 +430,29 @@ public class SalaryService {
                            + (salary.getBonusRevenue() != null ? salary.getBonusRevenue() : 0)));
         salary.setTotalSalary(roundAmount(totalSalary));
         
-        // Cập nhật ngược lại vào hồ sơ Nhân sự (Employee profile) để lần sau tự động lấy số này
         if (salary.getEmployee() != null) {
             salary.getEmployee().setSalaryBase(dto.getBaseSalary());
             employeeRepository.save(salary.getEmployee());
         }
         
-        return toDto(salaryRepository.save(salary));
+        LocalDate start = LocalDate.of(salary.getYear(), salary.getMonth(), 1);
+        LocalDate end   = start.withDayOfMonth(start.lengthOfMonth());
+        List<Attendance> records = attendanceRepository.findByEmployeeIdAndDateBetween(salary.getEmployee().getId(), start, end);
+        
+        return toDtoWithRecords(salaryRepository.save(salary), records, getSystemConfig());
     }
 
     public SalaryPayrollDto approveSalary(Long id) {
         Salary salary = salaryRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bảng lương: " + id));
         salary.setStatus("APPROVED");
+        salary = salaryRepository.save(salary);
         
-        SalaryPayrollDto dto = toDto(salaryRepository.save(salary));
-        // Gửi email khi duyệt lương
+        LocalDate start = LocalDate.of(salary.getYear(), salary.getMonth(), 1);
+        LocalDate end   = start.withDayOfMonth(start.lengthOfMonth());
+        List<Attendance> records = attendanceRepository.findByEmployeeIdAndDateBetween(salary.getEmployee().getId(), start, end);
+        
+        SalaryPayrollDto dto = toDtoWithRecords(salary, records, getSystemConfig());
         if (salary.getEmployee() != null) {
             sendPayrollEmail(salary.getEmployee(), salary.getMonth(), salary.getYear(), salary.getTotalSalary());
         }
@@ -526,17 +460,23 @@ public class SalaryService {
     }
 
     public SalaryPayrollDto revertSalary(Long id) {
-        Salary salary = salaryRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy bảng lương: " + id));
+        Salary salary = salaryRepository.findById(id).orElseThrow();
         salary.setStatus("PENDING");
-        return toDto(salaryRepository.save(salary));
+        salary = salaryRepository.save(salary);
+        LocalDate start = LocalDate.of(salary.getYear(), salary.getMonth(), 1);
+        LocalDate end   = start.withDayOfMonth(start.lengthOfMonth());
+        List<Attendance> records = attendanceRepository.findByEmployeeIdAndDateBetween(salary.getEmployee().getId(), start, end);
+        return toDtoWithRecords(salary, records, getSystemConfig());
     }
 
     public SalaryPayrollDto rejectSalary(Long id) {
-        Salary salary = salaryRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy bảng lương: " + id));
+        Salary salary = salaryRepository.findById(id).orElseThrow();
         salary.setStatus("REJECTED");
-        return toDto(salaryRepository.save(salary));
+        salary = salaryRepository.save(salary);
+        LocalDate start = LocalDate.of(salary.getYear(), salary.getMonth(), 1);
+        LocalDate end   = start.withDayOfMonth(start.lengthOfMonth());
+        List<Attendance> records = attendanceRepository.findByEmployeeIdAndDateBetween(salary.getEmployee().getId(), start, end);
+        return toDtoWithRecords(salary, records, getSystemConfig());
     }
 
     public List<SalaryPayrollDto> approveAllSalaries(Integer month, Integer year) {
@@ -544,12 +484,11 @@ public class SalaryService {
         for (Salary salary : list) {
             salary.setStatus("APPROVED");
             salaryRepository.save(salary);
-            // Gửi email khi duyệt lương
             if (salary.getEmployee() != null) {
                 sendPayrollEmail(salary.getEmployee(), salary.getMonth(), salary.getYear(), salary.getTotalSalary());
             }
         }
-        return list.stream().map(this::toDto).collect(Collectors.toList());
+        return getSalariesByMonth(month, year);
     }
 
     public List<SalaryPayrollDto> approveMultipleSalaries(List<Long> ids, Integer month, Integer year) {
@@ -558,7 +497,6 @@ public class SalaryService {
             for (Salary salary : list) {
                 salary.setStatus("APPROVED");
                 salaryRepository.save(salary);
-                // Gửi email khi duyệt lương
                 if (salary.getEmployee() != null) {
                     sendPayrollEmail(salary.getEmployee(), salary.getMonth(), salary.getYear(), salary.getTotalSalary());
                 }
@@ -589,9 +527,6 @@ public class SalaryService {
         return getSalariesByMonth(month, year);
     }
 
-    /**
-     * Tính revenue bonus cho 1 nhân viên trong ngữ cảnh toàn bộ công ty.
-     */
     private double computeRevenueBonusForEmployee(Employee emp, Integer month, Integer year) {
         if (emp.getEmployeeType() == EmployeeType.PART_TIME) return 0.0;
 
@@ -616,10 +551,7 @@ public class SalaryService {
         return (double) Math.round(rawBonus);
     }
 
-    /**
-     * Map Salary entity → DTO (dùng khi đọc từ DB).
-     */
-    private SalaryPayrollDto toDto(Salary s) {
+    private SalaryPayrollDto toDtoWithRecords(Salary s, List<Attendance> records, SalaryConfig config) {
         Employee emp = s.getEmployee();
         long lateDays = 0;
         long specialLeaveDays = 0;
@@ -627,12 +559,7 @@ public class SalaryService {
         long noCheckout = 0;
         long earlyDays = 0;
 
-        if (emp != null) {
-            LocalDate start = LocalDate.of(s.getYear(), s.getMonth(), 1);
-            LocalDate end   = start.withDayOfMonth(start.lengthOfMonth());
-            List<Attendance> records = attendanceRepository.findByEmployeeIdAndDateBetween(emp.getId(), start, end);
-            SalaryConfig config = getSystemConfig();
-
+        if (emp != null && records != null) {
             specialLeaveDays = records.stream()
                     .filter(a -> a.getStatus() == AttendanceStatus.SPECIAL_LEAVE).count();
 
@@ -658,7 +585,7 @@ public class SalaryService {
 
                 boolean isEarly = a.getStatus() == AttendanceStatus.EARLY;
                 if (!isEarly && a.getCheckOutTime() != null) {
-                    LocalTime shiftEnd = a.getShift() != null ? a.getShift().getEndTime() : SHIFT_START.plusHours(9); // fallback shift end
+                    LocalTime shiftEnd = a.getShift() != null ? a.getShift().getEndTime() : SHIFT_START.plusHours(9);
                     long earlyMinutes = a.getCheckOutTime().isBefore(shiftEnd)
                             ? java.time.Duration.between(a.getCheckOutTime(), shiftEnd).toMinutes() : 0;
                     if (earlyMinutes > config.getEarlyGraceMinutes()) {

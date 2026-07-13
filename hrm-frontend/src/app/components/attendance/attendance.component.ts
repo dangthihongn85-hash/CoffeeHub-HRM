@@ -1,3 +1,4 @@
+import { environment } from 'src/environments/environment';
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef, HostListener } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -45,7 +46,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
       this.currentUser = user;
     });
 
-    this.http.get<any[]>('http://localhost:8080/api/employees').subscribe({
+    this.http.get<any[]>(`${environment.apiUrl}/employees`).subscribe({
       next: data => {
         this.employees = data;
         this.filteredEmployees = data;
@@ -263,7 +264,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     // Convert Float32Array to Array for JSON transmission
     const descriptorArray = Array.from(descriptor);
     
-    this.http.post('http://localhost:8080/api/face-attendance/register', {
+    this.http.post(`${environment.apiUrl}/face-attendance/register`, {
       employeeId: this.selectedRegisterEmployeeId,
       descriptor: descriptorArray
     }).subscribe({
@@ -272,7 +273,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
         this.snackBar.open(`✅ ${res.message}`, 'Đóng', { duration: 4000 });
         
         // Cập nhật lại danh sách nhân viên để hiển thị trạng thái "Đã ĐK"
-        this.http.get<any[]>('http://localhost:8080/api/employees').subscribe(data => {
+        this.http.get<any[]>(`${environment.apiUrl}/employees`).subscribe(data => {
             this.employees = data;
         });
 
@@ -303,8 +304,8 @@ export class AttendanceComponent implements OnInit, OnDestroy {
       }
       
       const endpoint = type === 'checkin'
-        ? `http://localhost:8080/api/face-attendance/check-in`
-        : `http://localhost:8080/api/face-attendance/check-out`;
+        ? `${environment.apiUrl}/face-attendance/check-in`
+        : `${environment.apiUrl}/face-attendance/check-out`;
 
       this.http.post(endpoint, { descriptor: Array.from(descriptor) }).subscribe({
         next: (res: any) => {
@@ -332,7 +333,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   loadSummary() {
     this.summaryLoading = true;
     this.http.get<any[]>(
-      `http://localhost:8080/api/attendance/${this.selectedEmployeeId}/monthly?month=${this.summaryMonth}&year=${this.summaryYear}`
+      `${environment.apiUrl}/attendance/${this.selectedEmployeeId}/monthly?month=${this.summaryMonth}&year=${this.summaryYear}`
     ).subscribe({
       next: data => {
         this.summaryData = data;

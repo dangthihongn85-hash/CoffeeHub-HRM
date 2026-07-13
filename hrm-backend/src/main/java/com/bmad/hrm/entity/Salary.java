@@ -83,5 +83,6 @@ public class Salary {
     private Double totalSalary;      // Lương cuối cùng
 
     @Column(name = "status")
+    @Builder.Default
     private String status = "PENDING";
 }

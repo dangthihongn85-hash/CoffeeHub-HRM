@@ -1,3 +1,4 @@
+import { environment } from 'src/environments/environment';
 import { Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -444,7 +445,7 @@ export class SalaryComponent implements OnInit {
   }
 
   loadEmployees() {
-    this.http.get<any[]>('http://localhost:8080/api/employees').subscribe({
+    this.http.get<any[]>(`${environment.apiUrl}/employees`).subscribe({
       next: (data) => {
         this.employees = data.filter(e => e.role !== 'ADMIN');
         if (this.employees.length > 0) {
@@ -480,7 +481,7 @@ export class SalaryComponent implements OnInit {
         return;
       }
 
-      this.http.get<any>(`http://localhost:8080/api/ai/review/${this.selectedEmployeeId}`, {
+      this.http.get<any>(`${environment.apiUrl}/ai/review/${this.selectedEmployeeId}`, {
         params: {
           month: this.selectedMonth.toString(),
           year: this.selectedYear.toString()
@@ -499,7 +500,7 @@ export class SalaryComponent implements OnInit {
       });
     } else {
       // Team review
-      this.http.get<any>('http://localhost:8080/api/ai/review-all', {
+      this.http.get<any>(`${environment.apiUrl}/ai/review-all`, {
         params: {
           month: this.selectedMonth.toString(),
           year: this.selectedYear.toString()
@@ -523,10 +524,10 @@ export class SalaryComponent implements OnInit {
     this.exporting = true;
     this.snackBar.open('⏳ Đang tính toán và xuất báo cáo lương...', 'Đóng', { duration: 3000 });
 
-    this.http.post(`http://localhost:8080/api/salaries/calculate-all?month=${this.selectedMonth}&year=${this.selectedYear}`, {}).subscribe({
+    this.http.post(`${environment.apiUrl}/salaries/calculate-all?month=${this.selectedMonth}&year=${this.selectedYear}`, {}).subscribe({
       next: () => {
         this.exporting = false;
-        window.location.href = `http://localhost:8080/api/salaries/export?month=${this.selectedMonth}&year=${this.selectedYear}`;
+        window.location.href = `${environment.apiUrl}/salaries/export?month=${this.selectedMonth}&year=${this.selectedYear}`;
         this.snackBar.open('✔ Đã tải xuống file báo cáo lương.', 'Đóng', { duration: 3000 });
       },
       error: () => {
