@@ -113,80 +113,53 @@
 // employeeRepository.save(admin);
 // System.out.println("Seeded admin!");
 
-// // 5. Seed 20 Dummy Employees
-// List<String> names = Arrays.asList(
-// "Trần Văn Hùng", "Lê Thị Mai", "Phạm Văn Đức", "Hoàng Thị Lan", "Đỗ Văn
-// Minh",
-// "Ngô Thị Hoa", "Dương Văn Nam", "Lý Thị Thu", "Bùi Văn Tuấn", "Vũ Thị Ngọc",
-// "Đặng Văn Long", "Bùi Thị Trang", "Trịnh Văn Hải", "Đinh Thị Yến", "Võ Văn
-// Bình",
-// "Lâm Thị Kim", "Mai Văn Sơn", "Phan Thị Ly", "Thái Văn Duy", "Hoàng Thị Bảo"
-// );
-
-// String[][] cafePosData = {
-// {"Barista", "Pha Chế"}, {"Nhân Viên Phục Vụ", "Phục Vụ"},
-// {"Barista Trưởng", "Pha Chế"}, {"Thu Ngân", "Thu Ngân"},
-// {"Trợ Lý Barista", "Pha Chế"}, {"Barista Trưởng", "Pha Chế"},
-// {"Nhân Viên Phục Vụ", "Phục Vụ"}, {"Nhân Viên Part-time", "Phục Vụ"},
-// {"Trưởng Ca Phục Vụ", "Phục Vụ"}, {"Thu Ngân Trưởng", "Thu Ngân"},
-// {"Barista", "Pha Chế"}, {"Nhân Viên Part-time", "Phục Vụ"},
-// {"Barista", "Pha Chế"}, {"Nhân Viên Phục Vụ", "Phục Vụ"},
-// {"Barista", "Pha Chế"}, {"Quản Lý Ca", "Quản Lý"},
-// {"Nhân Viên Phục Vụ", "Phục Vụ"}, {"Barista", "Pha Chế"},
-// {"Nhân Viên Phục Vụ", "Phục Vụ"}, {"Thu Ngân", "Thu Ngân"}
-// };
-// double[] salaries = {
-// 8000000, 7000000, 9500000, 8000000, 7500000,
-// 10000000, 6800000, 8000000, 8500000, 9000000,
-// 8000000, 3500000, 9000000, 7200000, 8100000,
-// 10000000, 6900000, 8200000, 7800000, 8000000
+// // 5. Seed Current Employees (Dynamic)
+// Object[][] employeeData = {
+//     {"Trần Văn Hùng", "nv1@cafe.com", Role.EMPLOYEE, "Barista", "Pha Chế", 8000000.0, EmployeeType.FULL_TIME, "ACTIVE", dummyFaceJson},
+//     {"Lê Thị Mai", "nv2@cafe.com", Role.EMPLOYEE, "Nhân Viên Phục Vụ", "Phục Vụ", 7000000.0, EmployeeType.FULL_TIME, "ACTIVE", dummyFaceJson},
+//     {"Phạm Văn Đức", "nv3@cafe.com", Role.EMPLOYEE, "Barista Trưởng", "Pha Chế", 9500000.0, EmployeeType.MANAGER, "ACTIVE", dummyFaceJson},
+//     {"Hoàng Thị Lan", "nv4@cafe.com", Role.EMPLOYEE, "Thu Ngân", "Thu Ngân", 8000000.0, EmployeeType.FULL_TIME, "ACTIVE", dummyFaceJson},
+//     {"Đỗ Văn Minh", "nv5@cafe.com", Role.EMPLOYEE, "Trợ Lý Barista", "Pha Chế", 7500000.0, EmployeeType.FULL_TIME, "ACTIVE", dummyFaceJson},
+//     {"Ngô Thị Hoa", "nv6@cafe.com", Role.EMPLOYEE, "Barista Trưởng", "Pha Chế", 10000000.0, EmployeeType.MANAGER, "ACTIVE", dummyFaceJson},
+//     {"Dương Văn Nam", "nv7@cafe.com", Role.EMPLOYEE, "Nhân Viên Phục Vụ", "Phục Vụ", 6800000.0, EmployeeType.FULL_TIME, "LEAVE", dummyFaceJson},
+//     {"Lý Thị Thu", "nv8@cafe.com", Role.EMPLOYEE, "Nhân Viên Part-time", "Phục Vụ", 25000.0, EmployeeType.PART_TIME, "ACTIVE", dummyFaceJson},
+//     {"Bùi Văn Tuấn", "nv9@cafe.com", Role.EMPLOYEE, "Trưởng Ca Phục Vụ", "Phục Vụ", 8500000.0, EmployeeType.MANAGER, "ACTIVE", dummyFaceJson},
+//     {"Vũ Thị Ngọc", "nv10@cafe.com", Role.EMPLOYEE, "Thu Ngân Trưởng", "Thu Ngân", 9000000.0, EmployeeType.MANAGER, "ACTIVE", dummyFaceJson},
+//     {"Đặng Văn Long", "nv11@cafe.com", Role.EMPLOYEE, "Barista", "Pha Chế", 8000000.0, EmployeeType.FULL_TIME, "ACTIVE", dummyFaceJson},
+//     {"Bùi Thị Trang", "nv12@cafe.com", Role.EMPLOYEE, "Nhân Viên Part-time", "Phục Vụ", 25000.0, EmployeeType.PART_TIME, "ACTIVE", dummyFaceJson},
+//     {"Trịnh Văn Hải", "nv13@cafe.com", Role.EMPLOYEE, "Barista", "Pha Chế", 9000000.0, EmployeeType.FULL_TIME, "LEAVE", dummyFaceJson},
+//     {"Đinh Thị Yến", "nv14@cafe.com", Role.EMPLOYEE, "Nhân Viên Phục Vụ", "Phục Vụ", 7200000.0, EmployeeType.FULL_TIME, "ACTIVE", dummyFaceJson},
+//     {"Võ Văn Bình", "nv15@cafe.com", Role.EMPLOYEE, "Barista", "Pha Chế", 8100000.0, EmployeeType.FULL_TIME, "ACTIVE", dummyFaceJson},
+//     {"Lâm Thị Kim", "nv16@cafe.com", Role.EMPLOYEE, "Quản Lý Ca", "Quản Lý", 10000000.0, EmployeeType.MANAGER, "ACTIVE", dummyFaceJson},
+//     {"Mai Văn Sơn", "nv17@cafe.com", Role.EMPLOYEE, "Nhân Viên Phục Vụ", "Phục Vụ", 6900000.0, EmployeeType.FULL_TIME, "ACTIVE", dummyFaceJson},
+//     {"Bon's House", "nv18@cafe.com", Role.EMPLOYEE, "Barista", "Pha Chế", 8200000.0, EmployeeType.FULL_TIME, "ACTIVE", dummyFaceJson},
+//     {"thắng", "hoa@gmail.com", Role.HR, "Trưởng Ca Phục Vụ", "Phục Vụ", 25000.0, EmployeeType.PART_TIME, "ACTIVE", dummyFaceJson},
 // };
 
 // // Create a dummy JSON face descriptor array of 128 zeros
 // StringBuilder sb = new StringBuilder("[");
 // for (int j = 0; j < 128; j++) {
-// sb.append("0.0");
-// if (j < 127) sb.append(",");
+//     sb.append("0.0");
+//     if (j < 127) sb.append(",");
 // }
 // sb.append("]");
 // String dummyFaceJson = sb.toString();
 
-// for (int i = 0; i < 20; i++) {
-// Employee emp = new Employee();
-// emp.setName(names.get(i));
-// emp.setEmail("nv" + (i + 1) + "@cafe.com");
-// emp.setPassword(passwordEncoder.encode("123456"));
-// emp.setRole(Role.EMPLOYEE);
-// emp.setPosition(cafePosData[i][0]);
-// emp.setDepartment(cafePosData[i][1]);
-// emp.setSalaryBase(salaries[i]);
-
-// // Assign explicit EmployeeType based on position name
-// if (cafePosData[i][0].contains("Part-time")) {
-// emp.setEmployeeType(EmployeeType.PART_TIME);
-// } else if (cafePosData[i][0].contains("Trưởng") ||
-// cafePosData[i][0].contains("Quản Lý")) {
-// emp.setEmployeeType(EmployeeType.MANAGER);
-// } else {
-// emp.setEmployeeType(EmployeeType.FULL_TIME);
+// for (Object[] row : employeeData) {
+//     Employee emp = new Employee();
+//     emp.setName((String) row[0]);
+//     emp.setEmail((String) row[1]);
+//     emp.setPassword(passwordEncoder.encode("123456"));
+//     emp.setRole((Role) row[2]);
+//     emp.setPosition((String) row[3]);
+//     emp.setDepartment((String) row[4]);
+//     emp.setSalaryBase(((Number) row[5]).doubleValue());
+//     emp.setEmployeeType((EmployeeType) row[6]);
+//     emp.setStatus((String) row[7]);
+//     emp.setFaceDescriptor((String) row[8]);
+//     employeeRepository.save(emp);
 // }
-
-// emp.setStatus(i % 6 == 0 ? "LEAVE" : "ACTIVE");
-
-// // Employees 0 to 16 (17 people) HAVE registered faces.
-// // Employees 17, 18, 19 (the last 3 people) DO NOT have registered faces
-// (faceDescriptor is NULL)
-// // and they will have NO historical attendance records seeded!
-// if (i < 17) {
-// emp.setFaceDescriptor(dummyFaceJson);
-// } else {
-// emp.setFaceDescriptor(null);
-// }
-
-// employeeRepository.save(emp);
-// }
-// System.out.println("Seeded 20 employees (17 with face registered, 3
-// without)!");
+// System.out.println("Seeded " + employeeData.length + " employees from current state!");
 
 // // 6. Seed Monthly Revenue
 // LocalDate targetMonthDate = LocalDate.of(2026, 5, 1);
