@@ -1,0 +1,70 @@
+========================================================================
+             LUỒNG DỰ ÁN CHI TIẾT - COFFEEHUB HRM
+========================================================================
+
+1. TỔNG QUAN HỆ THỐNG
+Dự án CoffeeHub-HRM là một hệ thống quản lý nhân sự (HRM) được xây dựng theo kiến trúc Client-Server. Hệ thống bao gồm 3 thành phần (tier) chính:
+- Frontend: Angular (Xử lý giao diện người dùng)
+- Backend: Java Spring Boot (Xử lý logic nghiệp vụ và cung cấp API)
+- Database: MySQL (Lưu trữ dữ liệu hệ thống)
+
+------------------------------------------------------------------------
+2. LUỒNG KIẾN TRÚC VÀ TỔNG THỂ (ARCHITECTURE FLOW)
+
+[Người Dùng/Browser] 
+       | (Tương tác UI, Click, Nhập liệu)
+       V
+[FRONTEND - Angular] (Port 4200 hoặc 80 qua Nginx trong Docker)
+       | Bao gồm các module chính: Login, Attendance, Salary, Employees, Shifts...
+       | (Gửi HTTP Requests: GET, POST, PUT, DELETE)
+       V
+[BACKEND - Spring Boot] (Port 8080)
+       |  -> 2.1 Controller: Tiếp nhận HTTP Request từ Frontend, kiểm tra routing.
+       |  -> 2.2 Security: Xác thực (Authentication) và Phân quyền (Authorization).
+       |  -> 2.3 Service: Xử lý các logic nghiệp vụ (tính lương, quản lý ca, v.v.).
+       |  -> 2.4 Repository (JPA): Cung cấp các hàm tương tác với cơ sở dữ liệu.
+       V
+[DATABASE - MySQL] (Port 3306 trong Docker, ánh xạ ra 3307 trên Host)
+       | Trả về kết quả truy vấn (Entities/Data).
+       |
+[DỮ LIỆU TRẢ VỀ THEO CHIỀU NGƯỢC LẠI]
+       - Backend chuyển đổi Data thành định dạng DTO (Data Transfer Object) dưới dạng JSON.
+       - Frontend nhận JSON, render và cập nhật lại giao diện (DOM) cho người dùng.
+
+------------------------------------------------------------------------
+3. LUỒNG KHỞI CHẠY DỰ ÁN (EXECUTION FLOW)
+
+Hệ thống cung cấp 2 cách để khởi chạy dự án:
+
+CÁCH 1: KHỞI CHẠY HOÀN TOÀN BẰNG DOCKER (Khuyến nghị)
+- File cấu hình: `docker-compose.yml`
+- Luồng chạy: 
+  1. Người dùng gõ lệnh `docker-compose up -d --build`.
+  2. Docker kéo image `mysql:8.0` về và chạy database (container: hrm-mysql).
+  3. Docker build image cho Backend từ Dockerfile trong thư mục `hrm-backend` và chạy ứng dụng Java (container: hrm-backend).
+  4. Docker build image cho Frontend từ Dockerfile trong thư mục `hrm-frontend` (sử dụng Nginx) và chạy ứng dụng (container: hrm-frontend).
+  5. Tất cả kết nối ngầm với nhau qua Docker network. Người dùng truy cập Frontend tại `http://localhost:4200` và API tại `http://localhost:8080`.
+
+CÁCH 2: KHỞI CHẠY QUA SCRIPT ĐỊA PHƯƠNG (Local/Hybrid)
+- File cấu hình: `start_project.bat` / `start_project.ps1`
+- Luồng chạy:
+  1. Chạy file batch `.bat`, file này sẽ kích hoạt script `.ps1`.
+  2. Script chạy `docker-compose up -d` để bật hệ thống nền.
+  3. Script mở cửa sổ PowerShell riêng biệt và chạy Backend bằng Maven (`mvnw spring-boot:run`).
+  4. Script mở cửa sổ PowerShell khác và chạy Frontend bằng npm (`npm start`).
+*(Lưu ý: Nếu dùng cách này, cần đảm bảo docker-compose.yml không tự động start backend/frontend để tránh xung đột cổng 8080 và 4200 trên máy).*
+
+------------------------------------------------------------------------
+4. LUỒNG DỮ LIỆU CỤ THỂ (DATA FLOW - VÍ DỤ: LUỒNG ĐIỂM DANH)
+
+- Bước 1: Nhân viên truy cập trang web (Frontend), vào phần Điểm danh (Attendance Component).
+- Bước 2: Nhân viên bấm nút "Điểm danh vào làm".
+- Bước 3: Frontend thu thập thời gian hiện tại, mã nhân viên (dựa trên token đăng nhập) và gửi một HTTP POST request tới API của Backend (VD: `/api/attendance/check-in`).
+- Bước 4: Request đi tới tầng `Controller` của Spring Boot. Nó nhận request và gọi hàm tương ứng trong `AttendanceService`.
+- Bước 5: `AttendanceService` kiểm tra các điều kiện nghiệp vụ: 
+   + Có đúng ca làm không? 
+   + Đã điểm danh trước đó chưa? 
+   + Có đi muộn không?
+- Bước 6: `Service` gọi `AttendanceRepository` để lưu bản ghi (record) điểm danh mới xuống database MySQL.
+- Bước 7: Cơ sở dữ liệu ghi nhận thành công. Backend trả về một đối tượng JSON biểu thị kết quả (VD: HTTP 200 OK, message: "Điểm danh thành công").
+- Bước 8: Frontend nhận kết quả, hiển thị thông báo "Thành công" trên màn hình và tải lại danh sách điểm danh.
